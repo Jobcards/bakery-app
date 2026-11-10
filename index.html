@@ -1,0 +1,624 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Bakery Tech Job Cards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+/* Layout: one-column phone tool — sticky header with tabs, card list, full-screen form, floating "New" button */
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --ink:#141A21; --muted:#5B6673; --line:#D9DFE5;
+  --accent:#1B5FAA; --accent-ink:#FFFFFF; --accent-soft:#E3EDF8;
+  --ok:#1E7A46; --ok-soft:#E1F2E8; --warn:#A35F00; --warn-soft:#FBEED9; --wait:#6A3FB0; --wait-soft:#EEE7F8; --open:#5B6673; --open-soft:#E8ECF0;
+  --danger:#B42318;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
+  --accent:#5C9EE8; --accent-ink:#0B1520; --accent-soft:#1C2F45;
+  --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
+  --danger:#F2867D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
+  --accent:#5C9EE8; --accent-ink:#0B1520; --accent-soft:#1C2F45;
+  --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
+  --danger:#F2867D; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px 8px}
+.brand{min-width:0}
+.brand-row{display:flex;align-items:center;gap:10px;min-width:0}
+#coLogo{height:40px;width:auto;max-width:110px;object-fit:contain;flex:none}
+.logo-box{display:flex;align-items:center;justify-content:center;min-height:90px;background:#FFFFFF;border:1px dashed var(--line);border-radius:8px;padding:10px}
+.logo-box img{max-height:80px;width:auto}
+.brand h1{font-family:var(--f-display);font-size:1.5rem;letter-spacing:.01em;margin:0;line-height:1.1;text-wrap:balance}
+.brand small{display:block;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:4px}
+.tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:10px 4px;font:600 .95rem var(--f-body);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:default}
+.icon-btn{min-height:40px;padding:0 12px;font-size:.9rem}
+main{padding-block:16px 120px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{min-width:0}
+.search{flex:1 1 200px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;cursor:pointer;text-align:left;width:100%}
+.card:hover{border-color:var(--accent)}
+.card .t{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.card .m{grid-column:1/-1;color:var(--muted);font-size:.88rem;display:flex;gap:4px 12px;flex-wrap:wrap}
+.mono{font-family:var(--f-mono);font-size:.85em;font-variant-numeric:tabular-nums}
+.pill{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:999px;white-space:nowrap;align-self:start}
+.s-done{background:var(--ok-soft);color:var(--ok)} .s-follow{background:var(--warn-soft);color:var(--warn)} .s-parts{background:var(--wait-soft);color:var(--wait)} .s-open{background:var(--open-soft);color:var(--open)}
+.thumbs-mini{display:flex;gap:4px;grid-column:1/-1}
+.thumbs-mini img{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:28px 20px;text-align:center;color:var(--muted)}
+.empty h2{font-family:var(--f-display);color:var(--ink);margin:0 0 6px;font-size:1.4rem}
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:6;min-height:56px;padding:0 22px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-size:1rem}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+legend{font-family:var(--f-display);font-size:1.15rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:0;margin-bottom:4px}
+.section{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;color:var(--muted);min-width:0}
+label input,label select,label textarea{font-weight:400;font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px;width:100%}
+textarea{resize:vertical;min-height:84px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.grid2.stack-sm{grid-template-columns:1fr}}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.ph{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.ph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.ph input{border:0;border-top:1px solid var(--line);border-radius:0;padding:8px;font-size:.85rem;min-height:36px;background:var(--surface)}
+.ph .x{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.1rem;cursor:pointer}
+.ph .up{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);color:#fff;font-weight:600;font-size:.85rem}
+.hint{color:var(--muted);font-size:.85rem;margin:0}
+.kv{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px 14px;margin:0}
+.kv dt{color:var(--muted);font-size:.85rem}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.detail h2{font-family:var(--f-display);font-size:1.7rem;margin:0;line-height:1.1;text-wrap:balance}
+.block h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 4px}
+.block p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.gallery figure{margin:0}
+.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.gallery figcaption{font-size:.85rem;color:var(--muted);margin-top:2px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center}
+.part .pd{min-width:0;cursor:pointer;background:none;border:0;padding:0;text-align:left}
+.part .pd b{display:block;overflow-wrap:anywhere}
+.part .pd span{color:var(--muted);font-size:.85rem}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:1.2rem;font-weight:600;cursor:pointer}
+.qty output{min-width:2.4ch;text-align:center;font-family:var(--f-display);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.used{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.used li{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 6px 6px 10px}
+.used li span{min-width:0;overflow-wrap:anywhere}
+.brands{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.brands .bl{position:relative;background:#FFFFFF;border:1px solid var(--line);border-radius:8px;height:64px;display:grid;place-items:center;padding:6px}
+.brands .bl img{max-height:50px;width:auto}
+.brands .bl .x{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
+.confirm{background:var(--warn-soft);border:1px solid var(--warn);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.banner{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:10px;padding:10px 12px;font-size:.9rem}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
+.stat b{display:block;font-family:var(--f-display);font-size:1.6rem;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+@media (prefers-reduced-motion:no-preference){.card,.btn{transition:border-color .15s,background .15s}}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand-row"><img id="coLogo" alt="" hidden><div class="brand"><small id="coName">Service department</small><h1>Bakery Tech Job Cards</h1></div></div>
+      <button class="btn icon-btn" id="settingsBtn" type="button" aria-label="Company settings">Settings</button>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tabList" aria-selected="true" type="button">Job cards</button>
+      <button class="tab" role="tab" id="tabVan" aria-selected="false" type="button">Van stock</button>
+      <button class="tab" role="tab" id="tabReports" aria-selected="false" type="button">Reports</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<button class="btn primary fab" id="fab" type="button">+ New job card</button>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
+const EQUIP=["Deck oven","Rack oven","Convection oven","Combi oven","Rotary oven","Proofer","Retarder-proofer","Spiral mixer","Planetary mixer","Dough divider","Moulder","Dough sheeter","Bread slicer","Fryer","Bakery refrigeration"];
+const S={view:"list",cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:"",footer:"",logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
+  rep:{from:"",to:"",tech:"all"}};
+let db=null,assets=null,user=null,downloads=null,meId=null,canWrite=true;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>new Date().toLocaleDateString("en-CA");
+const fmtDate=d=>{if(!d)return"";const [y,m,dd]=d.split("-");return `${dd}/${m}/${y}`};
+function hours(a,b){if(!a||!b)return null;const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number);let m=(h2*60+m2)-(h1*60+m1);if(m<0)m+=1440;return Math.round(m/6)/10}
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+function techName(id){return (id&&S.names[id])||"Technician"}
+function newJobNo(){const d=new Date();const p=n=>String(n).padStart(2,"0");return `JC-${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`}
+
+/* ---------- rendering ---------- */
+function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabReports").setAttribute("aria-selected",v==="reports")}
+function render(){
+  setTab(S.view);
+  $("#fab").hidden=!(S.view==="list"||S.view==="detail")||!canWrite;
+  $("#coName").textContent=S.company.name||"Service department";setLogo();
+  const app=$("#app");
+  if(S.view==="list")app.innerHTML=listView();
+  else if(S.view==="van")app.innerHTML=vanView();
+  else if(S.view==="detail")app.innerHTML=detailView();
+  else if(S.view==="reports")app.innerHTML=reportsView();
+  else if(S.view==="settings")app.innerHTML=settingsView();
+  else if(S.view==="form"){app.innerHTML=formView();bindForm()}
+  window.scrollTo(0,0);
+}
+function statusPill(s){const st=STATUSES[s]||STATUSES.open;return `<span class="pill ${st.cls}">${st.label}</span>`}
+function photoUrl(p){return p.url||("/_blob/"+p.id)}
+function filtered(){
+  const q=S.q.trim().toLowerCase();
+  return S.cards.filter(c=>(S.filter==="all"||c.status===S.filter)&&(!q||[c.jobNo,c.customer,c.site,c.equipment,c.model,c.serial,c.fault,techName(c.techId)].join(" ").toLowerCase().includes(q)));
+}
+function listView(){
+  const banner=S.error?`<div class="banner">${esc(S.error)}</div>`:"";
+  const chips=[["all","All"],...Object.entries(STATUSES).map(([k,v])=>[k,v.label])].map(([k,l])=>`<button type="button" class="chip" data-filter="${k}" aria-pressed="${S.filter===k}">${l}</button>`).join("");
+  let body;
+  if(!S.loaded&&!S.error)body=`<div class="empty"><h2>Loading job cards…</h2><p>Fetching the team's cards.</p></div>`;
+  else if(!S.cards.length)body=`<div class="empty"><h2>No job cards yet</h2><p>Each card holds the site, machine, fault, work done, parts and photos.<br>Tap <b>+ New job card</b> to log the first job.</p></div>`;
+  else{const f=filtered();body=f.length?f.map(c=>`<button type="button" class="card" data-open="${esc(c.id)}">
+      <span class="t">${esc(c.customer||"No customer")}${c.site?` · ${esc(c.site)}`:""}</span>${statusPill(c.status)}
+      <span class="m"><span class="mono">${esc(c.jobNo)}</span><span>${fmtDate(c.date)}</span><span>${esc(c.equipment||"")}</span><span>${esc(techName(c.techId))}</span>${c.photos?.length?`<span>${c.photos.length} photo${c.photos.length>1?"s":""}</span>`:""}</span>
+      ${c.photos?.length?`<span class="thumbs-mini">${c.photos.slice(0,4).map(p=>`<img src="${esc(photoUrl(p))}" alt="" loading="lazy">`).join("")}</span>`:""}
+    </button>`).join(""):`<div class="empty"><p>No cards match this search.</p></div>`}
+  return `<div class="stack">${banner}<div class="row"><input class="search" id="q" type="search" placeholder="Search job no, customer, serial…" value="${esc(S.q)}" aria-label="Search job cards"></div><div class="chips">${chips}</div>${body}</div>`;
+}
+function detailView(){
+  const c=S.cards.find(x=>x.id===S.detailId);
+  if(!c)return `<div class="empty"><p>This job card was removed.</p><button class="btn" data-go="list" type="button">Back to job cards</button></div>`;
+  const h=hours(c.timeIn,c.timeOut);
+  const blk=(t,v)=>v?`<div class="block"><h3>${t}</h3><p>${esc(v)}</p></div>`:"";
+  const del=S.confirmDel?`<div class="confirm"><b>Delete job card ${esc(c.jobNo)}?</b><span class="hint">This removes it for the whole team.</span><div class="row"><button class="btn danger" id="delYes" type="button">Delete</button><button class="btn" id="delNo" type="button">Keep it</button></div></div>`:"";
+  return `<div class="stack detail">
+    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" data-go="list" type="button">← Job cards</button>${statusPill(c.status)}</div>
+    <div><span class="mono" style="color:var(--muted)">${esc(c.jobNo)}</span><h2>${esc(c.customer||"No customer")}${c.site?` · ${esc(c.site)}`:""}</h2></div>
+    <div class="row"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">Copy for WhatsApp</button>${canWrite?`<button class="btn" id="editOne" type="button">Edit</button>`:""}</div>
+    <div class="section"><dl class="kv">
+      <dt>Date</dt><dd>${fmtDate(c.date)}</dd>
+      <dt>Technician</dt><dd>${esc(techName(c.techId))}</dd>
+      <dt>Time on site</dt><dd>${esc(c.timeIn||"–")} to ${esc(c.timeOut||"–")}${h!=null?` <span class="mono">(${h} h)</span>`:""}</dd>
+      ${c.contact?`<dt>Site contact</dt><dd>${esc(c.contact)}</dd>`:""}
+      <dt>Equipment</dt><dd>${esc(c.equipment||"–")}${c.model?` · ${esc(c.model)}`:""}</dd>
+      ${c.serial?`<dt>Serial no.</dt><dd class="mono">${esc(c.serial)}</dd>`:""}
+      ${c.custRef?`<dt>Order / ref no.</dt><dd class="mono">${esc(c.custRef)}</dd>`:""}
+    </dl></div>
+    <div class="section stack">${blk("Fault reported",c.fault)}${blk("Work done",c.work)}${c.partsUsed?.length?`<div class="block"><h3>Parts from van</h3><p>${c.partsUsed.map(u=>`${u.qty} × ${esc(u.partNo)} ${esc(u.desc)}`).join("\n")}</p></div>`:""}${blk("Other parts",c.parts)}${blk("Follow-up / notes",c.notes)}${!(c.fault||c.work||c.parts||c.notes||c.partsUsed?.length)?`<p class="hint">No details written yet.</p>`:""}</div>
+    ${c.photos?.length?`<div class="section"><div class="block"><h3>Photos</h3></div><div class="gallery">${c.photos.map(p=>`<figure><img src="${esc(photoUrl(p))}" alt="${esc(p.caption||"Job photo")}" loading="lazy">${p.caption?`<figcaption>${esc(p.caption)}</figcaption>`:""}</figure>`).join("")}</div></div>`:""}
+    ${canWrite?(del||`<div><button class="btn danger" id="delAsk" type="button">Delete job card</button></div>`):""}
+  </div>`;
+}
+function formView(){
+  const f=S.form;const opt=(v,l)=>`<option value="${v}" ${f.status===v?"selected":""}>${l}</option>`;
+  return `<form id="jobForm" class="stack" novalidate>
+    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" id="cancelForm" type="button">Cancel</button><b>${f.id?"Edit job card":"New job card"}</b><button class="btn primary icon-btn" type="submit" id="saveTop">Save</button></div>
+    <div class="section"><fieldset><legend>Job</legend>
+      <div class="grid2"><label>Job no.<input id="f_jobNo" value="${esc(f.jobNo)}" required></label><label>Date<input id="f_date" type="date" value="${esc(f.date)}"></label></div>
+      <div class="grid2"><label>Time in<input id="f_timeIn" type="time" value="${esc(f.timeIn)}"></label><label>Time out<input id="f_timeOut" type="time" value="${esc(f.timeOut)}"></label></div>
+      <label>Status<select id="f_status">${Object.entries(STATUSES).map(([k,v])=>opt(k,v.label)).join("")}</select></label>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Customer</legend>
+      <label>Customer / bakery<input id="f_customer" value="${esc(f.customer)}" placeholder="e.g. store or bakery name"></label>
+      <div class="grid2 stack-sm"><label>Branch / site<input id="f_site" value="${esc(f.site)}"></label><label>Site contact<input id="f_contact" value="${esc(f.contact)}" placeholder="Name and number"></label></div>
+      <label>Order / ref no.<input id="f_custRef" value="${esc(f.custRef)}"></label>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Equipment</legend>
+      <label>Machine type<input id="f_equipment" list="equipList" value="${esc(f.equipment)}"><datalist id="equipList">${EQUIP.map(e=>`<option value="${e}">`).join("")}</datalist></label>
+      <div class="grid2 stack-sm"><label>Make / model<input id="f_model" value="${esc(f.model)}"></label><label>Serial no.<input id="f_serial" value="${esc(f.serial)}"></label></div>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Work</legend>
+      <label>Fault reported<textarea id="f_fault">${esc(f.fault)}</textarea></label>
+      <label>Work done<textarea id="f_work">${esc(f.work)}</textarea></label>
+      <label>Other parts (not on van)<textarea id="f_parts" placeholder="One part per line: qty, part, part no.">${esc(f.parts)}</textarea></label>
+      <label>Follow-up / notes<textarea id="f_notes">${esc(f.notes)}</textarea></label>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Parts from van</legend>
+      <div id="usedBox"></div>
+      <p class="hint">Parts picked here come off ${f.techId&&f.techId!==meId?esc(techName(f.techId))+"'s":"your"} van stock when you save.</p>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Photos</legend>
+      <div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Take photo<input id="camIn" type="file" accept="image/*" capture="environment" hidden></label>
+      <label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Add from gallery<input id="galIn" type="file" accept="image/*" multiple hidden></label></div>
+      ${assets?"":`<p class="hint">Photo uploads aren't available for your access level. Ask the app owner for edit access.</p>`}
+      <div class="photos" id="photoGrid"></div>
+      <p class="hint">Photos are resized before upload so they send quickly on mobile data. Add a caption like "before" or "after".</p>
+    </fieldset></div>
+    <button class="btn primary" type="submit" id="saveBottom">Save job card</button>
+  </form>`;
+}
+function renderPhotos(){
+  const g=$("#photoGrid");if(!g)return;
+  g.innerHTML=S.form.photos.map((p,i)=>`<div class="ph"><img src="${esc(p.preview||photoUrl(p))}" alt="">${p.uploading?`<span class="up">Uploading…</span>`:""}<button class="x" type="button" data-rm="${i}" aria-label="Remove photo">×</button><input id="cap_${i}" data-cap="${i}" placeholder="Caption" value="${esc(p.caption||"")}" aria-label="Photo caption"></div>`).join("");
+}
+function reportsView(){
+  const r=S.rep;
+  const techs=[...new Set(S.cards.map(c=>c.techId).filter(Boolean))];
+  const rows=reportRows();
+  const done=rows.filter(c=>c.status==="done").length,hrs=rows.reduce((a,c)=>a+(hours(c.timeIn,c.timeOut)||0),0);
+  return `<div class="stack">
+    <div class="section"><fieldset><legend>Job summary</legend>
+      <div class="row"><button type="button" class="chip" data-range="week">This week</button><button type="button" class="chip" data-range="lastweek">Last week</button><button type="button" class="chip" data-range="today">Today</button><button type="button" class="chip" data-range="month">This month</button></div>
+      <div class="grid2"><label>From<input id="r_from" type="date" value="${esc(r.from)}"></label><label>To<input id="r_to" type="date" value="${esc(r.to)}"></label></div>
+      <label>Technician<select id="r_tech"><option value="all">All technicians</option>${techs.map(t=>`<option value="${esc(t)}" ${r.tech===t?"selected":""}>${esc(techName(t))}</option>`).join("")}</select></label>
+    </fieldset></div>
+    <div class="stats"><div class="stat"><b>${rows.length}</b><span>Jobs</span></div><div class="stat"><b>${done}</b><span>Completed</span></div><div class="stat"><b>${Math.round(hrs*10)/10}</b><span>Hours on site</span></div></div>
+    <div class="row"><button class="btn primary" id="pdfSum" type="button" ${rows.length?"":"disabled"}>PDF summary</button><button class="btn" id="copySum" type="button" ${rows.length?"":"disabled"}>Copy for WhatsApp</button></div>
+    ${rows.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Job no.</th><th>Customer</th><th>Machine</th><th>Tech</th><th>Status</th><th>Hrs</th></tr></thead><tbody>${rows.map(c=>`<tr><td>${fmtDate(c.date)}</td><td class="mono">${esc(c.jobNo)}</td><td>${esc(c.customer)}${c.site?` · ${esc(c.site)}`:""}</td><td>${esc(c.equipment)}</td><td>${esc(techName(c.techId))}</td><td>${statusPill(c.status)}</td><td class="mono">${hours(c.timeIn,c.timeOut)??"–"}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty"><p>No job cards in this date range.</p></div>`}
+  </div>`;
+}
+function settingsView(){
+  return `<form id="setForm" class="stack" novalidate>
+    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" data-go="list" type="button">← Back</button><b>Report settings</b><span></span></div>
+    <div class="section"><fieldset><legend>Company on reports</legend>
+      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftUrl()?`<img src="${esc(logoDraftUrl())}" alt="Company logo">`:`<span class="hint">No logo yet. Upload a PNG or JPG of the logo.</span>`}</div><div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">${logoDraftUrl()?"Replace logo":"Upload logo"}<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftUrl()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
+      <div class="stack" style="gap:8px"><span class="hint"><b>Brand logos</b> (printed along the bottom of the first PDF page)</span>
+        ${brandDraft().length?`<div class="brands">${brandDraft().map((b,i)=>`<div class="bl"><img src="${esc(b.url||"/_blob/"+b.id)}" alt="Brand logo"><button class="x" type="button" data-brm="${i}" aria-label="Remove logo">×</button></div>`).join("")}</div>`:`<p class="hint">No brand logos yet.</p>`}
+        <div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Add brand logos<input id="brandIn" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label></div></div>
+      <label>Company name<input id="s_name" value="${esc(S.setDraft?.name??S.company.name)}"></label>
+      <label>Report footer<textarea id="s_footer" placeholder="Address, phone, reg and VAT numbers">${esc(S.setDraft?.footer??S.company.footer)}</textarea></label>
+      <p class="hint">Shown at the top and bottom of every PDF. Changes apply for the whole team.</p>
+    </fieldset></div>
+    <button class="btn primary" type="submit" ${canWrite?"":"disabled"}>Save settings</button>
+  </form>`;
+}
+function reportRows(){const r=S.rep;return S.cards.filter(c=>(!r.from||c.date>=r.from)&&(!r.to||c.date<=r.to)&&(r.tech==="all"||c.techId===r.tech)).sort((a,b)=>(a.date||"").localeCompare(b.date||""))}
+function setRange(k){const d=new Date();const iso=x=>x.toLocaleDateString("en-CA");let from,to;
+  if(k==="today"){from=to=iso(d)}
+  else if(k==="month"){from=iso(new Date(d.getFullYear(),d.getMonth(),1));to=iso(d)}
+  else{const day=(d.getDay()+6)%7;const mon=new Date(d);mon.setDate(d.getDate()-day);if(k==="lastweek"){mon.setDate(mon.getDate()-7);const sun=new Date(mon);sun.setDate(mon.getDate()+6);from=iso(mon);to=iso(sun)}else{from=iso(mon);to=iso(d)}}
+  S.rep.from=from;S.rep.to=to;render()}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button,[data-open]");if(!t)return;
+  if(t.id==="tabList"){S.view="list";render()}
+  else if(t.id==="tabReports"){S.view="reports";render()}
+  else if(t.id==="tabVan"){S.view="van";S.partForm=null;if(!S.vanTech)S.vanTech=meId;subVan(S.vanTech);render()}
+  else if(t.id==="addPart"){S.partForm={partNo:"",desc:"",qty:0,min:1};render()}
+  else if(t.dataset.editpart){const pt=(S.vans[S.vanTech]||[]).find(x=>x.id===t.dataset.editpart);if(pt){S.partForm={...pt};render()}}
+  else if(t.id==="cancelPart"){S.partForm=null;render()}
+  else if(t.id==="delPart")deletePart();
+  else if(t.dataset.inc)bumpQty(t.dataset.inc,+t.dataset.d);
+  else if(t.id==="addUsed")addUsed();
+  else if(t.dataset.unused!=null){S.form.partsUsed.splice(+t.dataset.unused,1);renderUsed()}
+  else if(t.dataset.brm!=null){keepSettingsInputs();const a=brandDraft().slice();a.splice(+t.dataset.brm,1);S.brandDraft=a;render()}
+  else if(t.id==="settingsBtn"){S.logoDraft=null;S.setDraft=null;S.brandDraft=null;S.view="settings";render()}
+  else if(t.id==="logoRm"){keepSettingsInputs();S.logoDraft={id:"",url:""};render()}
+  else if(t.id==="fab")startForm(null);
+  else if(t.dataset.go){S.view=t.dataset.go;render()}
+  else if(t.dataset.open){S.detailId=t.dataset.open;S.confirmDel=false;S.view="detail";render()}
+  else if(t.dataset.filter){S.filter=t.dataset.filter;render()}
+  else if(t.dataset.range)setRange(t.dataset.range);
+  else if(t.id==="editOne")startForm(S.cards.find(c=>c.id===S.detailId));
+  else if(t.id==="delAsk"){S.confirmDel=true;render()}
+  else if(t.id==="delNo"){S.confirmDel=false;render()}
+  else if(t.id==="delYes")deleteCard();
+  else if(t.id==="cancelForm"){S.view=S.form?.id?"detail":"list";S.form=null;render()}
+  else if(t.dataset.rm!=null){S.form.photos.splice(+t.dataset.rm,1);renderPhotos()}
+  else if(t.id==="pdfOne")pdfJob(S.cards.find(c=>c.id===S.detailId),t);
+  else if(t.id==="copyOne")copyText(jobText(S.cards.find(c=>c.id===S.detailId)));
+  else if(t.id==="pdfSum")pdfSummary(t);
+  else if(t.id==="copySum")copyText(summaryText());
+});
+document.addEventListener("input",e=>{
+  if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$("#q");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
+  else if(e.target.id==="vq"){S.vanQ=e.target.value;const pos=e.target.selectionStart;render();const q=$("#vq");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
+  else if(e.target.dataset.cap!=null){S.form.photos[+e.target.dataset.cap].caption=e.target.value}
+});
+document.addEventListener("change",e=>{
+  const id=e.target.id;
+  if(id==="brandIn"&&e.target.files.length){uploadBrands([...e.target.files]);e.target.value="";return}
+  if(id==="vanTechSel"){S.vanTech=e.target.value;S.partForm=null;subVan(S.vanTech);render();return}
+  if(id==="logoIn"&&e.target.files[0]){uploadLogo(e.target.files[0]);e.target.value="";return}
+  if(id==="r_from"||id==="r_to"||id==="r_tech"){S.rep[id.slice(2)]=e.target.value;render()}
+});
+document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings()});
+
+/* ---------- form ---------- */
+const FIELDS=["jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
+function startForm(c){
+  S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",photos:[]};
+  S.view="form";subVan(S.form.techId||meId);render();
+}
+function bindForm(){
+  renderPhotos();renderUsed();
+  for(const id of ["camIn","galIn"])$("#"+id).addEventListener("change",e=>{addPhotos([...e.target.files]);e.target.value=""});
+}
+function readForm(){for(const k of FIELDS){const el=$("#f_"+k);if(el)S.form[k]=el.value.trim()}}
+async function compress(file){
+  let src;
+  try{src=await createImageBitmap(file,{imageOrientation:"from-image"})}
+  catch(_){src=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)})}
+  const w=src.width,h=src.height,s=Math.min(1,1600/Math.max(w,h));
+  const cv=document.createElement("canvas");cv.width=Math.round(w*s);cv.height=Math.round(h*s);
+  cv.getContext("2d").drawImage(src,0,0,cv.width,cv.height);
+  return await new Promise(r=>cv.toBlob(r,"image/jpeg",0.8));
+}
+async function addPhotos(files){
+  if(!assets){toast("Photo uploads aren't available for your access level");return}
+  readForm();
+  for(const file of files){
+    const p={preview:URL.createObjectURL(file),caption:"",uploading:true};S.form.photos.push(p);renderPhotos();
+    try{const blob=await compress(file);const r=await assets.upload(blob,{type:"image/jpeg"});p.id=r.id;p.url=r.url;p.uploading=false}
+    catch(err){const i=S.form?.photos.indexOf(p);if(i>-1)S.form.photos.splice(i,1);toast(err?.code==="too_large"?"That photo is too large":"Photo didn't upload. Check your signal and try again")}
+    renderPhotos();
+  }
+}
+async function saveCard(){
+  readForm();const f=S.form;
+  if(!f.jobNo){toast("Add a job number");$("#f_jobNo").focus();return}
+  if(f.photos.some(p=>p.uploading)){toast("Wait for photos to finish uploading");return}
+  if(!db){toast("Can't reach the job card store. Reopen the app and try again");return}
+  const data={};for(const k of FIELDS)data[k]=f[k]||"";
+  data.photos=f.photos.filter(p=>p.id).map(p=>({id:p.id,url:p.url||"",caption:p.caption||""}));
+  data.partsUsed=(f.partsUsed||[]).map(u=>({partId:u.partId,partNo:u.partNo||"",desc:u.desc||"",qty:+u.qty||0}));
+  data.updatedAt=Date.now();
+  for(const b of ["#saveTop","#saveBottom"])$(b).disabled=true;
+  try{
+    if(f.id){data.techId=f.techId||meId||"";data.createdAt=f.createdAt||Date.now();await db.collection("jobcards").doc(f.id).set(data);S.detailId=f.id}
+    else{data.techId=meId||"";data.createdAt=Date.now();const ref=await db.collection("jobcards").add(data);S.detailId=ref.id}
+    const stockErr=await applyStock(data.techId,f._orig||[],data.partsUsed);
+    S.form=null;S.view="detail";S.confirmDel=false;toast(stockErr?"Job card saved, but van stock didn't update. Check Van stock":"Job card saved");render();
+  }catch(err){toast(err?.code==="permission_denied"||err?.code==="not_granted"?"You don't have permission to save job cards. Ask the app owner for access":"Didn't save. Check your signal and tap Save again");for(const b of ["#saveTop","#saveBottom"]){const x=$(b);if(x)x.disabled=false}}
+}
+async function deleteCard(){
+  const c=S.cards.find(x=>x.id===S.detailId);
+  try{await db.collection("jobcards").doc(S.detailId).delete();if(c?.partsUsed?.length)await applyStock(c.techId,c.partsUsed,[]);S.view="list";toast("Job card deleted");render()}
+  catch(_){toast("Couldn't delete. Try again")}
+}
+async function saveSettings(){
+  const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim();
+  const lg=S.logoDraft||{id:S.company.logoId,url:S.company.logoUrl};
+  try{await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;toast("Settings saved");S.view="list";render()}
+  catch(_){toast("Couldn't save settings. You may need edit access")}
+}
+
+function logoSrc(){return S.company.logoUrl||(S.company.logoId?"/_blob/"+S.company.logoId:"")}
+function logoDraftUrl(){return S.logoDraft?(S.logoDraft.url||(S.logoDraft.id?"/_blob/"+S.logoDraft.id:"")):logoSrc()}
+function setLogo(){const im=$("#coLogo");const u=logoSrc();if(u){if(im.getAttribute("src")!==u)im.src=u;im.hidden=false}else im.hidden=true}
+function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value}}
+async function uploadLogo(file){
+  if(!assets){toast("Only people with edit access can upload the logo");return}
+  keepSettingsInputs();toast("Uploading logo…");
+  try{let blob=file;if(file.size>2e6){blob=await new Promise(async r=>{const b=await createImageBitmap(file);const s=Math.min(1,800/Math.max(b.width,b.height));const cv=document.createElement("canvas");cv.width=Math.round(b.width*s);cv.height=Math.round(b.height*s);cv.getContext("2d").drawImage(b,0,0,cv.width,cv.height);cv.toBlob(r,"image/png")})}
+    const res=await assets.upload(blob);S.logoDraft={id:res.id,url:res.url};render();toast("Logo ready. Tap Save settings")}
+  catch(err){toast(err?.code==="unsupported_type"?"Use a PNG or JPG file":"Logo didn't upload. Try again")}
+}
+async function logoData(){const u=logoSrc();if(!u)return null;try{return await imgData(u)}catch(_){return null}}
+/* ---------- van stock ---------- */
+const vanSubs={};
+function subVan(tid){
+  if(!db||!tid||vanSubs[tid])return;
+  vanSubs[tid]=db.collection(`vanstock/${tid}/parts`).onSnapshot(sn=>{
+    S.vans[tid]=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.partNo||"").localeCompare(b.partNo||""));
+    if(S.view==="van"&&!S.partForm)render();else if(S.view==="form")renderUsed();
+  },()=>{S.vans[tid]=S.vans[tid]||[]});
+}
+function vanView(){
+  const tid=S.vanTech;
+  if(!db||!tid)return `<div class="empty"><h2>Van stock</h2><p>Sign in to claude.ai to see your van stock.</p></div>`;
+  const list=S.vans[tid];const mine=tid===meId;
+  const who=mine?"My van":`${esc(techName(tid))}'s van`;
+  const sel=S.techs.length>1?`<label>Van<select id="vanTechSel">${S.techs.map(t=>`<option value="${esc(t)}" ${t===tid?"selected":""}>${t===meId?"My van":esc(techName(t))}</option>`).join("")}</select></label>`:"";
+  if(S.partForm){const p=S.partForm;return `<form id="partForm" class="stack" novalidate>
+    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" id="cancelPart" type="button">Cancel</button><b>${p.id?"Edit part":"Add part"} · ${who}</b><button class="btn primary icon-btn" type="submit">Save</button></div>
+    <div class="section"><fieldset><legend>Part</legend>
+      <label>Part no.<input id="p_partNo" value="${esc(p.partNo)}" required></label>
+      <label>Description<input id="p_desc" value="${esc(p.desc)}" placeholder="e.g. Oven door seal"></label>
+      <div class="grid2"><label>Qty on van<input id="p_qty" type="number" inputmode="numeric" min="0" value="${esc(p.qty)}"></label><label>Re-order at<input id="p_min" type="number" inputmode="numeric" min="0" value="${esc(p.min)}"></label></div>
+    </fieldset></div>
+    ${p.id?`<div><button class="btn danger" id="delPart" type="button">Remove part from van</button></div>`:""}
+  </form>`}
+  const q=S.vanQ.trim().toLowerCase();
+  const rows=(list||[]).filter(p=>!q||[p.partNo,p.desc].join(" ").toLowerCase().includes(q));
+  const low=(list||[]).filter(p=>(+p.qty||0)<=(+p.min||0)).length;
+  let body;
+  if(!list)body=`<div class="empty"><p>Loading van stock…</p></div>`;
+  else if(!list.length)body=`<div class="empty"><h2>No parts on this van yet</h2><p>Add the parts carried on the van with their quantities. Parts picked on a job card come off this list.</p></div>`;
+  else body=rows.length?rows.map(p=>{const isLow=(+p.qty||0)<=(+p.min||0);return `<div class="part"><button class="pd" type="button" data-editpart="${esc(p.id)}"><b>${esc(p.desc||p.partNo)}</b><span class="mono">${esc(p.partNo)}</span>${isLow?` <span class="pill s-follow">Re-order</span>`:""}</button><div class="qty"><button type="button" data-inc="${esc(p.id)}" data-d="-1" aria-label="One less">−</button><output>${+p.qty||0}</output><button type="button" data-inc="${esc(p.id)}" data-d="1" aria-label="One more">+</button></div></div>`}).join(""):`<div class="empty"><p>No parts match this search.</p></div>`;
+  return `<div class="stack">${sel}
+    <div class="stats"><div class="stat"><b>${list?.length||0}</b><span>Parts</span></div><div class="stat"><b>${(list||[]).reduce((a,p)=>a+(+p.qty||0),0)}</b><span>Items on van</span></div><div class="stat"><b>${low}</b><span>To re-order</span></div></div>
+    <div class="row"><input class="search" id="vq" type="search" placeholder="Search part no. or description" value="${esc(S.vanQ)}" aria-label="Search van stock">${canWrite?`<button class="btn primary" id="addPart" type="button">+ Add part</button>`:""}</div>
+    ${body}</div>`;
+}
+async function savePart(){
+  const v=id=>$("#"+id).value.trim();const partNo=v("p_partNo");
+  if(!partNo){toast("Add a part number");return}
+  const data={partNo,desc:v("p_desc"),qty:Math.max(0,parseInt(v("p_qty"))||0),min:Math.max(0,parseInt(v("p_min"))||0),updatedAt:Date.now()};
+  const col=db.collection(`vanstock/${S.vanTech}/parts`);
+  try{if(S.partForm.id)await col.doc(S.partForm.id).set(data);else await col.add(data);S.partForm=null;toast("Part saved");render()}
+  catch(_){toast("Couldn't save the part. Check your signal")}
+}
+async function deletePart(){
+  try{await db.collection(`vanstock/${S.vanTech}/parts`).doc(S.partForm.id).delete();S.partForm=null;toast("Part removed");render()}catch(_){toast("Couldn't remove the part")}
+}
+async function bumpQty(id,d){
+  const p=(S.vans[S.vanTech]||[]).find(x=>x.id===id);if(!p)return;
+  const q=Math.max(0,(+p.qty||0)+d);if(q===(+p.qty||0))return;p.qty=q;render();
+  try{await db.collection(`vanstock/${S.vanTech}/parts`).doc(id).update({qty:q,updatedAt:Date.now()})}catch(_){toast("Couldn't update the quantity")}
+}
+function renderUsed(){
+  const box=$("#usedBox");if(!box||!S.form)return;
+  const tid=S.form.techId||meId;const van=S.vans[tid]||[];const used=S.form.partsUsed;
+  const pick=$("#usedPick")?.value||"";const qv=$("#usedQty")?.value||"1";
+  box.innerHTML=`${used.length?`<ul class="used">${used.map((u,i)=>`<li><span><b>${u.qty} ×</b> <span class="mono">${esc(u.partNo)}</span> ${esc(u.desc)}</span><button class="btn icon-btn" type="button" data-unused="${i}">Remove</button></li>`).join("")}</ul>`:""}
+    ${van.length?`<div class="row" style="align-items:flex-end"><label style="flex:1 1 180px">Part<select id="usedPick"><option value="">Choose a part…</option>${van.map(p=>`<option value="${esc(p.id)}" ${p.id===pick?"selected":""}>${esc(p.partNo)} · ${esc(p.desc)} (${+p.qty||0} on van)</option>`).join("")}</select></label><label style="flex:0 0 80px">Qty<input id="usedQty" type="number" inputmode="numeric" min="1" value="${esc(qv)}"></label><button class="btn" id="addUsed" type="button">Add</button></div>`:`<p class="hint">No parts on the van yet. Add them under Van stock.</p>`}`;
+}
+function addUsed(){
+  const id=$("#usedPick").value,qty=Math.max(1,parseInt($("#usedQty").value)||1);if(!id){toast("Choose a part");return}
+  const p=(S.vans[S.form.techId||meId]||[]).find(x=>x.id===id);if(!p)return;
+  const ex=S.form.partsUsed.find(u=>u.partId===id);if(ex)ex.qty=(+ex.qty||0)+qty;else S.form.partsUsed.push({partId:id,partNo:p.partNo,desc:p.desc,qty});
+  renderUsed();$("#usedPick").value="";$("#usedQty").value="1";
+}
+async function applyStock(tid,before,after){
+  if(!tid)return false;const delta={};
+  for(const u of before)delta[u.partId]=(delta[u.partId]||0)-(+u.qty||0);
+  for(const u of after)delta[u.partId]=(delta[u.partId]||0)+(+u.qty||0);
+  let err=false;const col=db.collection(`vanstock/${tid}/parts`);
+  for(const [pid,d] of Object.entries(delta)){if(!d||!pid)continue;
+    try{const snap=await col.doc(pid).get();if(!snap.exists)continue;const cur=+snap.data().qty||0;await col.doc(pid).update({qty:Math.max(0,cur-d),updatedAt:Date.now()})}catch(_){err=true}}
+  return err;
+}
+function brandDraft(){return S.brandDraft||S.company.brandLogos||[]}
+async function uploadBrands(files){
+  if(!assets){toast("Only people with edit access can upload logos");return}
+  keepSettingsInputs();const a=brandDraft().slice();toast("Uploading logos…");
+  for(const f of files){try{const r=await assets.upload(f);a.push({id:r.id,url:r.url})}catch(err){toast(err?.code==="unsupported_type"?"Use PNG or JPG files":"A logo didn't upload. Try again")}}
+  S.brandDraft=a;render();toast("Logos ready. Tap Save settings");
+}
+/* ---------- text + PDF ---------- */
+function jobText(c){
+  const h=hours(c.timeIn,c.timeOut);const L=[];
+  L.push(`*Job card ${c.jobNo}*`,`${fmtDate(c.date)} · ${techName(c.techId)}`,`*Customer:* ${c.customer||"–"}${c.site?` (${c.site})`:""}`);
+  if(c.equipment||c.model)L.push(`*Machine:* ${[c.equipment,c.model].filter(Boolean).join(" · ")}${c.serial?` · S/N ${c.serial}`:""}`);
+  if(c.fault)L.push(`*Fault:* ${c.fault}`);if(c.work)L.push(`*Work done:* ${c.work}`);if(c.partsUsed?.length)L.push(`*Parts:* ${c.partsUsed.map(u=>`${u.qty}x ${u.partNo} ${u.desc}`).join(", ")}`);if(c.parts)L.push(`*Other parts:* ${c.parts}`);if(c.notes)L.push(`*Notes:* ${c.notes}`);
+  L.push(`*Status:* ${(STATUSES[c.status]||STATUSES.open).label}${h!=null?` · ${h} h on site`:""}`);
+  return L.join("\n");
+}
+function summaryText(){
+  const rows=reportRows(),r=S.rep;
+  const head=`*Job summary ${r.from?fmtDate(r.from):"start"} – ${r.to?fmtDate(r.to):"today"}*${r.tech!=="all"?`\n${techName(r.tech)}`:""}\n${rows.length} jobs · ${rows.filter(c=>c.status==="done").length} completed`;
+  return head+"\n\n"+rows.map(c=>`${fmtDate(c.date)} ${c.jobNo} – ${c.customer||"–"}${c.site?` (${c.site})`:""}, ${c.equipment||"machine"}: ${(STATUSES[c.status]||STATUSES.open).label}`).join("\n");
+}
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);toast("Copied. Paste it into WhatsApp")}
+  catch(_){const ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(_){}ta.remove();toast(ok?"Copied. Paste it into WhatsApp":"Copy didn't work on this device")}
+}
+async function imgData(url){
+  const blob=await (await fetch(url)).blob();
+  let bmp;try{bmp=await createImageBitmap(blob)}catch(_){bmp=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(blob)})}
+  const s=Math.min(1,1200/Math.max(bmp.width,bmp.height));const cv=document.createElement("canvas");cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);
+  const cx=cv.getContext("2d");cx.fillStyle="#FFFFFF";cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(bmp,0,0,cv.width,cv.height);return {data:cv.toDataURL("image/jpeg",0.9),w:cv.width,h:cv.height};
+}
+function pdfBase(title,sub,logo){
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
+  doc.setFillColor(27,95,170);doc.rect(0,0,210,4,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(20,26,33);let nx=14;if(logo){const lh=14,lw=Math.min(lh*logo.w/logo.h,48);const lh2=lw*logo.h/logo.w;doc.addImage(logo.data,"JPEG",14,8+(lh-lh2)/2,lw,lh2);nx=14+lw+4}
+  doc.text(S.company.name||"Service department",nx,15);
+  doc.setFontSize(11);doc.setTextColor(91,102,115);doc.text(title,196,15,{align:"right"});
+  if(sub){doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(sub,196,20,{align:"right"})}
+  doc.setDrawColor(217,223,229);doc.line(14,24,196,24);return doc;
+}
+async function brandData(){const out=[];for(const b of (S.company.brandLogos||[]).slice(0,8)){try{out.push(await imgData(b.url||"/_blob/"+b.id))}catch(_){}}return out}
+function pdfFooter(doc,brands){
+  const n=doc.getNumberOfPages();
+  if(brands?.length){doc.setPage(1);const H=9,gap=6;const ws=brands.map(b=>Math.min(H*b.w/b.h,34));const total=ws.reduce((a,w)=>a+w,0)+gap*(ws.length-1);let x=105-total/2;
+    doc.setDrawColor(217,223,229);doc.line(14,273,196,273);brands.forEach((b,i)=>{const w=ws[i],h=w*b.h/b.w;doc.addImage(b.data,"JPEG",x,275+(H-h)/2,w,h);x+=w+gap})}
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(91,102,115);
+    if(S.company.footer)doc.text(doc.splitTextToSize(S.company.footer.replace(/\n/g," · "),150),14,288);
+    doc.text(`Page ${i} of ${n}`,196,288,{align:"right"})}
+}
+async function saveFile(name,blob,btn){
+  if(!downloads){toast("Saving files isn't available here. Open the app in the Claude app or a browser while signed in");return}
+  try{await downloads.save({filename:name,data:blob});toast("PDF saved. Share it from your downloads to WhatsApp or email")}
+  catch(err){if(err?.code!=="declined")toast("Couldn't save the PDF. Try again")}
+}
+async function pdfJob(c,btn){
+  if(!window.jspdf){toast("PDF tool didn't load. Check your connection and reopen");return}
+  btn.disabled=true;btn.textContent="Building PDF…";
+  try{
+    const doc=pdfBase("SERVICE JOB CARD",c.jobNo,await logoData());let y=32;
+    const h=hours(c.timeIn,c.timeOut);
+    doc.autoTable({startY:y,theme:"grid",styles:{fontSize:9.5,cellPadding:2.2,textColor:[20,26,33],lineColor:[217,223,229]},columnStyles:{0:{fontStyle:"bold",cellWidth:34,fillColor:[243,245,247]},2:{fontStyle:"bold",cellWidth:34,fillColor:[243,245,247]}},
+      body:[["Job no.",c.jobNo,"Date",fmtDate(c.date)],["Customer",c.customer||"",  "Branch / site",c.site||""],["Site contact",c.contact||"","Order / ref no.",c.custRef||""],["Machine",c.equipment||"","Make / model",c.model||""],["Serial no.",c.serial||"","Technician",techName(c.techId)],["Time in / out",`${c.timeIn||"–"} – ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`,"Status",(STATUSES[c.status]||STATUSES.open).label]]});
+    y=doc.lastAutoTable.finalY+6;
+    const sections=[["Fault reported",c.fault],["Work done",c.work],["Parts used",[...(c.partsUsed||[]).map(u=>`${u.qty} x ${u.partNo}  ${u.desc}`),c.parts].filter(Boolean).join("\n")],["Follow-up / notes",c.notes]].filter(s=>s[1]);
+    for(const [t,v] of sections){
+      const lines=doc.splitTextToSize(v,182);if(y+8+lines.length*4.6>270){doc.addPage();y=20}
+      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(27,95,170);doc.text(t.toUpperCase(),14,y);y+=5;
+      doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(20,26,33);doc.text(lines,14,y);y+=lines.length*4.6+4;
+    }
+    if(c.photos?.length){
+      if(y>230){doc.addPage();y=20}
+      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(27,95,170);doc.text("PHOTOS",14,y);y+=4;
+      const W=88,gap=6;let col=0,rowH=0;
+      for(const p of c.photos){
+        let im;try{im=await imgData(photoUrl(p))}catch(_){continue}
+        const hh=Math.min(W*im.h/im.w,95);const ww=hh*im.w/im.h;
+        if(y+hh+8>272){doc.addPage();y=20;col=0;rowH=0}
+        const x=14+col*(W+gap);doc.addImage(im.data,"JPEG",x,y,ww,hh);
+        if(p.caption){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(91,102,115);doc.text(doc.splitTextToSize(p.caption,W)[0],x,y+hh+4)}
+        rowH=Math.max(rowH,hh+7);col++;if(col===2){col=0;y+=rowH;rowH=0}
+      }
+      if(col)y+=rowH;
+    }
+    if(y>262){doc.addPage();y=20}
+    y=Math.max(y+8,262);doc.setDrawColor(150,160,170);doc.line(14,y,90,y);doc.line(120,y,196,y);
+    doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(91,102,115);doc.text("Technician signature",14,y+4);doc.text("Customer name and signature",120,y+4);
+    pdfFooter(doc,await brandData());
+    await saveFile(`${c.jobNo}.pdf`,doc.output("blob"),btn);
+  }catch(err){toast("Couldn't build the PDF. Try again")}
+  btn.disabled=false;btn.textContent="PDF report";
+}
+async function pdfSummary(btn){
+  if(!window.jspdf){toast("PDF tool didn't load. Check your connection and reopen");return}
+  btn.disabled=true;
+  try{
+    const rows=reportRows(),r=S.rep;
+    const range=`${r.from?fmtDate(r.from):"Start"} – ${r.to?fmtDate(r.to):fmtDate(today())}`;
+    const doc=pdfBase("JOB SUMMARY",range+(r.tech!=="all"?" · "+techName(r.tech):""),await logoData());
+    const done=rows.filter(c=>c.status==="done").length,hrs=Math.round(rows.reduce((a,c)=>a+(hours(c.timeIn,c.timeOut)||0),0)*10)/10;
+    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(20,26,33);
+    doc.text(`${rows.length} jobs   ·   ${done} completed   ·   ${rows.filter(c=>c.status==="follow").length} need follow-up   ·   ${rows.filter(c=>c.status==="parts").length} awaiting parts   ·   ${hrs} h on site`,14,32);
+    doc.autoTable({startY:37,headStyles:{fillColor:[27,95,170],textColor:255,fontSize:8.5},styles:{fontSize:8.5,cellPadding:1.8,textColor:[20,26,33],lineColor:[217,223,229]},alternateRowStyles:{fillColor:[243,245,247]},
+      head:[["Date","Job no.","Customer / site","Machine","Work done","Tech","Status","Hrs"]],
+      body:rows.map(c=>[fmtDate(c.date),c.jobNo,[c.customer,c.site].filter(Boolean).join(" · "),[c.equipment,c.serial?`S/N ${c.serial}`:""].filter(Boolean).join("\n"),(c.work||c.fault||"").slice(0,160),techName(c.techId),(STATUSES[c.status]||STATUSES.open).label,hours(c.timeIn,c.timeOut)??"–"]),
+      columnStyles:{0:{cellWidth:17},1:{cellWidth:24},4:{cellWidth:50},7:{cellWidth:9,halign:"right"}},margin:{left:10,right:10,bottom:16}});
+    pdfFooter(doc,await brandData());
+    await saveFile(`Job-summary-${(r.from||"start")}-to-${(r.to||today())}.pdf`,doc.output("blob"),btn);
+  }catch(err){toast("Couldn't build the PDF. Try again")}
+  btn.disabled=false;
+}
+
+/* ---------- data ---------- */
+async function resolveNames(){
+  if(!user)return;const ids=[...new Set([...S.cards.map(c=>c.techId),...S.techs].filter(Boolean))];if(!ids.length)return;
+  try{const ps=await user.profiles(ids);let changed=false;for(const id of ids){const n=ps?.[id]?.name||"";if(n&&S.names[id]!==n){S.names[id]=n;changed=true}}if(changed&&S.view!=="form"&&S.view!=="settings")render()}catch(_){}
+}
+async function boot(){
+  render();
+  const C=window.claude;
+  if(!C?.use){S.error="Open this app from its claude.ai link to load the team's job cards.";S.loaded=true;render();return}
+  [db,assets,user,downloads]=await Promise.all([C.use("db"),C.use("assets"),C.use("user"),C.use("downloads")]);
+  if(!db){S.error="Sign in to claude.ai to see and log job cards.";S.loaded=true;render();return}
+  if(user){try{meId=await user.id()}catch(_){};try{const c=await user.can("data.write");if(c===false)canWrite=false}catch(_){}}
+  if(meId){S.vanTech=meId;subVan(meId);try{const td=db.doc("techs/"+meId);const g=await td.get();if(!g.exists)await td.set({joined:Date.now()})}catch(_){}}
+  db.collection("techs").onSnapshot(sn=>{S.techs=sn.docs.map(d=>d.id);resolveNames();if(S.view==="van")render()},()=>{});
+  const timer=setTimeout(()=>{if(!S.loaded){S.error="Job cards are taking long to load. Check your signal.";render()}},10000);
+  db.collection("jobcards").orderBy("createdAt","desc").onSnapshot(snap=>{
+    clearTimeout(timer);S.loaded=true;S.error=null;
+    S.cards=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(S.view!=="form"&&S.view!=="settings")render();
+    resolveNames();
+  },err=>{clearTimeout(timer);S.loaded=true;S.error="Couldn't load job cards. Check your signal and reopen the app.";if(S.view!=="form")render()});
+  db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||"",footer:d.footer||"",logoId:d.logoId||"",logoUrl:d.logoUrl||"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};if(S.view!=="form"&&S.view!=="settings")render();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{});
+}
+setRange("week");boot();
+</script>
+
+</body></html>
