@@ -13,7 +13,7 @@
 /* Layout: one-column phone tool — sticky header with tabs, card list, full-screen form, floating "New" button */
 :root{
   --bg:#F3F5F7; --surface:#FFFFFF; --ink:#141A21; --muted:#5B6673; --line:#D9DFE5;
-  --accent:#23335D; --accent-ink:#FFFFFF; --accent-soft:#E4E8F2; --red:#AF3131;
+  --accent:#23335D; --accent-ink:#FFFFFF; --accent-soft:#E4E8F2; --red:#F2D22E;
   --ok:#1E7A46; --ok-soft:#E1F2E8; --warn:#A35F00; --warn-soft:#FBEED9; --wait:#6A3FB0; --wait-soft:#EEE7F8; --open:#5B6673; --open-soft:#E8ECF0;
   --danger:#B42318;
   --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
@@ -22,12 +22,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
-  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#E06A6A;
+  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#F2D22E;
   --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
   --danger:#F2867D; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
-  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#E06A6A;
+  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#F2D22E;
   --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
   --danger:#F2867D; color-scheme:dark}
 *{box-sizing:border-box}
@@ -292,7 +292,7 @@ function settingsView(){
       <p class="hint">${syncMode==="firebase"?"Job cards are saved on this phone and sync to the team when there's signal.":"Job cards are saved on this phone only. Team sync switches on once the Firebase project is connected."}</p>
     </fieldset></div>
     <div class="section"><fieldset><legend>Company on reports</legend>
-      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<span class="hint">No logo yet. Upload a PNG or JPG of the logo.</span>`}</div><div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">${logoDraftId()?"Replace logo":"Upload logo"}<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
+      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<img src="${DEFAULT_LOGO}" alt="Macadams logo">`}</div><div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Replace logo<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
       <div class="stack" style="gap:8px"><span class="hint"><b>Brand logos</b> (printed along the bottom of the first PDF page)</span>
         ${brandDraft().length?`<div class="brands">${brandDraft().map((b,i)=>`<div class="bl"><img ${imgSrc(b.id)} alt="Brand logo"><button class="x" type="button" data-brm="${i}" aria-label="Remove logo">×</button></div>`).join("")}</div>`:`<p class="hint">No brand logos yet.</p>`}
         <div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Add brand logos<input id="brandIn" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label></div></div>
@@ -417,7 +417,8 @@ async function saveSettings(){
 }
 
 function logoDraftId(){return S.logoDraft?S.logoDraft.id:S.company.logoId}
-function setLogo(){const im=$("#coLogo");const id=S.company.logoId;if(!id){im.hidden=true;return}
+const DEFAULT_LOGO="macadams-logo.png";
+function setLogo(){const im=$("#coLogo");const id=S.company.logoId;if(!id){if(im.getAttribute("src")!==DEFAULT_LOGO)im.src=DEFAULT_LOGO;im.hidden=false;return}
   const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;im.hidden=false}
   else{im.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
 function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value,me:$("#s_me")?.value}}
@@ -427,7 +428,7 @@ async function uploadLogo(file){
   try{const res=await assets.upload(await shrinkLogo(file));S.logoDraft={id:res.id,url:res.url};render();toast("Logo ready. Tap Save settings")}
   catch(err){toast(err?.code==="unsupported_type"?"Use a PNG or JPG file":"Logo didn't upload. Try again")}
 }
-async function logoData(){const id=S.company.logoId;if(!id)return null;try{return await imgData(await blobUrl(id))}catch(_){return null}}
+async function logoData(){const id=S.company.logoId;if(!id){try{return await imgData(DEFAULT_LOGO)}catch(_){return null}}try{return await imgData(await blobUrl(id))}catch(_){return null}}
 /* ---------- van stock ---------- */
 const vanSubs={};
 function subVan(tid){
@@ -536,7 +537,7 @@ async function imgData(url){
 }
 function pdfBase(title,sub,logo){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
-  doc.setFillColor(35,51,93);doc.rect(0,0,210,4,"F");doc.setFillColor(175,49,49);doc.rect(0,4,210,1.2,"F");
+  doc.setFillColor(35,51,93);doc.rect(0,0,210,4,"F");doc.setFillColor(242,210,46);doc.rect(0,4,210,1.2,"F");
   doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(20,26,33);let nx=14;if(logo){const lh=14,lw=Math.min(lh*logo.w/logo.h,48);const lh2=lw*logo.h/logo.w;doc.addImage(logo.data,"JPEG",14,8+(lh-lh2)/2,lw,lh2);nx=14+lw+4}
   doc.text(S.company.name||"Service department",nx,15);
   doc.setFontSize(11);doc.setTextColor(91,102,115);doc.text(title,196,15,{align:"right"});

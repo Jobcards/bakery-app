@@ -1,6 +1,8 @@
 // Run after `npx cap add android`: camera permission and a version number that goes up every build,
 // so a new APK installs over the old one and keeps the job cards on the phone.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, cpSync } from "node:fs";
+// Macadams app icon and splash screen
+cpSync("resources/android", "android/app/src/main/res", { recursive: true });
 const man = "android/app/src/main/AndroidManifest.xml";
 let m = readFileSync(man, "utf8");
 if (!m.includes("android.permission.CAMERA")) {
