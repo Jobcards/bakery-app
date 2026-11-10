@@ -2,6 +2,16 @@
   "appId": "com.bakerytech.jobcards",
   "appName": "Macadams Job Cards",
   "webDir": "www",
-  "android": { "allowMixedContent": false },
-  "plugins": { "SystemBars": { "insetsHandling": "css", "style": "LIGHT" } }
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "LIGHT"
+    }
+  },
+  "server": {
+    "cleartext": true
+  }
 }

@@ -4,7 +4,6 @@
 <link rel="stylesheet" href="fonts.css">
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/jspdf.plugin.autotable.min.js"></script>
-<script src="firebase-config.js"></script>
 <script src="vendor.js"></script>
 <style>html,body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -219,7 +218,7 @@ const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-
 const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
 const S={view:"list",cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
   rep:{from:"",to:"",tech:"all"}};
-let db=null,assets=null,meId=null,canWrite=true,syncMode="local";
+let db=null,assets=null,meId=null,canWrite=true;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const today=()=>new Date().toLocaleDateString("en-CA");
@@ -248,7 +247,6 @@ function render(){
   else if(S.view==="reports")app.innerHTML=reportsView();
   else if(S.view==="settings")app.innerHTML=settingsView();
   else if(S.view==="form"){app.innerHTML=formView();bindForm()}
-  else if(S.view==="who")app.innerHTML=whoView();
   else if(S.view==="login")app.innerHTML=loginView();
   else if(S.view==="team")app.innerHTML=teamView();
   else if(S.view==="wait")app.innerHTML=`<div class="empty"><p>Opening…</p></div>`;
@@ -367,7 +365,7 @@ function reportsView(){
   </div>`;
 }
 function settingsView(){
-  if(syncMode==="firebase"&&!isAdmin)return `<div class="stack"><div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>${accountSection()}</div>`;
+  if(!isAdmin)return `<div class="stack"><div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>${accountSection()}</div>`;
   return `<form id="setForm" class="stack" novalidate>
     <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Report settings</b><span></span></div>
     ${accountSection()}
@@ -393,13 +391,14 @@ function setRange(k){const d=new Date();const iso=x=>x.toLocaleDateString("en-CA
 /* ---------- events ---------- */
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-open]");if(!t)return;
-  if(t.id==="tabTeam"){S.view="team";S.teamForm=null;render();return}
+  if(t.id==="tabTeam"){S.view="team";S.teamForm=null;render();loadTeam();return}
   if(t.id==="goSetup"){S.loginMode="setup";render();return}
   if(t.id==="cancelSetup"){S.loginMode=null;render();return}
   if(t.id==="signOut"){trySignOut();return}
+  if(t.id==="syncBtn"){syncNow().then(()=>{toast(pendingCount()||!SY.ok?"Couldn't reach the server. It will try again":"Everything is synced");if(S.view==="settings")render()});return}
   if(t.id==="addTech"){S.teamForm={mode:"add"};render();return}
   if(t.id==="cancelTeam"){S.teamForm=null;render();return}
-  if(t.dataset.resetpw){const m=(S.team||[]).find(x=>x.uid===t.dataset.resetpw);if(m){S.teamForm={mode:"reset",uid:m.uid,name:m.name,username:m.username};render()}return}
+  if(t.dataset.resetpw){const m=(S.team||[]).find(x=>x.id===t.dataset.resetpw);if(m){S.teamForm={mode:"reset",id:m.id,name:m.name,username:m.username};render()}return}
   if(t.dataset.toggle){toggleTech(t.dataset.toggle);return}
   if(t.id==="tabList"){S.view="list";render()}
   else if(t.id==="tabReports"){S.view="reports";render()}
@@ -442,7 +441,7 @@ document.addEventListener("change",e=>{
   if(id==="logoIn"&&e.target.files[0]){uploadLogo(e.target.files[0]);e.target.value="";return}
   if(id==="r_from"||id==="r_to"||id==="r_tech"){S.rep[id.slice(2)]=e.target.value;render()}
 });
-document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="whoForm")saveWho();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam()});
+document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam()});
 
 /* ---------- form ---------- */
 const FIELDS=["serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
@@ -497,8 +496,7 @@ async function deleteCard(){
   catch(_){toast("Couldn't delete. Try again")}
 }
 async function saveSettings(){
-  const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim(),me=($("#s_me")?.value||"").trim();
-  if(me&&me!==S.myName&&syncMode!=="firebase")setMyName(me);
+  const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim();
   const lg=S.logoDraft||{id:S.company.logoId,url:S.company.logoUrl};
   try{await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;S.setDraft=null;toast("Settings saved");S.view="list";render()}
   catch(_){toast("Couldn't save settings. You may need edit access")}
@@ -705,17 +703,18 @@ async function pdfSummary(btn){
   btn.disabled=false;
 }
 
-/* ---------- storage ----------
-   Everything is saved on the phone first, so the app works with no signal.
-   - Local mode (no Firebase config yet): data stays in this phone's IndexedDB.
-   - Firebase mode: Firestore's offline cache holds the data on the phone and
-     uploads changes to the team as soon as there's signal.
-   Both expose the same small API the app uses: collection/doc, add/set/update/delete/get/onSnapshot. */
-const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(_){return null}};
+/* ---------- storage and sync ----------
+   Everything is saved on the phone first (IndexedDB), so the app works with no signal.
+   Changes are queued and sent straight to the company's own server when the phone can reach it;
+   the server sends back whatever this login is allowed to see (a technician: their own, the admin: everything). */
+const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(_){return null}};
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+let dirty={};try{dirty=JSON.parse(LS("dirty")||"{}")||{}}catch(_){dirty={}}
+const saveDirty=()=>LS("dirty",JSON.stringify(dirty));
+const pendingCount=()=>Object.keys(dirty).length;
 
 function openIdb(){return new Promise((res,rej)=>{const r=indexedDB.open("bakery-jobcards",1);r.onupgradeneeded=()=>r.result.createObjectStore("docs");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-async function makeLocalDb(){
+async function makeLocalDb(onWrite){
   const h=await openIdb();const mem=new Map();const subs=new Set();
   await new Promise((res,rej)=>{const rq=h.transaction("docs").objectStore("docs").openCursor();rq.onsuccess=()=>{const c=rq.result;if(c){mem.set(c.key,c.value);c.continue()}else res()};rq.onerror=()=>rej(rq.error)});
   const persist=(path,val)=>new Promise((res,rej)=>{const tx=h.transaction("docs","readwrite");const st=tx.objectStore("docs");if(val===undefined)st.delete(path);else st.put(val,path);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});
@@ -724,61 +723,76 @@ async function makeLocalDb(){
   const snap=path=>{const d=mem.get(path);return {id:path.split("/").pop(),exists:d!==undefined,data:()=>clone(d)}};
   const docRef=path=>({id:path.split("/").pop(),path,
     async get(){return snap(path)},
-    async set(d){const v=clone(d);mem.set(path,v);notify();await persist(path,v)},
-    async update(p){const cur=mem.get(path);if(cur===undefined)throw Object.assign(new Error("Not found"),{code:"not-found"});const v={...cur,...clone(p)};mem.set(path,v);notify();await persist(path,v)},
-    async delete(){mem.delete(path);notify();await persist(path,undefined)},
+    async set(d){const v=clone(d);mem.set(path,v);onWrite(path);notify();await persist(path,v)},
+    async update(p){const cur=mem.get(path);if(cur===undefined)throw Object.assign(new Error("Not found"),{code:"not-found"});const v={...cur,...clone(p)};mem.set(path,v);onWrite(path);notify();await persist(path,v)},
+    async delete(){mem.delete(path);onWrite(path);notify();await persist(path,undefined)},
     onSnapshot(cb){const f=()=>cb(snap(path));subs.add(f);setTimeout(f,0);return()=>subs.delete(f)}});
-  const colRef=(path,order)=>{const list=()=>{const out=[];for(const [k,v] of mem){if(k.slice(0,k.lastIndexOf("/"))===path)out.push({id:k.split("/").pop(),exists:true,data:()=>clone(v),_v:v})}
-      if(order)out.sort((a,b)=>{const x=a._v[order.f],y=b._v[order.f];return (x>y?1:x<y?-1:0)*(order.d==="desc"?-1:1)});return out};
+  const colRef=path=>{const list=()=>{const out=[];for(const [k,v] of mem){if(k.slice(0,k.lastIndexOf("/"))===path)out.push({id:k.split("/").pop(),exists:true,data:()=>clone(v)})}return out};
     return {doc:id=>docRef(path+"/"+(id||newId())),
       async add(d){const r=docRef(path+"/"+newId());await r.set(d);return r},
-      orderBy:(f,d)=>colRef(path,{f,d}),
       async get(){return {docs:list()}},
       onSnapshot(cb){const f=()=>cb({docs:list()});subs.add(f);setTimeout(f,0);return()=>subs.delete(f)}}};
-  return {collection:p=>colRef(p),doc:p=>docRef(p),entries:()=>[...mem.entries()]};
+  return {collection:p=>colRef(p),doc:p=>docRef(p),entries:()=>[...mem.entries()],peek:p=>mem.get(p),
+    // changes that came from the server: saved without being queued to send back
+    async applyRemote(list,silent){const tx=h.transaction("docs","readwrite");const st=tx.objectStore("docs");
+      for(const c of list){if(c.data===null||c.data===undefined){mem.delete(c.path);st.delete(c.path)}else{mem.set(c.path,c.data);st.put(c.data,c.path)}}
+      await new Promise((res,rej)=>{tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});if(!silent)notify()},
+    async wipe(){mem.clear();await new Promise((res,rej)=>{const tx=h.transaction("docs","readwrite");tx.objectStore("docs").clear();tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});notify()}};
 }
 
-function makeFireDb(fs){
-  // Writes land in the phone's offline cache straight away; Firestore uploads them when online.
-  // We don't wait for the server, otherwise saving would hang with no signal.
-  const bg=p=>{p.catch(err=>{console.warn(err);toast("A change didn't sync ("+(err?.code||"error")+")")});return Promise.resolve()};
-  const doc=r=>({id:r.id,path:r.path,
-    get:()=>r.get({source:"cache"}).catch(()=>r.get()),
-    set:d=>bg(r.set(d)),update:d=>bg(r.update(d)),delete:()=>bg(r.delete()),
-    onSnapshot:(a,b)=>r.onSnapshot(a,b)});
-  const col=c=>({doc:id=>doc(id?c.doc(id):c.doc()),
-    add:async d=>{const r=c.doc();bg(r.set(d));return doc(r)},
-    orderBy:(f,d)=>col(c.orderBy(f,d)),where:(f,o,v)=>col(c.where(f,o,v)),
-    get:()=>c.get({source:"cache"}).catch(()=>c.get()),
-    onSnapshot:(...a)=>c.onSnapshot(...a)});
-  return {collection:p=>col(fs.collection(p)),doc:p=>doc(fs.doc(p))};
+const SY={url:"",token:"",sameOrigin:false,busy:false,again:false,timer:null,ok:true};
+const normUrl=v=>{v=String(v||"").trim().replace(/\/+$/,"");if(!v)return "";return /^https?:\/\//i.test(v)?v:"http://"+v};
+async function api(path,body,method){
+  let r;try{r=await fetch(SY.url+path,{method:method||(body?"POST":"GET"),headers:{"Content-Type":"application/json",...(SY.token?{Authorization:"Bearer "+SY.token}:{})},body:body?JSON.stringify(body):undefined})}
+  catch(err){throw Object.assign(new Error("offline"),{offline:true})}
+  let j=null;try{j=await r.json()}catch(_){}
+  if(!r.ok)throw Object.assign(new Error(j?.error||("HTTP "+r.status)),{status:r.status,msg:j?.error});
+  return j;
 }
-
-const sync={online:navigator.onLine,pending:false};
-function showSync(){const el=$("#syncState");if(!el)return;let t,c="";
-  if(S.view==="login"||S.view==="wait"){el.textContent=sync.online?"":"Offline";el.className="sync";el.hidden=sync.online;return}el.hidden=false;
-  if(syncMode!=="firebase"){t="Saved on this phone"}
-  else if(!sync.online){t="Offline · saved on phone";c="wait"}
-  else if(sync.pending){t="Syncing…";c="wait"}
+function markDirty(path){dirty[path]=Date.now();saveDirty();kickSync()}
+function kickSync(ms){clearTimeout(SY.timer);SY.timer=setTimeout(syncNow,ms??1200);showSync()}
+async function syncNow(){
+  if(!SY.token||!profile)return;
+  if(SY.busy){SY.again=true;return}
+  SY.busy=true;showSync();
+  try{
+    let more=true,guard=0;
+    while(more&&guard++<60){
+      const paths=Object.keys(dirty).sort((a,b)=>b.startsWith("blobs/")-a.startsWith("blobs/")); // photos first, so a card never arrives before its pictures
+      const changes=[];let size=0;
+      for(const p of paths){const d=db.peek(p);const s=d===undefined?0:JSON.stringify(d).length;
+        if(changes.length&&(size+s>2500000||changes.length>=200))break;
+        changes.push({path:p,data:d===undefined?null:d,ts:dirty[p]});size+=s}
+      const res=await api("/api/sync",{since:+LS("cursor")||0,changes});
+      for(const c of changes)if(dirty[c.path]===c.ts)delete dirty[c.path];
+      saveDirty();
+      const inc=(res.changes||[]).filter(c=>!(c.path in dirty));
+      if(inc.length)await db.applyRemote(inc);
+      LS("cursor",String(res.cursor||0));
+      more=!!res.more||pendingCount()>0;
+    }
+    SY.ok=true;
+  }catch(err){
+    if(err.status===401||err.status===403){SY.busy=false;forceSignOut(err.status===403?"This login is switched off. Speak to the admin":"Sign in again to keep syncing");return}
+    SY.ok=false;if(!err.offline)console.warn(err);
+  }
+  SY.busy=false;showSync();
+  if(SY.again){SY.again=false;kickSync(300)}
+}
+function showSync(){const el=$("#syncState");if(!el)return;
+  if(S.view==="login"||S.view==="wait"){el.hidden=true;return}
+  el.hidden=false;const n=pendingCount();let t,c="";
+  if(!navigator.onLine||!SY.ok){t=n?`Offline · ${n} to sync`:"Offline · saved on phone";c="wait"}
+  else if(SY.busy||n){t="Syncing…";c="wait"}
   else{t="Synced";c="ok"}
   el.textContent=t;el.className="sync "+c}
-addEventListener("online",()=>{sync.online=true;showSync()});
-addEventListener("offline",()=>{sync.online=false;showSync()});
+addEventListener("online",()=>{SY.ok=true;showSync();syncNow()});
+addEventListener("offline",()=>showSync());
+setInterval(()=>{if(profile&&document.visibilityState!=="hidden")syncNow()},30000);
+document.addEventListener("visibilitychange",()=>{if(profile&&document.visibilityState==="visible")syncNow()});
 
-let FB=null,localDb=null;
-async function openStore(){
-  localDb=await makeLocalDb();
-  const cfg=window.FIREBASE_CONFIG;
-  if(!cfg||!cfg.apiKey||!window.firebase)return localDb;
-  const fb=window.firebase;fb.initializeApp(cfg);
-  const fs=fb.firestore();
-  try{await fs.enablePersistence({synchronizeTabs:true})}catch(err){console.warn("Offline cache unavailable",err)}
-  FB={fb,fs,auth:fb.auth(),cfg};syncMode="firebase";
-  return makeFireDb(fs);
-}
-
-/* photos and logos: stored as compressed JPEG/PNG data in the "blobs" collection */
-const blobCache={};
+/* photos and logos: stored as compressed JPEG/PNG data in "blobs"; fetched from the server only when looked at */
+const blobCache={},blobWait={};
 const toDataUrl=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)});
 async function uploadBlob(blob){
   const url=await toDataUrl(blob);
@@ -789,8 +803,12 @@ async function uploadBlob(blob){
 function blobSrc(id){return (id&&blobCache[id])||""}
 async function blobUrl(id){
   if(!id)return "";if(blobCache[id])return blobCache[id];
-  const s=await db.doc("blobs/"+id).get();const u=s.exists?(s.data().data||""):"";
-  if(u)blobCache[id]=u;return u;
+  let d=db.peek("blobs/"+id);
+  if(!d&&SY.token){
+    blobWait[id]=blobWait[id]||api("/api/blob/"+encodeURIComponent(id)).then(async r=>{if(r?.data){const v={data:r.data};await db.applyRemote([{path:"blobs/"+id,data:v}],true);return v}}).catch(()=>undefined).finally(()=>{delete blobWait[id]});
+    d=await blobWait[id];
+  }
+  const u=d?.data||"";if(u)blobCache[id]=u;return u;
 }
 function hydrate(){document.querySelectorAll("img[data-blob]:not([src])").forEach(im=>{const id=im.dataset.blob;if(!id)return;blobUrl(id).then(u=>{if(u)im.src=u}).catch(()=>{})})}
 async function shrinkLogo(file){
@@ -802,41 +820,24 @@ async function shrinkLogo(file){
   return await new Promise(r=>c2.toBlob(r,"image/jpeg",0.9));
 }
 
-/* who's using this phone */
-function whoView(){return `<form id="whoForm" class="stack" novalidate>
-  <div class="welcome"><h2>Macadams job cards</h2><p>Log service jobs with photos, track your van stock and send reports, with or without signal.</p></div>
-  <div class="section"><fieldset><legend>Who's using this phone?</legend>
-    <label>Your name<input id="w_name" value="${esc(S.myName||"")}" placeholder="Name and surname" autocomplete="name"></label>
-    <p class="hint">Your name goes on your job cards and reports, and your van stock is kept under it. You can change it later in Settings.</p>
-  </fieldset></div>
-  <button class="btn primary" type="submit">Start</button></form>`}
-function setMyName(n){S.myName=n;LS("techName",n);S.names[meId]=n;if(db)db.doc("techs/"+meId).set({name:n,joined:+LS("joined")||Date.now()}).catch(()=>{})}
-function saveWho(){const n=$("#w_name").value.trim();if(!n){toast("Type your name");return}setMyName(n);S.view="list";render()}
-
 /* Android back button */
 window.onBack=()=>{
   if(S.view==="form"){S.view=S.form?.id?"detail":"list";S.form=null;render();return true}
   if(S.view==="van"&&S.partForm){S.partForm=null;render();return true}
   if(S.view==="team"&&S.teamForm){S.teamForm=null;render();return true}
   if(S.view==="login"){if(S.loginMode){S.loginMode=null;render();return true}return false}
-  if(S.view!=="list"&&S.view!=="who"){S.view="list";render();return true}
+  if(S.view!=="list"&&S.view!=="wait"){S.view="list";render();return true}
   return false;
 };
 
-/* ---------- sign-in and technicians (used once the Firebase project is connected) ----------
-   users/{authUid}   {name, username, role: "admin"|"tech", techId, active}
-   logins/{username} {email}   - lets a username be looked up at sign-in
-   meta/admin        {uid}     - the one main admin
-   A tech's phone only loads job cards where techId is theirs; the admin loads all of them. */
+/* ---------- sign-in ---------- */
 let profile=null,isAdmin=false;const unsubs=[];
-const DOMAIN="@jobcards.example.com";
 const normUser=v=>String(v||"").trim().toLowerCase().replace(/[^a-z0-9._-]/g,"");
-const mkEmail=un=>un+"."+Date.now().toString(36)+DOMAIN;
-function authMsg(err,fallback){const c=String(err?.code||"")+" "+String(err?.message||"");
-  return /network|unavailable|offline/i.test(c)?"No signal. Connect to the internet and try again":/too-many/i.test(c)?"Too many tries. Wait a few minutes and try again":/weak-password/i.test(c)?"Use a password of 6 or more characters":/permission/i.test(c)?"You don't have permission to do that":fallback}
-function softRender(){if(!["form","settings","who","login","wait"].includes(S.view)&&!(S.view==="team"&&S.teamForm)&&!(S.view==="van"&&S.partForm))render()}
+const errMsg=(err,fallback)=>err?.offline?"Can't reach the server. Check the connection and try again":(err?.msg||fallback);
+function softRender(){if(!["form","settings","login","wait"].includes(S.view)&&!(S.view==="team"&&S.teamForm)&&!(S.view==="van"&&S.partForm))render()}
 
 function loginView(){
+  const srv=SY.sameOrigin?"":`<label>Server address<input id="l_server" inputmode="url" autocapitalize="none" autocomplete="off" spellcheck="false" value="${esc((S.loginDraft?.server??SY.url).replace(/^http:\/\//,""))}" placeholder="e.g. 192.168.1.20:8080"></label>`;
   if(S.loginMode==="setup")return `<form id="setupForm" class="stack" novalidate>
     <div class="welcome"><h2>Set up the admin</h2><p>The admin sees every technician's job cards and gives each technician a login. You only do this once.</p></div>
     <div class="section"><fieldset><legend>Admin account</legend>
@@ -849,43 +850,74 @@ function loginView(){
   return `<form id="loginForm" class="stack" novalidate>
     <div class="welcome"><h2>Macadams job cards</h2><p>Sign in with the username and password your admin gave you.</p></div>
     <div class="section"><fieldset><legend>Sign in</legend>
-      <label>Username<input id="l_user" autocapitalize="none" autocomplete="username" spellcheck="false"></label>
+      ${srv}
+      <label>Username<input id="l_user" autocapitalize="none" autocomplete="username" spellcheck="false" value="${esc(S.loginDraft?.user||"")}"></label>
       <label>Password<input id="l_pass" type="password" autocomplete="current-password"></label>
     </fieldset></div>
     <button class="btn primary" type="submit" id="loginBtn">Sign in</button>
-    ${S.needSetup?`<button class="btn" type="button" id="goSetup">Set up the admin account</button><p class="hint">No admin has been set up yet. Do this first on the admin's phone.</p>`:""}</form>`;
+    ${S.needSetup?`<button class="btn" type="button" id="goSetup">Set up the admin account</button><p class="hint">No admin has been set up on this server yet.</p>`:""}</form>`;
 }
 async function checkSetup(){
-  try{const s=await FB.fs.doc("meta/admin").get({source:"server"});S.needSetup=!s.exists}catch(_){S.needSetup=false}
+  if(!SY.url&&!SY.sameOrigin)return;
+  try{const s=await api("/api/status");S.needSetup=!!s.needSetup}catch(_){S.needSetup=false}
   if(S.needSetup&&S.view==="login"&&!S.loginMode&&!$("#l_user")?.value)render();
 }
+function clearSession(){SY.token="";LS("token",null);LS("profile",null);profile=null;isAdmin=false;meId=null;S.myName=""}
+function forceSignOut(msg){stopData();clearSession();S.view="login";S.loginMode=null;render();showSync();if(msg)toast(msg);checkSetup()}
 async function doLogin(){
-  const un=normUser($("#l_user").value),pw=$("#l_pass").value;if(!un||!pw){toast("Type your username and password");return}
+  const un=normUser($("#l_user").value),pw=$("#l_pass").value;
+  if(!SY.sameOrigin){const a=normUrl($("#l_server").value);if(!a){toast("Type the server address your admin gave you");return}SY.url=a}
+  if(!un||!pw){toast("Type your username and password");return}
+  S.loginDraft={user:un,server:SY.url};
   const b=$("#loginBtn");b.disabled=true;b.textContent="Signing in…";
-  try{const s=await FB.fs.doc("logins/"+un).get({source:"server"});if(!s.exists)throw {code:"auth/wrong-password"};
-    await FB.auth.signInWithEmailAndPassword(s.data().email,pw)}
-  catch(err){toast(authMsg(err,"Wrong username or password"));const x=$("#loginBtn");if(x){x.disabled=false;x.textContent="Sign in"}}
+  try{const res=await api("/api/login",{username:un,password:pw});await enter(res.token,res.user)}
+  catch(err){toast(errMsg(err,"Wrong username or password"));const x=$("#loginBtn");if(x){x.disabled=false;x.textContent="Sign in"}}
 }
 async function doSetup(){
   const name=$("#a_name").value.trim(),un=normUser($("#a_user").value),pw=$("#a_pass").value;
   if(!name||!un){toast("Type your name and a username");return}
   if(pw.length<6){toast("Use a password of 6 or more characters");return}
-  const b=$("#setupBtn");b.disabled=true;b.textContent="Creating…";S.settingUp=true;
-  try{const email=mkEmail(un);const cred=await FB.auth.createUserWithEmailAndPassword(email,pw);const uid=cred.user.uid;
-    await FB.fs.doc("meta/admin").set({uid,createdAt:Date.now()});
-    await FB.fs.doc("users/"+uid).set({name,username:un,role:"admin",techId:uid,active:true,createdAt:Date.now()});
-    await FB.fs.doc("logins/"+un).set({email});
-    S.settingUp=false;S.loginMode=null;S.needSetup=false;await onAuth(FB.auth.currentUser);
-  }catch(err){S.settingUp=false;console.error(err);
-    toast(/permission/i.test(String(err?.code)+err?.message)?"An admin already exists. Sign in instead":authMsg(err,"Couldn't create the admin account. Try again"));
-    if(FB.auth.currentUser)FB.auth.signOut().catch(()=>{});const x=$("#setupBtn");if(x){x.disabled=false;x.textContent="Create admin account"}}
+  const b=$("#setupBtn");b.disabled=true;b.textContent="Creating…";
+  try{const res=await api("/api/setup",{name,username:un,password:pw});S.loginMode=null;S.needSetup=false;await enter(res.token,res.user)}
+  catch(err){toast(errMsg(err,"Couldn't create the admin account. Try again"));const x=$("#setupBtn");if(x){x.disabled=false;x.textContent="Create admin account"}}
 }
-function trySignOut(){
-  if(sync.pending){toast(sync.online?"Still syncing. Try again in a moment":"Job cards on this phone haven't synced yet. Connect to the internet before signing out");return}
-  FB.auth.signOut().catch(()=>toast("Couldn't sign out. Try again"));
+/* a successful sign-in: make sure the job cards on this phone belong to this person, then open the app */
+async function enter(token,user){
+  const prev=LS("lastUser");
+  if(prev&&prev!==user.id){
+    if(pendingCount()){const t=SY.token;SY.token=token;api("/api/logout",{}).catch(()=>{});SY.token=t;
+      throw {msg:`This phone still has job cards from ${LS("lastName")||"another technician"} that haven't synced. They must sign in and sync first`}}
+    await db.wipe();LS("cursor","0");for(const k of Object.keys(blobCache))delete blobCache[k];
+  }
+  if(!prev){ // job cards made on this phone before logins existed are handed to this login
+    const old=LS("techId");const moved=[];
+    for(const [path,data] of db.entries()){
+      if(path.startsWith("jobcards/")){moved.push({path,data:{...data,techId:user.id,techName:user.name}})}
+      else if(old&&path.startsWith("vanstock/"+old+"/")){moved.push({path,data:null},{path:path.replace("vanstock/"+old+"/","vanstock/"+user.id+"/"),data})}
+      else if(path.startsWith("blobs/")){moved.push({path,data})}
+      else moved.push({path,data:null});
+    }
+    if(moved.length)await db.applyRemote(moved,true);
+    for(const m of moved)if(m.data)dirty[m.path]=Date.now();
+    saveDirty();LS("cursor","0");
+  }
+  SY.token=token;LS("token",token);LS("profile",JSON.stringify(user));LS("lastUser",user.id);LS("lastName",user.name||"");LS("server",SY.url);
+  openApp(user);
+}
+function openApp(user){
+  stopData();
+  profile=user;isAdmin=user.role==="admin";meId=user.id;S.myName=user.name||"";S.names[meId]=S.myName;
+  if(isAdmin){try{setTeam(JSON.parse(LS("team")||"[]"))}catch(_){}}
+  S.view="list";S.loginDraft=null;render();startData();showSync();syncNow();if(isAdmin)loadTeam();
+}
+async function trySignOut(){
+  if(pendingCount()){await syncNow();if(pendingCount()){toast("Job cards on this phone haven't synced yet. Connect to the server before signing out");return}}
+  api("/api/logout",{}).catch(()=>{});forceSignOut();
 }
 
-/* technicians (admin) */
+/* ---------- technicians (admin) ---------- */
+function setTeam(list){S.team=list||[];for(const t of S.team)if(t.id&&t.name)S.names[t.id]=t.name;S.techs=[meId,...S.team.map(t=>t.id).filter(x=>x&&x!==meId)]}
+async function loadTeam(){try{const r=await api("/api/users");setTeam(r.users);LS("team",JSON.stringify(r.users));softRender()}catch(err){if(S.view==="team"&&!err.offline)toast(errMsg(err,"Couldn't load the technicians"))}}
 function teamView(){
   const techs=(S.team||[]).filter(t=>t.role!=="admin").sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   const f=S.teamForm;
@@ -894,22 +926,16 @@ function teamView(){
     <div class="section"><fieldset><legend>${f.mode==="add"?"Technician login":esc(f.name)}</legend>
       ${f.mode==="add"?`<label>Name<input id="t_name" autocomplete="off" placeholder="Name and surname"></label>
       <label>Username<input id="t_user" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. sipho"></label>`
-      :`<p class="hint">Username: <b>${esc(f.username)}</b>. The old password stops working and their phone asks them to sign in again. Make sure their phone has synced first.</p>`}
+      :`<p class="hint">Username: <b>${esc(f.username)}</b>. The old password stops working and their phone asks them to sign in again. Job cards on their phone are kept.</p>`}
       <label>${f.mode==="add"?"Password":"New password"}<input id="t_pass" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="6 or more characters"></label>
       <p class="hint">Give the username and password to the technician. They sign in once and the phone remembers it.</p>
     </fieldset></div></form>`;
-  const rows=techs.map(t=>{const n=S.cards.filter(c=>c.techId===t.techId).length,off=t.active===false;return `<div class="member${off?" off":""}">
+  const rows=techs.map(t=>{const n=S.cards.filter(c=>c.techId===t.id).length,off=t.active===false;return `<div class="member${off?" off":""}">
     <div class="who"><b>${esc(t.name)}</b><span>Username: ${esc(t.username)}</span><span>${n} job card${n===1?"":"s"}</span></div>
     ${off?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}
-    <div class="row"><button class="btn icon-btn" type="button" data-resetpw="${esc(t.uid)}">New password</button><button class="btn icon-btn${off?"":" danger"}" type="button" data-toggle="${esc(t.uid)}">${off?"Switch on":"Switch off"}</button></div></div>`}).join("");
+    <div class="row"><button class="btn icon-btn" type="button" data-resetpw="${esc(t.id)}">New password</button><button class="btn icon-btn${off?"":" danger"}" type="button" data-toggle="${esc(t.id)}">${off?"Switch on":"Switch off"}</button></div></div>`}).join("");
   return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${techs.length} technician${techs.length===1?"":"s"}</span><button class="btn primary" id="addTech" type="button">${ic("plus")}Add technician</button></div>
     ${rows||`<div class="empty"><h2>No technicians yet</h2><p>Add each technician and give them their username and password. Their job cards come to you when their phone syncs.</p></div>`}</div>`;
-}
-async function newAccount(email,pw){ // a second connection, so the admin stays signed in
-  const fb=FB.fb;const sec=fb.apps.find(a=>a.name==="accounts")||fb.initializeApp(FB.cfg,"accounts");
-  try{await sec.auth().setPersistence(fb.auth.Auth.Persistence.NONE)}catch(_){}
-  const cred=await sec.auth().createUserWithEmailAndPassword(email,pw);const uid=cred.user.uid;
-  await sec.auth().signOut().catch(()=>{});return uid;
 }
 async function saveTeam(){
   const f=S.teamForm,pw=$("#t_pass").value.trim();
@@ -918,106 +944,52 @@ async function saveTeam(){
   if(pw.length<6){toast("Use a password of 6 or more characters");return}
   const b=$("#teamSave");b.disabled=true;
   try{
-    if(f.mode==="add"){
-      const taken=await FB.fs.doc("logins/"+un).get({source:"server"});if(taken.exists){toast("That username is taken. Choose another");b.disabled=false;return}
-      const email=mkEmail(un),uid=await newAccount(email,pw);
-      await FB.fs.doc("users/"+uid).set({name,username:un,role:"tech",techId:uid,active:true,createdAt:Date.now()});
-      await FB.fs.doc("logins/"+un).set({email});
-      toast("Login created for "+name);
-    }else{
-      const old=(S.team||[]).find(t=>t.uid===f.uid);if(!old)throw new Error("gone");
-      const email=mkEmail(un),uid=await newAccount(email,pw);const {uid:_drop,...rest}=old;
-      await FB.fs.doc("users/"+uid).set({...rest,updatedAt:Date.now()});
-      await FB.fs.doc("logins/"+un).set({email});
-      await FB.fs.doc("users/"+f.uid).delete();
-      toast("New password set for "+name);
-    }
-    S.teamForm=null;render();
-  }catch(err){console.error(err);toast(authMsg(err,"Couldn't save. Try again"));const x=$("#teamSave");if(x)x.disabled=false}
+    if(f.mode==="add"){await api("/api/users",{name,username:un,password:pw});toast("Login created for "+name)}
+    else{await api("/api/users/"+encodeURIComponent(f.id),{password:pw});toast("New password set for "+name)}
+    S.teamForm=null;render();await loadTeam();
+  }catch(err){toast(errMsg(err,"Couldn't save. Try again"));const x=$("#teamSave");if(x)x.disabled=false}
 }
-async function toggleTech(uid){
-  const t=(S.team||[]).find(x=>x.uid===uid);if(!t)return;const on=t.active===false;
-  try{await FB.fs.doc("users/"+uid).update({active:on});toast(on?t.name+" can sign in again":t.name+"'s login is switched off")}
-  catch(err){toast(authMsg(err,"Couldn't change the login. Try again"))}
+async function toggleTech(id){
+  const t=(S.team||[]).find(x=>x.id===id);if(!t)return;const on=t.active===false;
+  try{await api("/api/users/"+encodeURIComponent(id),{active:on});toast(on?t.name+" can sign in again":t.name+"'s login is switched off");await loadTeam()}
+  catch(err){toast(errMsg(err,"Couldn't change the login. Try again"))}
 }
 function accountSection(){
-  if(syncMode!=="firebase")return `<div class="section"><fieldset><legend>This phone</legend>
-      <label>Technician name<input id="s_me" value="${esc(S.setDraft?.me??S.myName)}" placeholder="Name and surname"></label>
-      <p class="hint">Job cards are saved on this phone only. Logins and team sync switch on once the Firebase project is connected.</p>
-    </fieldset></div>`;
+  const n=pendingCount();
   return `<div class="section"><fieldset><legend>Signed in</legend>
-      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isAdmin?"Admin":"Technician"}</dd></dl>
-      <p class="hint">${isAdmin?"You see every technician's job cards.":"Your job cards are saved on this phone and go to the admin when there's signal."}</p>
-      <div><button class="btn" id="signOut" type="button">Sign out</button></div>
+      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isAdmin?"Admin":"Technician"}</dd><dt>Server</dt><dd>${esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
+      <p class="hint">${isAdmin?"You see every technician's job cards.":"Your job cards are saved on this phone and go to the admin when the phone can reach the server."}</p>
+      <div class="row"><button class="btn" id="syncBtn" type="button">Sync now</button><button class="btn" id="signOut" type="button">Sign out</button></div>
     </fieldset></div>`;
-}
-
-/* first sign-in on a phone that already has job cards: hand them to this login */
-async function migrateLocal(){
-  if(LS("migrated")||!localDb)return;const old=LS("techId");
-  for(const [path,data] of localDb.entries()){
-    if(path.startsWith("jobcards/"))FB.fs.doc(path).set({...data,techId:meId,techName:S.myName}).catch(()=>{});
-    else if(old&&path.startsWith("vanstock/"+old+"/"))FB.fs.doc(path.replace("vanstock/"+old+"/","vanstock/"+meId+"/")).set(data).catch(()=>{});
-    else if(path.startsWith("blobs/"))FB.fs.doc(path).set({...data,techId:meId}).catch(()=>{});
-  }
-  LS("migrated","1");
-}
-function stopData(){
-  while(unsubs.length){try{unsubs.pop()()}catch(_){}}
-  for(const k of Object.keys(vanSubs)){try{vanSubs[k]()}catch(_){}delete vanSubs[k]}
-  for(const k of Object.keys(blobCache))delete blobCache[k];
-  S.cards=[];S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;sync.pending=false;
-}
-async function onAuth(u){
-  if(S.settingUp)return;
-  stopData();
-  if(!u){profile=null;isAdmin=false;meId=null;S.myName="";S.view="login";render();showSync();checkSetup();return}
-  let p=null,known=false;
-  try{const s=await FB.fs.doc("users/"+u.uid).get();known=true;if(s.exists)p=s.data()}catch(_){}
-  if(!known){try{p=JSON.parse(LS("profile:"+u.uid)||"null")}catch(_){}}
-  if(!p||p.active===false){toast(p?"This login is switched off. Speak to the admin":"This login no longer works. Sign in again");LS("profile:"+u.uid,"null");await FB.auth.signOut().catch(()=>{});return}
-  LS("profile:"+u.uid,JSON.stringify(p));
-  profile=p;isAdmin=p.role==="admin";meId=p.techId||u.uid;S.myName=p.name||"";S.names[meId]=S.myName;
-  await migrateLocal();
-  S.view="list";render();showSync();startData();
-  unsubs.push(FB.fs.doc("users/"+u.uid).onSnapshot(s=>{if(s.metadata.fromCache)return;
-    if(!s.exists||s.data().active===false){toast(s.exists?"This login is switched off. Speak to the admin":"Your password was changed. Sign in again");LS("profile:"+u.uid,"null");FB.auth.signOut().catch(()=>{})}
-    else LS("profile:"+u.uid,JSON.stringify(s.data()))},()=>{}));
 }
 
 /* ---------- data ---------- */
+function stopData(){
+  while(unsubs.length){try{unsubs.pop()()}catch(_){}}
+  for(const k of Object.keys(vanSubs)){try{vanSubs[k]()}catch(_){}delete vanSubs[k]}
+  S.cards=[];S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
+}
 function startData(){
-  const fire=syncMode==="firebase";
-  S.vanTech=meId;subVan(meId);
-  if(!fire)unsubs.push(db.collection("techs").onSnapshot(sn=>{S.techs=sn.docs.map(d=>d.id);if(!S.techs.includes(meId))S.techs.push(meId);for(const d of sn.docs){const n=d.data()?.name;if(n)S.names[d.id]=n}softRender()},()=>{}));
-  else if(isAdmin)unsubs.push(db.collection("users").onSnapshot(sn=>{S.team=sn.docs.map(d=>({uid:d.id,...d.data()}));for(const t of S.team)if(t.techId&&t.name)S.names[t.techId]=t.name;S.techs=[meId,...new Set(S.team.map(t=>t.techId).filter(x=>x&&x!==meId))];softRender()},()=>{}));
-  else S.techs=[meId];
-  const timer=setTimeout(()=>{if(!S.loaded){S.error="Job cards are taking long to load.";softRender()}},10000);
-  const q=fire&&!isAdmin?db.collection("jobcards").where("techId","==",meId):db.collection("jobcards");
-  let first=true;
-  const onCards=snap=>{
-    if(fire){sync.pending=!!snap.metadata?.hasPendingWrites;showSync();if(!first&&!snap.docChanges().length)return}
-    first=false;clearTimeout(timer);S.loaded=true;S.error=null;
+  S.vanTech=meId;subVan(meId);if(!isAdmin)S.techs=[meId];
+  unsubs.push(db.collection("jobcards").onSnapshot(snap=>{
+    S.loaded=true;S.error=null;
     S.cards=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     for(const c of S.cards)if(c.techId&&c.techName&&!S.names[c.techId])S.names[c.techId]=c.techName;
     softRender();
-  };
-  const onErr=err=>{console.error(err);clearTimeout(timer);S.loaded=true;S.error="Couldn't load job cards. Close the app and open it again.";softRender()};
-  unsubs.push(fire?q.onSnapshot({includeMetadataChanges:true},onCards,onErr):q.onSnapshot(onCards,onErr));
+  }));
   unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
-    if(!["form","settings","who","login","wait"].includes(S.view)&&!(S.view==="team"&&S.teamForm))softRender();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{}));
+    if(["form","settings","login","wait"].includes(S.view)||(S.view==="team"&&S.teamForm)){$("#coName").textContent=S.company.name||"Service department";setLogo()}else softRender()}));
 }
 async function boot(){
-  S.view="wait";render();showSync();
-  try{db=await openStore()}catch(err){console.error(err);S.view="list";S.error="Couldn't open the job card store on this phone. Close the app and open it again.";S.loaded=true;render();return}
-  assets={upload:uploadBlob};showSync();
-  if(syncMode==="firebase"){FB.auth.onAuthStateChanged(u=>{onAuth(u).catch(err=>console.error(err))});return}
-  S.myName=LS("techName")||"";
-  meId=LS("techId");if(!meId){meId="t-"+newId();LS("techId",meId);LS("joined",String(Date.now()))}
-  if(S.myName)S.names[meId]=S.myName;
-  S.view=S.myName?"list":"who";render();
-  startData();
-  if(S.myName)setMyName(S.myName);
+  S.view="wait";render();
+  try{db=await makeLocalDb(markDirty)}catch(err){console.error(err);S.view="list";S.error="Couldn't open the job card store on this phone. Close the app and open it again.";S.loaded=true;render();return}
+  assets={upload:uploadBlob};
+  // Opened from the server's own address (the admin's browser)? Then that is the server.
+  if(!window.Native?.isNative()&&/^https?:$/.test(location.protocol)){try{const r=await fetch("/api/status");const j=await r.json();if(j?.app==="macadams-jobcards"){SY.sameOrigin=true;SY.url=location.origin}}catch(_){}}
+  if(!SY.sameOrigin)SY.url=LS("server")||"";
+  SY.token=LS("token")||"";let p=null;try{p=JSON.parse(LS("profile")||"null")}catch(_){}
+  if(SY.token&&p&&SY.url){openApp(p);return}
+  clearSession();S.view="login";render();checkSetup();
 }
 S.rep.from=S.rep.to="";(()=>{const d=new Date(),iso=x=>x.toLocaleDateString("en-CA"),mon=new Date(d);mon.setDate(d.getDate()-(d.getDay()+6)%7);S.rep.from=iso(mon);S.rep.to=iso(d)})();boot();
 </script>

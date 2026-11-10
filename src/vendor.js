@@ -1,13 +1,8 @@
-// Bundled into www/vendor.js: Firebase (offline sync) and the Android bridges.
-import firebase from "firebase/compat/app";
-import "firebase/compat/auth";
-import "firebase/compat/firestore";
+// Bundled into www/vendor.js: the Android bridges (share sheet, back button).
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { App } from "@capacitor/app";
-
-window.firebase = firebase;
 
 const toBase64 = (blob) => new Promise((res, rej) => {
   const r = new FileReader();
