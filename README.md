@@ -22,8 +22,8 @@ Phones of the same company pass changes to each other over Wi-Fi or mobile data,
 through free public Nostr relays (nos.lol, relay.damus.io, relay.primal.net, offchain.pub). The relays keep
 the latest copy of each record so a new phone can catch up, but they cannot read it.
 
-- **Admin's phone, first time:** on the sign-in screen tap **Start a new company as admin**.
-- **Technicians tab (admin):** add each technician with a username and password (8 or more characters).
+- **Admin:** sign in with the base login, username `Admin`, password `1234`. This is a test setup: the login is built into the app, so anyone with the app and this login can read the data. Replace it before a real rollout.
+- **Technicians tab (admin):** add each technician with a username and password (4 or more characters).
 - **Technician's phone:** sign in with that username and password. Nothing else to set up.
 - A technician's phone keeps only their own job cards and van stock; the admin's phone gets everything. The customer list is shared.
 - Every phone of the company holds the same company key, so the technician/admin split is kept by the app, not by encryption. Fine for testing; use the company server for the real rollout.

@@ -1002,7 +1002,11 @@ let RM={};try{RM=JSON.parse(LS("rmeta")||"{}")||{}}catch(_){}   // record -> [it
 const saveRM=()=>LS("rmeta",JSON.stringify(RM));
 const RL={pool:null,sub:null,eose:false,wait:[],q:Promise.resolve(),buf:[],bufT:null,afterEnter:null};
 const relayMode=()=>!SY.url;
-const minPw=()=>relayMode()?8:6; // with no server, the password is what protects the company key
+const minPw=()=>relayMode()?4:6;
+/* Test setup: one built-in company with a base admin login, so nothing has to be created first.
+   Anyone with the app and this login can read the company's data. Replace before a real rollout. */
+const BASE={id:"u-admin",name:"Admin",username:"admin",password:"1234",role:"admin",active:true,pv:1};
+const baseSk=()=>NT.bytesToHex(NT.sha256(new TextEncoder().encode("mjc-base-company|macadams-jobcards|v1")));
 const hasNT=()=>!!(window.NT&&NT.SimplePool);
 const skB=()=>NT.hexToBytes(CLUB.sk);
 let CK=null;const ck=()=>CK||(CK=NT.nip44.getConversationKey(skB(),CLUB.pk));
@@ -1117,13 +1121,16 @@ async function relayApi(path,body){
     await publishTicket(u.username,body.password);
     RL.afterEnter=()=>setUsers([u]);return {token:"relay",user:u}});
   if(path==="/api/login")return net(async()=>{
-    const sk=await ticketLogin(body.username,body.password);
+    const base=body.username===BASE.username;
+    if(base&&body.password!==BASE.password)throw {msg:"Wrong username or password"};
+    const sk=base?baseSk():await ticketLogin(body.username,body.password);
     if(!sk)throw {msg:"Wrong username or password"};
     setClub(sk);
     const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#d":[dTag("r|settings/users")]},{maxWait:8000});
     evs.sort((a,b)=>b.created_at-a.created_at);let list=null;
     for(const e of evs){try{const r=await readEv(e);if(r?.d?.list){list=r.d.list;break}}catch(_){}}
-    const u=(list||[]).find(x=>x.username===body.username);
+    let u=(list||[]).find(x=>x.username===body.username);
+    if(!u&&base){const {password,...a}=BASE;u=a;RL.afterEnter=()=>{const cur=getUsers();if(!cur.some(x=>x.id===a.id))setUsers([a,...cur])}} // first sign-in anywhere: the admin starts the list
     if(!u)throw {msg:"This login isn't ready yet. Open the admin's phone so it can sync, then try again"};
     if(u.active===false)throw {msg:"This login is switched off. Speak to the admin"};
     return {token:"relay",user:u}});
@@ -1176,7 +1183,7 @@ function loginView(){
       <label>Password<input id="l_pass" type="password" autocomplete="current-password"></label>
     </fieldset></div>
     <button class="btn primary" type="submit" id="loginBtn">Sign in</button>
-    ${direct?`<button class="btn" type="button" id="goSetup">Start a new company as admin</button><p class="hint">Only for the admin, the first time. Technicians sign in with the login the admin gives them.</p>`:S.needSetup?`<button class="btn" type="button" id="goSetup">Set up the admin account</button><p class="hint">No admin has been set up on this server yet.</p>`:""}
+    ${direct?"":S.needSetup?`<button class="btn" type="button" id="goSetup">Set up the admin account</button><p class="hint">No admin has been set up on this server yet.</p>`:""}
     ${alt}</form>`;
 }
 async function checkSetup(){
@@ -1315,7 +1322,7 @@ async function boot(){
   if(!SY.sameOrigin)SY.url=LS("server")||"";
   SY.token=LS("token")||"";let p=null;try{p=JSON.parse(LS("profile")||"null")}catch(_){}
   if(SY.token&&p&&(SY.url||CLUB)){openApp(p);return}
-  clearSession();S.view="login";render();checkSetup();
+  clearSession();S.view="login";render();showSync();checkSetup();
 }
 S.rep.from=S.rep.to="";(()=>{const d=new Date(),iso=x=>x.toLocaleDateString("en-CA"),mon=new Date(d);mon.setDate(d.getDate()-(d.getDay()+6)%7);S.rep.from=iso(mon);S.rep.to=iso(d)})();boot();
 </script>

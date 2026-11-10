@@ -25,10 +25,10 @@ async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path=os.environ.get("CHROME","/usr/bin/google-chrome"),args=["--no-sandbox"])
     actx,admin=await page(b)
-    await admin.wait_for_selector("#goSetup"); await shot(admin,"r1_signin.png"); ok("sign-in screen needs no server address",await admin.locator("#l_server").count()==0)
-    await admin.click("#goSetup"); await admin.fill("#a_name","Fred Schallies"); await admin.fill("#a_user","fredadmin"); await admin.fill("#a_pass","short"); await admin.click("#setupBtn"); await admin.wait_for_selector("text=8 or more"); ok("short password refused (8 or more without a server)",True)
-    await admin.fill("#a_pass","secret-admin1"); await admin.click("#setupBtn")
-    await admin.wait_for_selector("#tabTeam:not([hidden])",timeout=20000); ok("admin started a new company",True)
+    await admin.wait_for_selector("#l_user"); await shot(admin,"r1_signin.png"); ok("sign-in screen needs no server address and has no setup button",await admin.locator("#l_server").count()==0 and await admin.locator("#goSetup").count()==0)
+    await login(admin,"Admin","9999"); await admin.wait_for_selector("text=Wrong username or password",timeout=20000); ok("wrong admin password refused",True)
+    await login(admin,"Admin","1234")
+    await admin.wait_for_selector("#tabTeam:not([hidden])",timeout=20000); ok("base admin login works straight away",True)
     await admin.click("#tabTeam")
     for n,u,pw in [("Sipho Dlamini","sipho","oven-1234"),("Thabo Nkosi","thabo","mixer-4567")]:
         await admin.click("#addTech"); await admin.fill("#t_name",n); await admin.fill("#t_user",u); await admin.fill("#t_pass",pw); await admin.click("#teamSave"); await admin.wait_for_selector(f".member:has-text('{n}')",timeout=20000)
@@ -61,7 +61,7 @@ async def main():
     await admin.click(".member:has-text('Thabo') [data-toggle]"); await admin.wait_for_selector(".member.off",timeout=20000)
     await thabo.wait_for_selector("#l_user",timeout=30000); await login(thabo,"thabo","mixer-4567"); await thabo.wait_for_selector("text=switched off",timeout=20000); ok("switched-off login is signed out and can't get back in",True)
     # the admin signs in on a second phone and gets everything
-    a2ctx,admin2=await page(b); await login(admin2,"fredadmin","secret-admin1"); await cards(admin2,3); ok("admin signing in on another phone gets all the job cards",True)
+    a2ctx,admin2=await page(b); await login(admin2,"admin","1234"); await cards(admin2,3); ok("admin signing in on another phone gets all the job cards",True)
     await b.close()
 relay=subprocess.Popen(["node",os.path.join(HERE,"relay.js"),"7447"],stdout=subprocess.DEVNULL)
 web=subprocess.Popen([sys.executable,"-m","http.server","8793","-d",os.path.join(ROOT,"www")],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1.2)
