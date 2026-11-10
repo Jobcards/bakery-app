@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bakery Tech Job Cards</title>
-<meta name="theme-color" content="#23335D">
+<meta name="theme-color" content="#16254E">
 <link rel="stylesheet" href="fonts.css">
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/jspdf.plugin.autotable.min.js"></script>
@@ -10,141 +10,198 @@
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 </head><body>
 <style>
-/* Layout: one-column phone tool — sticky header with tabs, card list, full-screen form, floating "New" button */
+/* Macadams field app: navy app bar with the logo badge, yellow for the one main action, bottom tab bar like a native Android app */
 :root{
-  --bg:#F3F5F7; --surface:#FFFFFF; --ink:#141A21; --muted:#5B6673; --line:#D9DFE5;
-  --accent:#23335D; --accent-ink:#FFFFFF; --accent-soft:#E4E8F2; --red:#F2D22E;
-  --ok:#1E7A46; --ok-soft:#E1F2E8; --warn:#A35F00; --warn-soft:#FBEED9; --wait:#6A3FB0; --wait-soft:#EEE7F8; --open:#5B6673; --open-soft:#E8ECF0;
-  --danger:#B42318;
-  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
-  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --navy:#16254E; --navy-2:#22356B; --navy-soft:#E7EBF4; --yellow:#F2D22E; --yellow-deep:#D9B812;
+  --bg:#EEF1F6; --surface:#FFFFFF; --ink:#141B2D; --muted:#5E6782; --line:#DCE1EB; --line-2:#C9D0DE;
+  --accent:var(--navy); --danger:#B3261E;
+  --ok:#1F7A4D; --ok-soft:#E2F2E9; --warn:#975800; --warn-soft:#FBEFD6; --wait:#5B3FA8; --wait-soft:#ECE7F8; --open:#4A5675; --open-soft:#E6EAF2;
+  --f:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r-sm:6px; --r:10px; --r-lg:16px;
+  --bar-h:64px;
+  color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
-  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#F2D22E;
-  --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
-  --danger:#F2867D; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
-  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#F2D22E;
-  --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
-  --danger:#F2867D; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
-.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px 8px}
-.brand{min-width:0}
-.brand-row{display:flex;align-items:center;gap:10px;min-width:0}
-#coLogo{height:40px;width:auto;max-width:110px;object-fit:contain;flex:none}
-.logo-box{display:flex;align-items:center;justify-content:center;min-height:90px;background:#FFFFFF;border:1px dashed var(--line);border-radius:8px;padding:10px}
-.logo-box img{max-height:80px;width:auto}
-.brand h1{font-family:var(--f-display);font-size:1.5rem;letter-spacing:.01em;margin:0;line-height:1.1;text-wrap:balance}
-.sync{text-transform:none!important;letter-spacing:0!important}
-.sync.ok{color:var(--ok)!important}.sync.wait{color:var(--warn)!important}
-.brand small{display:block;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tabs{display:flex;gap:4px}
-.tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:10px 4px;font:600 .95rem var(--f-body);color:var(--muted);cursor:pointer}
-.tab[aria-selected="true"]{color:var(--ink);border-color:var(--red)}
-header{border-top:4px solid var(--red)}
+body{background:var(--bg);color:var(--ink);font-family:var(--f);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.btn.danger{color:var(--danger);border-color:var(--danger)}
-.btn:disabled{opacity:.5;cursor:default}
-.icon-btn{min-height:40px;padding:0 12px;font-size:.9rem}
-main{padding-block:16px 120px}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* app bar */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
+header.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.bar{display:flex;align-items:center;gap:12px;min-height:72px;padding-block:10px}
+.badge{flex:none;height:54px;min-width:54px;max-width:96px;padding:5px 8px;border-radius:12px;background:#fff;display:grid;place-items:center;border-bottom:4px solid var(--yellow)}
+#coLogo{height:40px;width:auto;max-width:80px;object-fit:contain}
+.titles{min-width:0;flex:1;display:flex;flex-direction:column}
+#coName{font-size:.8rem;font-weight:500;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titles h1{margin:0;font-size:1.35rem;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:500;color:rgba(255,255,255,.78);margin-top:2px}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}
+.sync.ok::before{background:#5FD394}.sync.wait::before{background:var(--yellow)}
+.iconbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer}
+.iconbtn:active{background:rgba(255,255,255,.2)}
+.iconbtn svg{width:22px;height:22px}
+
+/* bottom tab bar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar-in{display:flex;width:100%;max-width:720px}
+.tab{flex:1;height:var(--bar-h);background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;position:relative}
+.tab svg{width:24px;height:24px}
+.tab[aria-selected="true"]{color:var(--navy)}
+.tab[aria-selected="true"] .ic{background:var(--yellow)}
+.tab .ic{display:grid;place-items:center;width:56px;height:30px;border-radius:999px;transition:background .15s}
+
+main{padding-block:16px calc(var(--bar-h) + 110px + env(safe-area-inset-bottom,0px))}
 .stack{display:flex;flex-direction:column;gap:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row>*{min-width:0}
-.search{flex:1 1 200px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
-.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
-.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted)}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;cursor:pointer;text-align:left;width:100%}
-.card:hover{border-color:var(--accent)}
-.card .t{font-weight:600;min-width:0;overflow-wrap:anywhere}
-.card .m{grid-column:1/-1;color:var(--muted);font-size:.88rem;display:flex;gap:4px 12px;flex-wrap:wrap}
-.mono{font-family:var(--f-mono);font-size:.85em;font-variant-numeric:tabular-nums}
-.pill{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:999px;white-space:nowrap;align-self:start}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:var(--r);border:1.5px solid var(--line-2);background:var(--surface);font-weight:700;font-size:.95rem;color:var(--navy);cursor:pointer}
+.btn:active{background:var(--navy-soft)}
+.btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn.primary:active{background:var(--navy-2)}
+.btn.danger{color:var(--danger);border-color:#E6B8B4;background:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.btn svg{width:18px;height:18px}
+.icon-btn{min-height:42px;padding:0 14px;font-size:.92rem}
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(var(--bar-h) + 16px + env(safe-area-inset-bottom,0px));z-index:7;min-height:58px;padding:0 22px 0 18px;border-radius:var(--r-lg);border:0;background:var(--yellow);color:var(--navy);font-size:1.02rem;font-weight:800;box-shadow:0 8px 20px rgba(22,37,78,.28)}
+.fab:active{background:var(--yellow-deep)}
+.fab svg{width:22px;height:22px}
+
+/* search + filters */
+.search{flex:1 1 200px;min-height:48px;padding:0 14px 0 42px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235E6782' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") 14px 50%/18px no-repeat}
+.search:focus{border-color:var(--navy);outline:none}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{flex:none;border:1.5px solid var(--line-2);background:var(--surface);border-radius:999px;padding:7px 14px;font-size:.88rem;font-weight:600;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+/* job list */
+.day{margin:10px 2px -2px;font-size:.92rem;font-weight:700;color:var(--muted);display:flex;justify-content:space-between}
+.day span{font-weight:500}
+.card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--open);border-radius:var(--r);padding:12px 14px 12px 14px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;cursor:pointer;text-align:left;width:100%}
+.card:active{background:#F7F9FC}
+.card.st-done{border-left-color:var(--ok)}.card.st-follow{border-left-color:#E0A21B}.card.st-parts{border-left-color:var(--wait)}
+.card .t{font-weight:700;font-size:1.05rem;min-width:0;overflow-wrap:anywhere;line-height:1.25}
+.card .s{grid-column:1;color:var(--muted);font-size:.9rem}
+.card .jn{grid-column:2;grid-row:1;font-size:.82rem;font-weight:600;color:var(--muted);text-align:right;white-space:nowrap}
+.card .pill{grid-column:2;grid-row:2;justify-self:end}
+.card .m{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:.88rem;color:var(--ink)}
+.card .m span{display:inline-flex;align-items:center;gap:5px}
+.card .m svg{width:15px;height:15px;color:var(--muted)}
+.thumbs-mini{display:flex;gap:6px;grid-column:1/-1;margin-top:8px}
+.thumbs-mini img{width:48px;height:48px;object-fit:cover;border-radius:var(--r-sm);background:var(--bg)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;padding:3px 10px 3px 8px;border-radius:999px;white-space:nowrap;align-self:start}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .s-done{background:var(--ok-soft);color:var(--ok)} .s-follow{background:var(--warn-soft);color:var(--warn)} .s-parts{background:var(--wait-soft);color:var(--wait)} .s-open{background:var(--open-soft);color:var(--open)}
-.thumbs-mini{display:flex;gap:4px;grid-column:1/-1}
-.thumbs-mini img{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
-.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:28px 20px;text-align:center;color:var(--muted)}
-.empty h2{font-family:var(--f-display);color:var(--ink);margin:0 0 6px;font-size:1.4rem}
-.fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:6;min-height:56px;padding:0 22px;border-radius:999px;box-shadow:0 6px 18px rgba(0,0,0,.22);font-size:1rem}
-fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-legend{font-family:var(--f-display);font-size:1.15rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:0;margin-bottom:4px}
-.section{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
-label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;color:var(--muted);min-width:0}
-label input,label select,label textarea{font-weight:400;font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px;width:100%}
-textarea{resize:vertical;min-height:84px}
+.mono{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+
+.empty{background:var(--surface);border:1.5px dashed var(--line-2);border-radius:var(--r-lg);padding:32px 22px;text-align:center;color:var(--muted)}
+.empty h2{color:var(--navy);margin:0 0 6px;font-size:1.3rem;font-weight:800}
+.empty p{margin:0}
+
+/* forms */
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+legend{font-size:1.08rem;font-weight:800;color:var(--navy);padding:0;margin-bottom:6px}
+.section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px}
+label{display:flex;flex-direction:column;gap:6px;font-size:.88rem;font-weight:600;color:var(--ink);min-width:0}
+label input,label select,label textarea{font-weight:400;font-size:1rem;color:var(--ink);background:#F7F9FC;border:1.5px solid var(--line);border-radius:var(--r);padding:11px 12px;min-height:48px;width:100%}
+label input:focus,label select:focus,label textarea:focus{border-color:var(--navy);background:#fff;outline:none}
+textarea{resize:vertical;min-height:88px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:420px){.grid2.stack-sm{grid-template-columns:1fr}}
+.formbar{position:sticky;top:calc(72px + env(safe-area-inset-top,0px));z-index:4;background:var(--bg);margin:-16px -16px 0;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.formbar b{font-size:1rem}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-.ph{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.ph{position:relative;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
 .ph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
-.ph input{border:0;border-top:1px solid var(--line);border-radius:0;padding:8px;font-size:.85rem;min-height:36px;background:var(--surface)}
-.ph .x{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.1rem;cursor:pointer}
-.ph .up{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);color:#fff;font-weight:600;font-size:.85rem}
-.hint{color:var(--muted);font-size:.85rem;margin:0}
-.kv{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px 14px;margin:0}
-.kv dt{color:var(--muted);font-size:.85rem}
-.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
-.detail h2{font-family:var(--f-display);font-size:1.7rem;margin:0;line-height:1.1;text-wrap:balance}
-.block h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 4px}
+.ph input{border:0;border-top:1px solid var(--line);border-radius:0;padding:9px;font-size:.88rem;min-height:38px;background:var(--surface)}
+.ph .x{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(22,37,78,.75);color:#fff;font-size:1.1rem;cursor:pointer}
+.ph .up{position:absolute;inset:0;display:grid;place-items:center;background:rgba(22,37,78,.5);color:#fff;font-weight:600;font-size:.88rem}
+.hint{color:var(--muted);font-size:.86rem;margin:0}
+
+/* job card detail */
+.jobhead{background:var(--navy);color:#fff;border-radius:var(--r-lg);padding:16px;display:flex;flex-direction:column;gap:10px}
+.jobhead .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.jobhead .jn{font-weight:600;color:rgba(255,255,255,.75);font-size:.9rem}
+.jobhead h2{margin:0;font-size:1.55rem;font-weight:800;line-height:1.15;letter-spacing:-.01em;text-wrap:balance}
+.jobhead .site{color:rgba(255,255,255,.8);font-size:1rem;margin-top:-6px}
+.jobhead .pill{background:#fff}
+.jobhead .back{color:#fff;background:rgba(255,255,255,.12);border:0;min-height:38px;padding:0 12px 0 8px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions .btn.primary{grid-column:1/-1;background:var(--yellow);border-color:var(--yellow);color:var(--navy)}
+.kv{display:grid;grid-template-columns:minmax(118px,auto) 1fr;gap:10px 14px;margin:0}
+.kv dt{color:var(--muted);font-size:.9rem}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere;font-weight:500}
+.block h3{font-size:.95rem;font-weight:800;color:var(--navy);margin:0 0 4px}
 .block p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
-.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
 .gallery figure{margin:0}
-.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
-.gallery figcaption{font-size:.85rem;color:var(--muted);margin-top:2px}
-.part{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center}
+.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r);background:var(--bg)}
+.gallery figcaption{font-size:.86rem;color:var(--muted);margin-top:4px}
+
+/* van stock */
+.part{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center}
+.part.low{border-left:5px solid #E0A21B}
 .part .pd{min-width:0;cursor:pointer;background:none;border:0;padding:0;text-align:left}
-.part .pd b{display:block;overflow-wrap:anywhere}
-.part .pd span{color:var(--muted);font-size:.85rem}
+.part .pd b{display:block;overflow-wrap:anywhere;font-weight:700}
+.part .pd span{color:var(--muted);font-size:.86rem}
 .qty{display:flex;align-items:center;gap:6px}
-.qty button{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:1.2rem;font-weight:600;cursor:pointer}
-.qty output{min-width:2.4ch;text-align:center;font-family:var(--f-display);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.qty button{width:42px;height:42px;border-radius:var(--r);border:1.5px solid var(--line-2);background:var(--surface);color:var(--navy);font-size:1.3rem;font-weight:700;cursor:pointer}
+.qty button:active{background:var(--navy-soft)}
+.qty output{min-width:2.6ch;text-align:center;font-size:1.35rem;font-weight:800;color:var(--navy)}
 .used{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
-.used li{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 6px 6px 10px}
+.used li{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#F7F9FC;border:1px solid var(--line);border-radius:var(--r);padding:6px 6px 6px 12px}
 .used li span{min-width:0;overflow-wrap:anywhere}
+
+/* settings */
+.logo-box{display:flex;align-items:center;justify-content:center;min-height:100px;background:#fff;border:1.5px dashed var(--line-2);border-radius:var(--r);padding:12px}
+.logo-box img{max-height:84px;width:auto}
 .brands{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
-.brands .bl{position:relative;background:#FFFFFF;border:1px solid var(--line);border-radius:8px;height:64px;display:grid;place-items:center;padding:6px}
+.brands .bl{position:relative;background:#fff;border:1px solid var(--line);border-radius:var(--r);height:66px;display:grid;place-items:center;padding:6px}
 .brands .bl img{max-height:50px;width:auto}
-.brands .bl .x{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:20;max-width:calc(100% - 32px)}
-.confirm{background:var(--warn-soft);border:1px solid var(--warn);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
-.banner{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:10px;padding:10px 12px;font-size:.9rem}
+.brands .bl .x{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(22,37,78,.75);color:#fff;cursor:pointer}
+
+/* reports */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
-.stat b{display:block;font-family:var(--f-display);font-size:1.6rem;line-height:1;font-variant-numeric:tabular-nums}
-.stat span{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;font-size:.88rem}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
-@media (prefers-reduced-motion:no-preference){.card,.btn{transition:border-color .15s,background .15s}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.stat b{display:block;font-size:1.7rem;font-weight:800;line-height:1;color:var(--navy)}
+.stat span{font-size:.84rem;color:var(--muted)}
+.stats.hero{background:var(--navy);border-radius:var(--r-lg);padding:6px;gap:0}
+.stats.hero .stat{background:none;border:0;border-left:1px solid rgba(255,255,255,.15);border-radius:0}
+.stats.hero .stat:first-child{border-left:0}
+.stats.hero .stat b{color:#fff}.stats.hero .stat span{color:rgba(255,255,255,.72)}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
+
+/* feedback */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--bar-h) + 90px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;padding:12px 16px;border-radius:var(--r);font-weight:600;z-index:20;max-width:calc(100% - 32px);box-shadow:0 6px 18px rgba(0,0,0,.2)}
+.confirm{background:#FFF6F5;border:1.5px solid #E6B8B4;border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.banner{background:var(--warn-soft);color:var(--ink);border:1px solid #E7C27A;border-radius:var(--r);padding:10px 12px;font-size:.92rem}
+.welcome{background:var(--navy);color:#fff;border-radius:var(--r-lg);padding:22px 18px;display:flex;flex-direction:column;gap:6px}
+.welcome h2{margin:0;font-size:1.5rem;font-weight:800}
+.welcome p{margin:0;color:rgba(255,255,255,.8)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<header>
-  <div class="wrap">
-    <div class="top">
-      <div class="brand-row"><img id="coLogo" alt="" hidden><div class="brand"><small id="coName">Service department</small><h1>Bakery Tech Job Cards</h1><small id="syncState" class="sync"></small></div></div>
-      <button class="btn icon-btn" id="settingsBtn" type="button" aria-label="Company settings">Settings</button>
-    </div>
-    <nav class="tabs" role="tablist">
-      <button class="tab" role="tab" id="tabList" aria-selected="true" type="button">Job cards</button>
-      <button class="tab" role="tab" id="tabVan" aria-selected="false" type="button">Van stock</button>
-      <button class="tab" role="tab" id="tabReports" aria-selected="false" type="button">Reports</button>
-    </nav>
+<header class="appbar">
+  <div class="wrap bar">
+    <span class="badge"><img id="coLogo" src="macadams-logo.png" alt=""></span>
+    <div class="titles"><span id="coName">Macadams International</span><h1 id="viewTitle">Job cards</h1><span id="syncState" class="sync"></span></div>
+    <button class="iconbtn" id="settingsBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg></button>
   </div>
 </header>
 
 <main class="wrap" id="app"></main>
-<button class="btn primary fab" id="fab" type="button">+ New job card</button>
+<button class="btn fab" id="fab" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New job card</button>
+<nav class="tabbar" role="tablist"><div class="tabbar-in">
+  <button class="tab" role="tab" id="tabList" aria-selected="true" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M9 5H6v16h12V5h-3"/><path d="M9 12h6M9 16h4"/></svg></span>Job cards</button>
+  <button class="tab" role="tab" id="tabVan" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Van stock</button>
+  <button class="tab" role="tab" id="tabReports" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg></span>Reports</button>
+</div></nav>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -164,11 +221,16 @@ function techName(id){return (id&&S.names[id])||"Technician"}
 function newJobNo(){const d=new Date();const p=n=>String(n).padStart(2,"0");return `JC-${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`}
 
 /* ---------- rendering ---------- */
+const ICONS={machine:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M8 13h8v4H8z"/>',person:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.5 4-5 7-5s6 1.5 7 5"/>',camera:'<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',share:'<path d="M4 13v7h16v-7M12 15V3M7 8l5-5 5 5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',back:'<path d="M15 5l-7 7 7 7"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
+const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome"};
+function dayLabel(d){if(!d)return "No date";if(d===today())return "Today";const y=new Date();y.setDate(y.getDate()-1);if(d===y.toLocaleDateString("en-CA"))return "Yesterday";return new Date(d+"T00:00").toLocaleDateString("en-ZA",{weekday:"short",day:"numeric",month:"short"})}
 function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabReports").setAttribute("aria-selected",v==="reports")}
 function render(){
   setTab(S.view);
-  $("#fab").hidden=!(S.view==="list"||S.view==="detail")||!canWrite;
+  $("#fab").hidden=S.view!=="list"||!canWrite;
   $("#coName").textContent=S.company.name||"Service department";setLogo();
+  $("#viewTitle").textContent=S.view==="form"?(S.form?.id?"Edit job card":"New job card"):(TITLES[S.view]||"Job cards");
   const app=$("#app");
   if(S.view==="list")app.innerHTML=listView();
   else if(S.view==="van")app.innerHTML=vanView();
@@ -191,12 +253,16 @@ function listView(){
   const chips=[["all","All"],...Object.entries(STATUSES).map(([k,v])=>[k,v.label])].map(([k,l])=>`<button type="button" class="chip" data-filter="${k}" aria-pressed="${S.filter===k}">${l}</button>`).join("");
   let body;
   if(!S.loaded&&!S.error)body=`<div class="empty"><h2>Loading job cards…</h2><p>Fetching the team's cards.</p></div>`;
-  else if(!S.cards.length)body=`<div class="empty"><h2>No job cards yet</h2><p>Each card holds the site, machine, fault, work done, parts and photos.<br>Tap <b>+ New job card</b> to log the first job.</p></div>`;
-  else{const f=filtered();body=f.length?f.map(c=>`<button type="button" class="card" data-open="${esc(c.id)}">
-      <span class="t">${esc(c.customer||"No customer")}${c.site?` · ${esc(c.site)}`:""}</span>${statusPill(c.status)}
-      <span class="m"><span class="mono">${esc(c.jobNo)}</span><span>${fmtDate(c.date)}</span><span>${esc(c.equipment||"")}</span><span>${esc(techName(c.techId))}</span>${c.photos?.length?`<span>${c.photos.length} photo${c.photos.length>1?"s":""}</span>`:""}</span>
+  else if(!S.cards.length)body=`<div class="empty"><h2>No job cards yet</h2><p>Each card holds the site, machine, fault, work done, parts and photos.<br>Tap <b>New job card</b> to log the first job.</p></div>`;
+  else{const f=filtered().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||0)-(a.createdAt||0));
+    if(!f.length)body=`<div class="empty"><p>No job cards match this search.</p></div>`;
+    else{const days=[];for(const c of f){const k=c.date||"";let g=days[days.length-1];if(!g||g.k!==k){g={k,cards:[]};days.push(g)}g.cards.push(c)}
+      body=days.map(g=>`<div class="day">${dayLabel(g.k)}<span>${g.cards.length} job${g.cards.length>1?"s":""}</span></div>`+g.cards.map(c=>`<button type="button" class="card st-${esc(c.status||"open")}" data-open="${esc(c.id)}">
+      <span class="t">${esc(c.customer||"No customer")}</span><span class="jn">${esc(c.jobNo)}</span>
+      <span class="s">${esc(c.site||"")}</span>${statusPill(c.status)}
+      <span class="m">${c.equipment?`<span>${ic("machine")}${esc(c.equipment)}</span>`:""}<span>${ic("person")}${esc(techName(c.techId))}</span>${c.photos?.length?`<span>${ic("camera")}${c.photos.length}</span>`:""}</span>
       ${c.photos?.length?`<span class="thumbs-mini">${c.photos.slice(0,4).map(p=>`<img ${imgSrc(p.id)} alt="">`).join("")}</span>`:""}
-    </button>`).join(""):`<div class="empty"><p>No cards match this search.</p></div>`}
+    </button>`).join("")).join("")}}
   return `<div class="stack">${banner}<div class="row"><input class="search" id="q" type="search" placeholder="Search job no, customer, serial…" value="${esc(S.q)}" aria-label="Search job cards"></div><div class="chips">${chips}</div>${body}</div>`;
 }
 function detailView(){
@@ -206,9 +272,12 @@ function detailView(){
   const blk=(t,v)=>v?`<div class="block"><h3>${t}</h3><p>${esc(v)}</p></div>`:"";
   const del=S.confirmDel?`<div class="confirm"><b>Delete job card ${esc(c.jobNo)}?</b><span class="hint">This removes it for the whole team.</span><div class="row"><button class="btn danger" id="delYes" type="button">Delete</button><button class="btn" id="delNo" type="button">Keep it</button></div></div>`:"";
   return `<div class="stack detail">
-    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" data-go="list" type="button">← Job cards</button>${statusPill(c.status)}</div>
-    <div><span class="mono" style="color:var(--muted)">${esc(c.jobNo)}</span><h2>${esc(c.customer||"No customer")}${c.site?` · ${esc(c.site)}`:""}</h2></div>
-    <div class="row"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">Copy for WhatsApp</button>${canWrite?`<button class="btn" id="editOne" type="button">Edit</button>`:""}</div>
+    <div class="jobhead">
+      <div class="top"><button class="btn icon-btn back" data-go="list" type="button">${ic("back")}Job cards</button>${statusPill(c.status)}</div>
+      <span class="jn">${esc(c.jobNo)}</span>
+      <h2>${esc(c.customer||"No customer")}</h2>${c.site?`<span class="site">${esc(c.site)}</span>`:""}
+    </div>
+    <div class="actions"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">${ic("share")}WhatsApp text</button>${canWrite?`<button class="btn" id="editOne" type="button">${ic("edit")}Edit</button>`:""}</div>
     <div class="section"><dl class="kv">
       <dt>Date</dt><dd>${fmtDate(c.date)}</dd>
       <dt>Technician</dt><dd>${esc(techName(c.techId))}</dd>
@@ -227,7 +296,7 @@ function detailView(){
 function formView(){
   const f=S.form;const opt=(v,l)=>`<option value="${v}" ${f.status===v?"selected":""}>${l}</option>`;
   return `<form id="jobForm" class="stack" novalidate>
-    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" id="cancelForm" type="button">Cancel</button><b>${f.id?"Edit job card":"New job card"}</b><button class="btn primary icon-btn" type="submit" id="saveTop">Save</button></div>
+    <div class="formbar"><button class="btn icon-btn" id="cancelForm" type="button">Cancel</button><b>${f.id?"Edit job card":"New job card"}</b><button class="btn primary icon-btn" type="submit" id="saveTop">Save</button></div>
     <div class="section"><fieldset><legend>Job</legend>
       <div class="grid2"><label>Job no.<input id="f_jobNo" value="${esc(f.jobNo)}" required></label><label>Date<input id="f_date" type="date" value="${esc(f.date)}"></label></div>
       <div class="grid2"><label>Time in<input id="f_timeIn" type="time" value="${esc(f.timeIn)}"></label><label>Time out<input id="f_timeOut" type="time" value="${esc(f.timeOut)}"></label></div>
@@ -279,14 +348,14 @@ function reportsView(){
       <div class="grid2"><label>From<input id="r_from" type="date" value="${esc(r.from)}"></label><label>To<input id="r_to" type="date" value="${esc(r.to)}"></label></div>
       <label>Technician<select id="r_tech"><option value="all">All technicians</option>${techs.map(t=>`<option value="${esc(t)}" ${r.tech===t?"selected":""}>${esc(techName(t))}</option>`).join("")}</select></label>
     </fieldset></div>
-    <div class="stats"><div class="stat"><b>${rows.length}</b><span>Jobs</span></div><div class="stat"><b>${done}</b><span>Completed</span></div><div class="stat"><b>${Math.round(hrs*10)/10}</b><span>Hours on site</span></div></div>
+    <div class="stats hero"><div class="stat"><b>${rows.length}</b><span>Jobs</span></div><div class="stat"><b>${done}</b><span>Completed</span></div><div class="stat"><b>${Math.round(hrs*10)/10}</b><span>Hours on site</span></div></div>
     <div class="row"><button class="btn primary" id="pdfSum" type="button" ${rows.length?"":"disabled"}>PDF summary</button><button class="btn" id="copySum" type="button" ${rows.length?"":"disabled"}>Copy for WhatsApp</button></div>
     ${rows.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Job no.</th><th>Customer</th><th>Machine</th><th>Tech</th><th>Status</th><th>Hrs</th></tr></thead><tbody>${rows.map(c=>`<tr><td>${fmtDate(c.date)}</td><td class="mono">${esc(c.jobNo)}</td><td>${esc(c.customer)}${c.site?` · ${esc(c.site)}`:""}</td><td>${esc(c.equipment)}</td><td>${esc(techName(c.techId))}</td><td>${statusPill(c.status)}</td><td class="mono">${hours(c.timeIn,c.timeOut)??"–"}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty"><p>No job cards in this date range.</p></div>`}
   </div>`;
 }
 function settingsView(){
   return `<form id="setForm" class="stack" novalidate>
-    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" data-go="list" type="button">← Back</button><b>Report settings</b><span></span></div>
+    <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Report settings</b><span></span></div>
     <div class="section"><fieldset><legend>This phone</legend>
       <label>Technician name<input id="s_me" value="${esc(S.setDraft?.me??S.myName)}" placeholder="Name and surname"></label>
       <p class="hint">${syncMode==="firebase"?"Job cards are saved on this phone and sync to the team when there's signal.":"Job cards are saved on this phone only. Team sync switches on once the Firebase project is connected."}</p>
@@ -445,7 +514,7 @@ function vanView(){
   const who=mine?"My van":`${esc(techName(tid))}'s van`;
   const sel=S.techs.length>1?`<label>Van<select id="vanTechSel">${S.techs.map(t=>`<option value="${esc(t)}" ${t===tid?"selected":""}>${t===meId?"My van":esc(techName(t))}</option>`).join("")}</select></label>`:"";
   if(S.partForm){const p=S.partForm;return `<form id="partForm" class="stack" novalidate>
-    <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" id="cancelPart" type="button">Cancel</button><b>${p.id?"Edit part":"Add part"} · ${who}</b><button class="btn primary icon-btn" type="submit">Save</button></div>
+    <div class="formbar"><button class="btn icon-btn" id="cancelPart" type="button">Cancel</button><b>${p.id?"Edit part":"Add part"} · ${who}</b><button class="btn primary icon-btn" type="submit">Save</button></div>
     <div class="section"><fieldset><legend>Part</legend>
       <label>Part no.<input id="p_partNo" value="${esc(p.partNo)}" required></label>
       <label>Description<input id="p_desc" value="${esc(p.desc)}" placeholder="e.g. Oven door seal"></label>
@@ -459,10 +528,10 @@ function vanView(){
   let body;
   if(!list)body=`<div class="empty"><p>Loading van stock…</p></div>`;
   else if(!list.length)body=`<div class="empty"><h2>No parts on this van yet</h2><p>Add the parts carried on the van with their quantities. Parts picked on a job card come off this list.</p></div>`;
-  else body=rows.length?rows.map(p=>{const isLow=(+p.qty||0)<=(+p.min||0);return `<div class="part"><button class="pd" type="button" data-editpart="${esc(p.id)}"><b>${esc(p.desc||p.partNo)}</b><span class="mono">${esc(p.partNo)}</span>${isLow?` <span class="pill s-follow">Re-order</span>`:""}</button><div class="qty"><button type="button" data-inc="${esc(p.id)}" data-d="-1" aria-label="One less">−</button><output>${+p.qty||0}</output><button type="button" data-inc="${esc(p.id)}" data-d="1" aria-label="One more">+</button></div></div>`}).join(""):`<div class="empty"><p>No parts match this search.</p></div>`;
+  else body=rows.length?rows.map(p=>{const isLow=(+p.qty||0)<=(+p.min||0);return `<div class="part${isLow?" low":""}"><button class="pd" type="button" data-editpart="${esc(p.id)}"><b>${esc(p.desc||p.partNo)}</b><span class="mono">${esc(p.partNo)}</span>${isLow?` <span class="pill s-follow">Re-order</span>`:""}</button><div class="qty"><button type="button" data-inc="${esc(p.id)}" data-d="-1" aria-label="One less">−</button><output>${+p.qty||0}</output><button type="button" data-inc="${esc(p.id)}" data-d="1" aria-label="One more">+</button></div></div>`}).join(""):`<div class="empty"><p>No parts match this search.</p></div>`;
   return `<div class="stack">${sel}
     <div class="stats"><div class="stat"><b>${list?.length||0}</b><span>Parts</span></div><div class="stat"><b>${(list||[]).reduce((a,p)=>a+(+p.qty||0),0)}</b><span>Items on van</span></div><div class="stat"><b>${low}</b><span>To re-order</span></div></div>
-    <div class="row"><input class="search" id="vq" type="search" placeholder="Search part no. or description" value="${esc(S.vanQ)}" aria-label="Search van stock">${canWrite?`<button class="btn primary" id="addPart" type="button">+ Add part</button>`:""}</div>
+    <div class="row"><input class="search" id="vq" type="search" placeholder="Search part no. or description" value="${esc(S.vanQ)}" aria-label="Search van stock">${canWrite?`<button class="btn primary" id="addPart" type="button">${ic("plus")}Add part</button>`:""}</div>
     ${body}</div>`;
 }
 async function savePart(){
@@ -718,6 +787,7 @@ async function shrinkLogo(file){
 
 /* who's using this phone */
 function whoView(){return `<form id="whoForm" class="stack" novalidate>
+  <div class="welcome"><h2>Macadams job cards</h2><p>Log service jobs with photos, track your van stock and send reports, with or without signal.</p></div>
   <div class="section"><fieldset><legend>Who's using this phone?</legend>
     <label>Your name<input id="w_name" value="${esc(S.myName||"")}" placeholder="Name and surname" autocomplete="name"></label>
     <p class="hint">Your name goes on your job cards and reports, and your van stock is kept under it. You can change it later in Settings.</p>
