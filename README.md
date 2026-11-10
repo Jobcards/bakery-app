@@ -15,6 +15,21 @@ Every push to `main` builds the APK on GitHub (Actions → **Build APK**).
 Download `BakeryJobCards.apk` from the latest **Release** and open it on the phone.
 New versions install over the old one and keep the data.
 
+## Phone-to-phone sync (no server)
+
+This is the default, and works the same way as the Proformance app's club sync. All data stays on each phone.
+Phones of the same company pass changes to each other over Wi-Fi or mobile data, end-to-end encrypted,
+through free public Nostr relays (nos.lol, relay.damus.io, relay.primal.net, offchain.pub). The relays keep
+the latest copy of each record so a new phone can catch up, but they cannot read it.
+
+- **Admin's phone, first time:** on the sign-in screen tap **Start a new company as admin**.
+- **Technicians tab (admin):** add each technician with a username and password (8 or more characters).
+- **Technician's phone:** sign in with that username and password. Nothing else to set up.
+- A technician's phone keeps only their own job cards and van stock; the admin's phone gets everything. The customer list is shared.
+- Every phone of the company holds the same company key, so the technician/admin split is kept by the app, not by encryption. Fine for testing; use the company server for the real rollout.
+
+To use a company server instead, tap **Use a company server instead** on the sign-in screen.
+
 ## Server, admin and technician logins
 
 The app syncs straight to the company's own server. No outside service is used.
@@ -35,6 +50,7 @@ See `server/README.txt` for the step-by-step test on a Windows PC.
 - `server/` - the server program and its Windows start file
 - `scripts/build.mjs` - builds `www/` for the APK (`npm run build`)
 - `.github/workflows/android.yml` - builds the APK on GitHub
+- `tests/test_relay.py` - end-to-end test of phone-to-phone sync against a local test relay
 - `tests/test_server.py` - end-to-end test: real server, an admin browser and two technician phones (needs Playwright and Chrome)
 - `ci/debug.keystore` - signing key, kept fixed so updates install over the old app
 

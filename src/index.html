@@ -181,6 +181,8 @@ textarea{resize:vertical;min-height:88px}
 .tab{font-size:.74rem}
 .tab .ic{width:48px}
 
+.linkbtn{background:none;border:0;color:var(--navy);font-weight:600;text-decoration:underline;padding:10px;cursor:pointer;align-self:center}
+
 /* technicians */
 .member{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:start}
 .member.off{background:#F7F9FC}
@@ -424,10 +426,11 @@ document.addEventListener("click",e=>{
   if(t.dataset.status){$("#f_status").value=t.dataset.status;document.querySelectorAll("[data-status]").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
   if(t.id==="signClear"){clearPad();return}
   if(t.id==="signAgain"){signAgain();return}
+  if(t.id==="toggleSrv"){S.useServer=!(S.useServer??!!SY.url);S.needSetup=false;render();return}
   if(t.id==="goSetup"){S.loginMode="setup";render();return}
   if(t.id==="cancelSetup"){S.loginMode=null;render();return}
   if(t.id==="signOut"){trySignOut();return}
-  if(t.id==="syncBtn"){syncNow().then(()=>{toast(pendingCount()||!SY.ok?"Couldn't reach the server. It will try again":"Everything is synced");if(S.view==="settings")render()});return}
+  if(t.id==="syncBtn"){syncNow().then(()=>{toast(pendingCount()||!SY.ok?"Couldn't sync just now. It will try again":"Everything is synced");if(S.view==="settings")render()});return}
   if(t.id==="addTech"){S.teamForm={mode:"add"};render();return}
   if(t.id==="cancelTeam"){S.teamForm=null;render();return}
   if(t.dataset.resetpw){const m=(S.team||[]).find(x=>x.id===t.dataset.resetpw);if(m){S.teamForm={mode:"reset",id:m.id,name:m.name,username:m.username};render()}return}
@@ -492,10 +495,10 @@ async function compress(file){
   let src;
   try{src=await createImageBitmap(file,{imageOrientation:"from-image"})}
   catch(_){src=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)})}
-  const w=src.width,h=src.height,s=Math.min(1,1400/Math.max(w,h));
+  const w=src.width,h=src.height,s=Math.min(1,(relayMode()?1100:1400)/Math.max(w,h));
   const cv=document.createElement("canvas");cv.width=Math.round(w*s);cv.height=Math.round(h*s);
   cv.getContext("2d").drawImage(src,0,0,cv.width,cv.height);
-  let out=await new Promise(r=>cv.toBlob(r,"image/jpeg",0.78));if(out.size>650000)out=await new Promise(r=>cv.toBlob(r,"image/jpeg",0.6));return out;
+  let out=await new Promise(r=>cv.toBlob(r,"image/jpeg",relayMode()?0.7:0.78));if(out.size>650000)out=await new Promise(r=>cv.toBlob(r,"image/jpeg",0.6));return out;
 }
 async function addPhotos(files){
   if(!assets){toast("Photo uploads aren't available for your access level");return}
@@ -896,6 +899,7 @@ async function makeLocalDb(onWrite){
 const SY={url:"",token:"",sameOrigin:false,busy:false,again:false,timer:null,ok:true};
 const normUrl=v=>{v=String(v||"").trim().replace(/\/+$/,"");if(!v)return "";return /^https?:\/\//i.test(v)?v:"http://"+v};
 async function api(path,body,method){
+  if(!SY.url)return relayApi(path,body);
   let r;try{r=await fetch(SY.url+path,{method:method||(body?"POST":"GET"),headers:{"Content-Type":"application/json",...(SY.token?{Authorization:"Bearer "+SY.token}:{})},body:body?JSON.stringify(body):undefined})}
   catch(err){throw Object.assign(new Error("offline"),{offline:true})}
   let j=null;try{j=await r.json()}catch(_){}
@@ -905,6 +909,7 @@ async function api(path,body,method){
 function markDirty(path){dirty[path]=Date.now();saveDirty();kickSync()}
 function kickSync(ms){clearTimeout(SY.timer);SY.timer=setTimeout(syncNow,ms??1200);showSync()}
 async function syncNow(){
+  if(relayMode())return relaySyncNow();
   if(!SY.token||!profile)return;
   if(SY.busy){SY.again=true;return}
   SY.busy=true;showSync();
@@ -984,6 +989,165 @@ window.onBack=()=>{
   return false;
 };
 
+/* ---------- phone-to-phone sync (no server) ----------
+   Same idea as the Proformance app's club sync. All data stays on each phone. Phones of the same company
+   share a company key and pass changes to each other as end-to-end encrypted records through free public
+   Nostr relays, which keep the latest copy of each record but cannot read it. A login's username and
+   password unlock a small "key ticket" holding the company key, so signing in on any phone joins it.
+   Used whenever no company server address is set. */
+const RELAYS=(()=>{try{const q=new URLSearchParams(location.search).get("relay");if(q)return q.split(",")}catch(_){}return ["wss://nos.lol","wss://relay.damus.io","wss://relay.primal.net","wss://offchain.pub"]})();
+const REC_KIND=30078,APP_T="mjc1",FILE_T="mjc1f",LOGIN_T="mjc-login",PART=28000;
+let CLUB=null;try{CLUB=JSON.parse(LS("club")||"null")}catch(_){}
+let RM={};try{RM=JSON.parse(LS("rmeta")||"{}")||{}}catch(_){}   // record -> [its time, time it was last sent]
+const saveRM=()=>LS("rmeta",JSON.stringify(RM));
+const RL={pool:null,sub:null,eose:false,wait:[],q:Promise.resolve(),buf:[],bufT:null,afterEnter:null};
+const relayMode=()=>!SY.url;
+const minPw=()=>relayMode()?8:6; // with no server, the password is what protects the company key
+const hasNT=()=>!!(window.NT&&NT.SimplePool);
+const skB=()=>NT.hexToBytes(CLUB.sk);
+let CK=null;const ck=()=>CK||(CK=NT.nip44.getConversationKey(skB(),CLUB.pk));
+const dTag=s=>NT.bytesToHex(NT.sha256(new TextEncoder().encode(CLUB.pk+"|"+s))).slice(0,40);
+const enc=o=>NT.nip44.encrypt(JSON.stringify(o),ck());
+const dec=c=>JSON.parse(NT.nip44.decrypt(c,ck()));
+function relayOff(){try{RL.sub&&RL.sub.close()}catch(_){}RL.sub=null;RL.eose=false;RL.buf=[]}
+function setClub(sk){relayOff();CLUB=sk?{sk,pk:NT.getPublicKey(NT.hexToBytes(sk))}:null;CK=null;LS("club",CLUB?JSON.stringify(CLUB):null)}
+function rpool(){return RL.pool||(RL.pool=new NT.SimplePool({enableReconnect:true,enablePing:true}))}
+async function publish(ev){return await Promise.any(rpool().publish(RELAYS,ev))}
+const sendTime=path=>Math.max(Math.floor(Date.now()/1000),((RM[path]||[])[1]||0)+1);
+/* send one record; big ones (photos) are split into parts */
+async function sendDoc(path,data,ts){
+  const json=JSON.stringify({p:path,d:data===undefined?null:data,ts}),d=dTag("r|"+path),t=sendTime(path);let content;
+  if(json.length<=PART)content=enc({b:json});
+  else{const cid=newId(),n=Math.ceil(json.length/PART);
+    for(let i=0;i<n;i++)await publish(NT.finalizeEvent({kind:REC_KIND,created_at:t,tags:[["d",d+"."+i],["t",FILE_T]],content:enc({cid,i,part:json.slice(i*PART,(i+1)*PART)})},skB()));
+    content=enc({cid,n})}
+  // photos are tagged apart so phones only download the ones they open
+  await publish(NT.finalizeEvent({kind:REC_KIND,created_at:t,tags:[["d",d],["t",path.startsWith("blobs/")?FILE_T:APP_T]],content},skB()));
+  RM[path]=[ts,t];saveRM();
+}
+async function readEv(ev){
+  const o=dec(ev.content);let json=o.b;
+  if(o.n){const d=(ev.tags.find(t=>t[0]==="d")||[])[1];
+    const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#d":Array.from({length:o.n},(_,i)=>d+"."+i)},{maxWait:10000});
+    const parts=[];for(const e of evs){try{const c=dec(e.content);if(c.cid===o.cid)parts[c.i]=c.part}catch(_){}}
+    for(let i=0;i<o.n;i++)if(parts[i]===undefined)throw new Error("part missing");
+    json=parts.join("")}
+  return JSON.parse(json);
+}
+/* a technician's phone only keeps their own job cards and van stock; the admin's keeps everything */
+function mine(path,data){if(isAdmin)return true;const a=path.split("/");
+  if(a[0]==="jobcards")return !data||data.techId===meId;
+  if(a[0]==="vanstock")return a[1]===meId;
+  return a[0]==="customers"||a[0]==="settings"}
+async function onRec(ev){
+  let r;try{r=await readEv(ev)}catch(_){return}
+  if(!r||typeof r.p!=="string"||!profile)return;const path=r.p,ts=+r.ts||0;
+  if(ev.created_at>(+LS("cursor")||0))LS("cursor",String(ev.created_at));
+  const m=RM[path];if(m&&m[0]>=ts)return;                                  // already have this version or a newer one
+  if(path in dirty){if(dirty[path]>=ts)return;delete dirty[path];saveDirty()} // changed on both: the later change wins
+  RM[path]=[ts,Math.max(ev.created_at,(m||[])[1]||0)];
+  let data=r.d;if(!mine(path,data))data=null;
+  if(data===null&&db.peek(path)===undefined)return;
+  RL.buf.push({path,data});clearTimeout(RL.bufT);RL.bufT=setTimeout(flushBuf,200);
+}
+async function flushBuf(){clearTimeout(RL.bufT);const list=RL.buf.splice(0);if(!list.length)return;saveRM();await db.applyRemote(list);showSync()}
+function eoseDone(){if(RL.eose)return;RL.eose=true;RL.q.then(flushBuf).catch(()=>{}).then(()=>RL.wait.splice(0).forEach(f=>f()))}
+const waitEose=()=>RL.eose?RL.q:new Promise(res=>{RL.wait.push(res);setTimeout(res,11000)});
+function connectRelay(){
+  if(!CLUB||!hasNT())return;relayOff();
+  const c=+LS("cursor")||0,since=c?Math.max(0,c-900):0;
+  RL.sub=rpool().subscribeMany(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#t":[APP_T],...(since?{since}:{})},{onevent:ev=>{RL.q=RL.q.then(()=>onRec(ev)).catch(()=>{})},oneose(){eoseDone()}});
+  setTimeout(eoseDone,9000);
+}
+async function relaySyncNow(){
+  if(!profile||!CLUB||!hasNT())return;
+  if(SY.busy){SY.again=true;return}
+  SY.busy=true;showSync();
+  try{
+    if(navigator.onLine===false)throw {offline:true};
+    if(!RL.sub)connectRelay();
+    await waitEose();await RL.q;await flushBuf();
+    const paths=Object.keys(dirty).sort((a,b)=>b.startsWith("blobs/")-a.startsWith("blobs/"));
+    for(const p of paths){const ts=dirty[p];await sendDoc(p,db.peek(p),ts);if(dirty[p]===ts){delete dirty[p];saveDirty()}showSync()}
+    SY.ok=true;
+  }catch(err){SY.ok=false;if(!err?.offline)console.warn(err)}
+  SY.busy=false;showSync();
+  if(SY.again){SY.again=false;kickSync(300)}
+}
+async function relayBlob(id){
+  const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#d":[dTag("r|blobs/"+id)]},{maxWait:8000});
+  evs.sort((a,b)=>b.created_at-a.created_at);
+  for(const e of evs){try{const r=await readEv(e);if(r?.d?.data)return {data:r.d.data}}catch(_){}}
+  throw {status:404,msg:"Photo not found"};
+}
+/* key tickets: the company key, locked with a login's username and password */
+const TIX_ITER=310000;
+const tixD=u=>"mjl-"+NT.bytesToHex(NT.sha256(new TextEncoder().encode("mjc-login|"+String(u).toLowerCase()))).slice(0,40);
+async function tixKey(u,pw){const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt:new TextEncoder().encode("mjc-ticket|"+String(u).toLowerCase()),iterations:TIX_ITER,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+async function makeTicket(u,pw){const k=await tixKey(u,pw),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify({sk:CLUB.sk}))));
+  const all=new Uint8Array(12+ct.length);all.set(iv);all.set(ct,12);let s="";all.forEach(b=>s+=String.fromCharCode(b));return btoa(s)}
+async function openTicket(content,key){const b=Uint8Array.from(atob(content),c=>c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b.slice(0,12)},key,b.slice(12))))}
+async function publishTicket(u,pw){const content=await makeTicket(u,pw);
+  await publish(NT.finalizeEvent({kind:REC_KIND,created_at:sendTime("tix|"+u),tags:[["d",tixD(u)],["t",LOGIN_T]],content},skB()));
+  RM["tix|"+u]=[Date.now(),Math.floor(Date.now()/1000)];saveRM()}
+/* the company key if the password opens a ticket, false if tickets exist but none open, null if none found */
+async function ticketLogin(u,pw){
+  const evs=(await rpool().querySync(RELAYS,{kinds:[REC_KIND],"#d":[tixD(u)]},{maxWait:7000})||[]).filter(e=>e.content&&NT.verifyEvent(e)).sort((a,b)=>b.created_at-a.created_at);
+  if(!evs.length)return null;const key=await tixKey(u,pw);
+  for(const e of evs){try{const t=await openTicket(e.content,key);if(t&&/^[0-9a-f]{64}$/.test(t.sk)&&NT.getPublicKey(NT.hexToBytes(t.sk))===e.pubkey)return t.sk}catch(_){}}
+  return false;
+}
+const getUsers=()=>(db.peek("settings/users")?.list||[]).map(x=>({...x}));
+const setUsers=list=>db.doc("settings/users").set({list,updatedAt:Date.now()});
+/* answers the same requests the company server does, using this phone and the relays instead */
+async function relayApi(path,body){
+  if(path==="/api/status")return {app:"macadams-jobcards",needSetup:true,relay:true};
+  if(path==="/api/logout")return {};
+  if(path==="/api/users"&&!body)return {users:getUsers()};
+  if(!hasNT()||!(window.crypto&&crypto.subtle))throw {msg:"Sync isn't available on this phone"};
+  if(navigator.onLine===false)throw {offline:true};
+  const net=async f=>{try{return await f()}catch(e){if(e&&(e.msg||e.status))throw e;throw {offline:true}}};
+  if(path.startsWith("/api/blob/"))return net(()=>relayBlob(decodeURIComponent(path.slice(10))));
+  if(path==="/api/setup")return net(async()=>{
+    setClub(NT.bytesToHex(NT.generateSecretKey()));
+    const u={id:"u"+newId(),name:body.name,username:body.username,role:"admin",active:true,pv:1};
+    await publishTicket(u.username,body.password);
+    RL.afterEnter=()=>setUsers([u]);return {token:"relay",user:u}});
+  if(path==="/api/login")return net(async()=>{
+    const sk=await ticketLogin(body.username,body.password);
+    if(!sk)throw {msg:"Wrong username or password"};
+    setClub(sk);
+    const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#d":[dTag("r|settings/users")]},{maxWait:8000});
+    evs.sort((a,b)=>b.created_at-a.created_at);let list=null;
+    for(const e of evs){try{const r=await readEv(e);if(r?.d?.list){list=r.d.list;break}}catch(_){}}
+    const u=(list||[]).find(x=>x.username===body.username);
+    if(!u)throw {msg:"This login isn't ready yet. Open the admin's phone so it can sync, then try again"};
+    if(u.active===false)throw {msg:"This login is switched off. Speak to the admin"};
+    return {token:"relay",user:u}});
+  if(path==="/api/users")return net(async()=>{
+    const list=getUsers();if(list.some(x=>x.username===body.username))throw {msg:"That username is taken. Choose another"};
+    const u={id:"u"+newId(),name:body.name,username:body.username,role:"tech",active:true,pv:1};
+    await publishTicket(u.username,body.password);await setUsers([...list,u]);return {user:u}});
+  if(path.startsWith("/api/users/"))return net(async()=>{
+    const list=getUsers(),u=list.find(x=>x.id===decodeURIComponent(path.slice(11)));if(!u)throw {msg:"No such login"};
+    if(typeof body.password==="string"){await publishTicket(u.username,body.password);u.pv=(u.pv||1)+1}
+    if(typeof body.active==="boolean"&&u.role!=="admin")u.active=body.active;
+    await setUsers(list);return {user:u}});
+  throw {status:404,msg:"Not found"};
+}
+/* keeps this phone's login in step with the admin's list: switched off or new password means sign in again */
+function watchLogin(){
+  unsubs.push(db.doc("settings/users").onSnapshot(s=>{
+    if(!relayMode()||!profile||!s.exists)return;const list=s.data().list||[],me=list.find(x=>x.id===meId);if(!me)return;
+    if(me.active===false){forceSignOut("This login is switched off. Speak to the admin");return}
+    if((me.pv||1)!==(profile.pv||1)){forceSignOut("Your password was changed. Sign in again");return}
+    if(isAdmin){setTeam(list);LS("team",JSON.stringify(list));softRender()}
+  }));
+}
+
 /* ---------- sign-in ---------- */
 let profile=null,isAdmin=false;const unsubs=[];
 const normUser=v=>String(v||"").trim().toLowerCase().replace(/[^a-z0-9._-]/g,"");
@@ -991,13 +1155,16 @@ const errMsg=(err,fallback)=>err?.offline?"Can't reach the server. Check the con
 function softRender(){if(!["form","settings","login","wait"].includes(S.view)&&!(S.view==="team"&&S.teamForm)&&!(S.view==="van"&&S.partForm))render()}
 
 function loginView(){
-  const srv=SY.sameOrigin?"":`<label>Server address<input id="l_server" inputmode="url" autocapitalize="none" autocomplete="off" spellcheck="false" value="${esc((S.loginDraft?.server??SY.url).replace(/^http:\/\//,""))}" placeholder="e.g. 192.168.1.20:8080"></label>`;
+  const useSrv=!SY.sameOrigin&&(S.useServer??!!SY.url);
+  const srv=useSrv?`<label>Server address<input id="l_server" inputmode="url" autocapitalize="none" autocomplete="off" spellcheck="false" value="${esc((S.loginDraft?.server??SY.url).replace(/^http:\/\//,""))}" placeholder="e.g. 192.168.1.20:8080"></label>`:"";
+  const alt=SY.sameOrigin?"":`<button class="linkbtn" type="button" id="toggleSrv">${useSrv?"Sync phone to phone, without a server":"Use a company server instead"}</button>`;
+  const direct=!SY.sameOrigin&&!useSrv;
   if(S.loginMode==="setup")return `<form id="setupForm" class="stack" novalidate>
-    <div class="welcome"><h2>Set up the admin</h2><p>The admin sees every technician's job cards and gives each technician a login. You only do this once.</p></div>
+    <div class="welcome"><h2>${direct?"Start a new company":"Set up the admin"}</h2><p>The admin sees every technician's job cards and gives each technician a login. ${direct?"Do this once, on the admin's phone. The technicians then just sign in.":"You only do this once."}</p></div>
     <div class="section"><fieldset><legend>Admin account</legend>
       <label>Your name<input id="a_name" autocomplete="name" placeholder="Name and surname"></label>
       <label>Username<input id="a_user" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. admin"></label>
-      <label>Password<input id="a_pass" type="password" autocomplete="new-password" placeholder="6 or more characters"></label>
+      <label>Password<input id="a_pass" type="password" autocomplete="new-password" placeholder="${minPw()} or more characters"></label>
     </fieldset></div>
     <button class="btn primary" type="submit" id="setupBtn">Create admin account</button>
     <button class="btn" type="button" id="cancelSetup">Back to sign in</button></form>`;
@@ -1009,31 +1176,34 @@ function loginView(){
       <label>Password<input id="l_pass" type="password" autocomplete="current-password"></label>
     </fieldset></div>
     <button class="btn primary" type="submit" id="loginBtn">Sign in</button>
-    ${S.needSetup?`<button class="btn" type="button" id="goSetup">Set up the admin account</button><p class="hint">No admin has been set up on this server yet.</p>`:""}</form>`;
+    ${direct?`<button class="btn" type="button" id="goSetup">Start a new company as admin</button><p class="hint">Only for the admin, the first time. Technicians sign in with the login the admin gives them.</p>`:S.needSetup?`<button class="btn" type="button" id="goSetup">Set up the admin account</button><p class="hint">No admin has been set up on this server yet.</p>`:""}
+    ${alt}</form>`;
 }
 async function checkSetup(){
-  if(!SY.url&&!SY.sameOrigin)return;
+  if(!SY.url)return;
   try{const s=await api("/api/status");S.needSetup=!!s.needSetup}catch(_){S.needSetup=false}
   if(S.needSetup&&S.view==="login"&&!S.loginMode&&!$("#l_user")?.value)render();
 }
 function clearSession(){SY.token="";LS("token",null);LS("profile",null);profile=null;isAdmin=false;meId=null;S.myName=""}
-function forceSignOut(msg){stopData();clearSession();S.view="login";S.loginMode=null;render();showSync();if(msg)toast(msg);checkSetup()}
+function forceSignOut(msg){stopData();relayOff();clearSession();S.view="login";S.loginMode=null;render();showSync();if(msg)toast(msg);checkSetup()}
 async function doLogin(){
   const un=normUser($("#l_user").value),pw=$("#l_pass").value;
-  if(!SY.sameOrigin){const a=normUrl($("#l_server").value);if(!a){toast("Type the server address your admin gave you");return}SY.url=a}
+  const prevUrl=SY.url,prevClub=CLUB?.sk||null;
+  if(!SY.sameOrigin){const el=$("#l_server");if(el){const a=normUrl(el.value);if(!a){toast("Type the server address your admin gave you");return}SY.url=a}else SY.url=""}
   if(!un||!pw){toast("Type your username and password");return}
   S.loginDraft={user:un,server:SY.url};
   const b=$("#loginBtn");b.disabled=true;b.textContent="Signing in…";
   try{const res=await api("/api/login",{username:un,password:pw});await enter(res.token,res.user)}
-  catch(err){toast(errMsg(err,"Wrong username or password"));const x=$("#loginBtn");if(x){x.disabled=false;x.textContent="Sign in"}}
+  catch(err){if(relayMode()&&(CLUB?.sk||null)!==prevClub)setClub(prevClub);if(!profile)SY.url=SY.sameOrigin?SY.url:(S.useServer?SY.url:prevUrl);toast(errMsg(err,"Wrong username or password"));const x=$("#loginBtn");if(x){x.disabled=false;x.textContent="Sign in"}}
 }
 async function doSetup(){
   const name=$("#a_name").value.trim(),un=normUser($("#a_user").value),pw=$("#a_pass").value;
   if(!name||!un){toast("Type your name and a username");return}
-  if(pw.length<6){toast("Use a password of 6 or more characters");return}
+  if(pw.length<minPw()){toast(`Use a password of ${minPw()} or more characters`);return}
+  const prevClub=CLUB?.sk||null;if(!SY.sameOrigin&&!(S.useServer??!!SY.url))SY.url="";
   const b=$("#setupBtn");b.disabled=true;b.textContent="Creating…";
   try{const res=await api("/api/setup",{name,username:un,password:pw});S.loginMode=null;S.needSetup=false;await enter(res.token,res.user)}
-  catch(err){toast(errMsg(err,"Couldn't create the admin account. Try again"));const x=$("#setupBtn");if(x){x.disabled=false;x.textContent="Create admin account"}}
+  catch(err){RL.afterEnter=null;if(relayMode()&&(CLUB?.sk||null)!==prevClub)setClub(prevClub);toast(errMsg(err,"Couldn't create the admin account. Try again"));const x=$("#setupBtn");if(x){x.disabled=false;x.textContent="Create admin account"}}
 }
 /* a successful sign-in: make sure the job cards on this phone belong to this person, then open the app */
 async function enter(token,user){
@@ -1041,7 +1211,7 @@ async function enter(token,user){
   if(prev&&prev!==user.id){
     if(pendingCount()){const t=SY.token;SY.token=token;api("/api/logout",{}).catch(()=>{});SY.token=t;
       throw {msg:`This phone still has job cards from ${LS("lastName")||"another technician"} that haven't synced. They must sign in and sync first`}}
-    await db.wipe();LS("cursor","0");for(const k of Object.keys(blobCache))delete blobCache[k];
+    await db.wipe();LS("cursor","0");RM={};saveRM();for(const k of Object.keys(blobCache))delete blobCache[k];
   }
   if(!prev){ // job cards made on this phone before logins existed are handed to this login
     const old=LS("techId");const moved=[];
@@ -1053,7 +1223,7 @@ async function enter(token,user){
     }
     if(moved.length)await db.applyRemote(moved,true);
     for(const m of moved)if(m.data)dirty[m.path]=Date.now();
-    saveDirty();LS("cursor","0");
+    saveDirty();LS("cursor","0");RM={};saveRM();
   }
   SY.token=token;LS("token",token);LS("profile",JSON.stringify(user));LS("lastUser",user.id);LS("lastName",user.name||"");LS("server",SY.url);
   openApp(user);
@@ -1062,10 +1232,10 @@ function openApp(user){
   stopData();
   profile=user;isAdmin=user.role==="admin";meId=user.id;S.myName=user.name||"";S.names[meId]=S.myName;
   if(isAdmin){try{setTeam(JSON.parse(LS("team")||"[]"))}catch(_){}}
-  S.view="list";S.loginDraft=null;render();startData();showSync();syncNow();if(isAdmin)loadTeam();
+  S.view="list";S.loginDraft=null;render();startData();if(RL.afterEnter){const f=RL.afterEnter;RL.afterEnter=null;f()}showSync();syncNow();if(isAdmin)loadTeam();
 }
 async function trySignOut(){
-  if(pendingCount()){await syncNow();if(pendingCount()){toast("Job cards on this phone haven't synced yet. Connect to the server before signing out");return}}
+  if(pendingCount()){await syncNow();if(pendingCount()){toast("Job cards on this phone haven't synced yet. Get online and let it sync before signing out");return}}
   api("/api/logout",{}).catch(()=>{});forceSignOut();
 }
 
@@ -1081,7 +1251,7 @@ function teamView(){
       ${f.mode==="add"?`<label>Name<input id="t_name" autocomplete="off" placeholder="Name and surname"></label>
       <label>Username<input id="t_user" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. sipho"></label>`
       :`<p class="hint">Username: <b>${esc(f.username)}</b>. The old password stops working and their phone asks them to sign in again. Job cards on their phone are kept.</p>`}
-      <label>${f.mode==="add"?"Password":"New password"}<input id="t_pass" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="6 or more characters"></label>
+      <label>${f.mode==="add"?"Password":"New password"}<input id="t_pass" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="${minPw()} or more characters"></label>
       <p class="hint">Give the username and password to the technician. They sign in once and the phone remembers it.</p>
     </fieldset></div></form>`;
   const rows=techs.map(t=>{const n=S.cards.filter(c=>c.techId===t.id).length,off=t.active===false;return `<div class="member${off?" off":""}">
@@ -1095,7 +1265,7 @@ async function saveTeam(){
   const f=S.teamForm,pw=$("#t_pass").value.trim();
   const name=f.mode==="add"?$("#t_name").value.trim():f.name,un=f.mode==="add"?normUser($("#t_user").value):f.username;
   if(!name||!un){toast("Type the technician's name and a username");return}
-  if(pw.length<6){toast("Use a password of 6 or more characters");return}
+  if(pw.length<minPw()){toast(`Use a password of ${minPw()} or more characters`);return}
   const b=$("#teamSave");b.disabled=true;
   try{
     if(f.mode==="add"){await api("/api/users",{name,username:un,password:pw});toast("Login created for "+name)}
@@ -1111,8 +1281,8 @@ async function toggleTech(id){
 function accountSection(){
   const n=pendingCount();
   return `<div class="section"><fieldset><legend>Signed in</legend>
-      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isAdmin?"Admin":"Technician"}</dd><dt>Server</dt><dd>${esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
-      <p class="hint">${isAdmin?"You see every technician's job cards.":"Your job cards are saved on this phone and go to the admin when the phone can reach the server."}</p>
+      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isAdmin?"Admin":"Technician"}</dd><dt>Syncs</dt><dd>${relayMode()?"Phone to phone, no server":"To "+esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
+      <p class="hint">${isAdmin?"You see every technician's job cards.":"Your job cards are saved on this phone and go to the admin when the phone is online."}</p>
       <div class="row"><button class="btn" id="syncBtn" type="button">Sync now</button><button class="btn" id="signOut" type="button">Sign out</button></div>
     </fieldset></div>`;
 }
@@ -1124,6 +1294,7 @@ function stopData(){
   S.cards=[];S.customers=[];S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
 }
 function startData(){
+  watchLogin();
   S.vanTech=meId;subVan(meId);if(!isAdmin)S.techs=[meId];
   unsubs.push(db.collection("jobcards").onSnapshot(snap=>{
     S.loaded=true;S.error=null;
@@ -1143,7 +1314,7 @@ async function boot(){
   if(!window.Native?.isNative()&&/^https?:$/.test(location.protocol)){try{const r=await fetch("/api/status");const j=await r.json();if(j?.app==="macadams-jobcards"){SY.sameOrigin=true;SY.url=location.origin}}catch(_){}}
   if(!SY.sameOrigin)SY.url=LS("server")||"";
   SY.token=LS("token")||"";let p=null;try{p=JSON.parse(LS("profile")||"null")}catch(_){}
-  if(SY.token&&p&&SY.url){openApp(p);return}
+  if(SY.token&&p&&(SY.url||CLUB)){openApp(p);return}
   clearSession();S.view="login";render();checkSetup();
 }
 S.rep.from=S.rep.to="";(()=>{const d=new Date(),iso=x=>x.toLocaleDateString("en-CA"),mon=new Date(d);mon.setDate(d.getDate()-(d.getDay()+6)%7);S.rep.from=iso(mon);S.rep.to=iso(d)})();boot();
