@@ -1,10 +1,14 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bakery Tech Job Cards</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<meta name="theme-color" content="#1B5FAA">
+<link rel="stylesheet" href="fonts.css">
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/jspdf.plugin.autotable.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="vendor.js"></script>
+<style>html,body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head><body>
 <style>
 /* Layout: one-column phone tool — sticky header with tabs, card list, full-screen form, floating "New" button */
 :root{
@@ -38,6 +42,8 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .logo-box{display:flex;align-items:center;justify-content:center;min-height:90px;background:#FFFFFF;border:1px dashed var(--line);border-radius:8px;padding:10px}
 .logo-box img{max-height:80px;width:auto}
 .brand h1{font-family:var(--f-display);font-size:1.5rem;letter-spacing:.01em;margin:0;line-height:1.1;text-wrap:balance}
+.sync{text-transform:none!important;letter-spacing:0!important}
+.sync.ok{color:var(--ok)!important}.sync.wait{color:var(--warn)!important}
 .brand small{display:block;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs{display:flex;gap:4px}
 .tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:10px 4px;font:600 .95rem var(--f-body);color:var(--muted);cursor:pointer}
@@ -125,7 +131,7 @@ th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;
 <header>
   <div class="wrap">
     <div class="top">
-      <div class="brand-row"><img id="coLogo" alt="" hidden><div class="brand"><small id="coName">Service department</small><h1>Bakery Tech Job Cards</h1></div></div>
+      <div class="brand-row"><img id="coLogo" alt="" hidden><div class="brand"><small id="coName">Service department</small><h1>Bakery Tech Job Cards</h1><small id="syncState" class="sync"></small></div></div>
       <button class="btn icon-btn" id="settingsBtn" type="button" aria-label="Company settings">Settings</button>
     </div>
     <nav class="tabs" role="tablist">
@@ -145,7 +151,7 @@ const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-
 const EQUIP=["Deck oven","Rack oven","Convection oven","Combi oven","Rotary oven","Proofer","Retarder-proofer","Spiral mixer","Planetary mixer","Dough divider","Moulder","Dough sheeter","Bread slicer","Fryer","Bakery refrigeration"];
 const S={view:"list",cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:"",footer:"",logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
   rep:{from:"",to:"",tech:"all"}};
-let db=null,assets=null,user=null,downloads=null,meId=null,canWrite=true;
+let db=null,assets=null,meId=null,canWrite=true,syncMode="local";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const today=()=>new Date().toLocaleDateString("en-CA");
@@ -168,10 +174,12 @@ function render(){
   else if(S.view==="reports")app.innerHTML=reportsView();
   else if(S.view==="settings")app.innerHTML=settingsView();
   else if(S.view==="form"){app.innerHTML=formView();bindForm()}
-  window.scrollTo(0,0);
+  else if(S.view==="who")app.innerHTML=whoView();
+  hydrate();window.scrollTo(0,0);
 }
 function statusPill(s){const st=STATUSES[s]||STATUSES.open;return `<span class="pill ${st.cls}">${st.label}</span>`}
-function photoUrl(p){return p.url||("/_blob/"+p.id)}
+function photoUrl(p){return blobSrc(p.id)}
+function imgSrc(id){const u=blobSrc(id);return u?`src="${esc(u)}"`:`data-blob="${esc(id||"")}"`}
 function filtered(){
   const q=S.q.trim().toLowerCase();
   return S.cards.filter(c=>(S.filter==="all"||c.status===S.filter)&&(!q||[c.jobNo,c.customer,c.site,c.equipment,c.model,c.serial,c.fault,techName(c.techId)].join(" ").toLowerCase().includes(q)));
@@ -185,7 +193,7 @@ function listView(){
   else{const f=filtered();body=f.length?f.map(c=>`<button type="button" class="card" data-open="${esc(c.id)}">
       <span class="t">${esc(c.customer||"No customer")}${c.site?` · ${esc(c.site)}`:""}</span>${statusPill(c.status)}
       <span class="m"><span class="mono">${esc(c.jobNo)}</span><span>${fmtDate(c.date)}</span><span>${esc(c.equipment||"")}</span><span>${esc(techName(c.techId))}</span>${c.photos?.length?`<span>${c.photos.length} photo${c.photos.length>1?"s":""}</span>`:""}</span>
-      ${c.photos?.length?`<span class="thumbs-mini">${c.photos.slice(0,4).map(p=>`<img src="${esc(photoUrl(p))}" alt="" loading="lazy">`).join("")}</span>`:""}
+      ${c.photos?.length?`<span class="thumbs-mini">${c.photos.slice(0,4).map(p=>`<img ${imgSrc(p.id)} alt="">`).join("")}</span>`:""}
     </button>`).join(""):`<div class="empty"><p>No cards match this search.</p></div>`}
   return `<div class="stack">${banner}<div class="row"><input class="search" id="q" type="search" placeholder="Search job no, customer, serial…" value="${esc(S.q)}" aria-label="Search job cards"></div><div class="chips">${chips}</div>${body}</div>`;
 }
@@ -209,7 +217,7 @@ function detailView(){
       ${c.custRef?`<dt>Order / ref no.</dt><dd class="mono">${esc(c.custRef)}</dd>`:""}
     </dl></div>
     <div class="section stack">${blk("Fault reported",c.fault)}${blk("Work done",c.work)}${c.partsUsed?.length?`<div class="block"><h3>Parts from van</h3><p>${c.partsUsed.map(u=>`${u.qty} × ${esc(u.partNo)} ${esc(u.desc)}`).join("\n")}</p></div>`:""}${blk("Other parts",c.parts)}${blk("Follow-up / notes",c.notes)}${!(c.fault||c.work||c.parts||c.notes||c.partsUsed?.length)?`<p class="hint">No details written yet.</p>`:""}</div>
-    ${c.photos?.length?`<div class="section"><div class="block"><h3>Photos</h3></div><div class="gallery">${c.photos.map(p=>`<figure><img src="${esc(photoUrl(p))}" alt="${esc(p.caption||"Job photo")}" loading="lazy">${p.caption?`<figcaption>${esc(p.caption)}</figcaption>`:""}</figure>`).join("")}</div></div>`:""}
+    ${c.photos?.length?`<div class="section"><div class="block"><h3>Photos</h3></div><div class="gallery">${c.photos.map(p=>`<figure><img ${imgSrc(p.id)} alt="${esc(p.caption||"Job photo")}">${p.caption?`<figcaption>${esc(p.caption)}</figcaption>`:""}</figure>`).join("")}</div></div>`:""}
     ${canWrite?(del||`<div><button class="btn danger" id="delAsk" type="button">Delete job card</button></div>`):""}
   </div>`;
 }
@@ -246,14 +254,15 @@ function formView(){
       <label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Add from gallery<input id="galIn" type="file" accept="image/*" multiple hidden></label></div>
       ${assets?"":`<p class="hint">Photo uploads aren't available for your access level. Ask the app owner for edit access.</p>`}
       <div class="photos" id="photoGrid"></div>
-      <p class="hint">Photos are resized before upload so they send quickly on mobile data. Add a caption like "before" or "after".</p>
+      <p class="hint">Photos are resized so they sync quickly on mobile data. Add a caption like "before" or "after".</p>
     </fieldset></div>
     <button class="btn primary" type="submit" id="saveBottom">Save job card</button>
   </form>`;
 }
 function renderPhotos(){
   const g=$("#photoGrid");if(!g)return;
-  g.innerHTML=S.form.photos.map((p,i)=>`<div class="ph"><img src="${esc(p.preview||photoUrl(p))}" alt="">${p.uploading?`<span class="up">Uploading…</span>`:""}<button class="x" type="button" data-rm="${i}" aria-label="Remove photo">×</button><input id="cap_${i}" data-cap="${i}" placeholder="Caption" value="${esc(p.caption||"")}" aria-label="Photo caption"></div>`).join("");
+  g.innerHTML=S.form.photos.map((p,i)=>`<div class="ph"><img ${p.preview?`src="${esc(p.preview)}"`:imgSrc(p.id)} alt="">${p.uploading?`<span class="up">Saving…</span>`:""}<button class="x" type="button" data-rm="${i}" aria-label="Remove photo">×</button><input id="cap_${i}" data-cap="${i}" placeholder="Caption" value="${esc(p.caption||"")}" aria-label="Photo caption"></div>`).join("");
+  hydrate();
 }
 function reportsView(){
   const r=S.rep;
@@ -274,10 +283,14 @@ function reportsView(){
 function settingsView(){
   return `<form id="setForm" class="stack" novalidate>
     <div class="row" style="justify-content:space-between;align-items:center"><button class="btn icon-btn" data-go="list" type="button">← Back</button><b>Report settings</b><span></span></div>
+    <div class="section"><fieldset><legend>This phone</legend>
+      <label>Technician name<input id="s_me" value="${esc(S.setDraft?.me??S.myName)}" placeholder="Name and surname"></label>
+      <p class="hint">${syncMode==="firebase"?"Job cards are saved on this phone and sync to the team when there's signal.":"Job cards are saved on this phone only. Team sync switches on once the Firebase project is connected."}</p>
+    </fieldset></div>
     <div class="section"><fieldset><legend>Company on reports</legend>
-      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftUrl()?`<img src="${esc(logoDraftUrl())}" alt="Company logo">`:`<span class="hint">No logo yet. Upload a PNG or JPG of the logo.</span>`}</div><div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">${logoDraftUrl()?"Replace logo":"Upload logo"}<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftUrl()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
+      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<span class="hint">No logo yet. Upload a PNG or JPG of the logo.</span>`}</div><div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">${logoDraftId()?"Replace logo":"Upload logo"}<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
       <div class="stack" style="gap:8px"><span class="hint"><b>Brand logos</b> (printed along the bottom of the first PDF page)</span>
-        ${brandDraft().length?`<div class="brands">${brandDraft().map((b,i)=>`<div class="bl"><img src="${esc(b.url||"/_blob/"+b.id)}" alt="Brand logo"><button class="x" type="button" data-brm="${i}" aria-label="Remove logo">×</button></div>`).join("")}</div>`:`<p class="hint">No brand logos yet.</p>`}
+        ${brandDraft().length?`<div class="brands">${brandDraft().map((b,i)=>`<div class="bl"><img ${imgSrc(b.id)} alt="Brand logo"><button class="x" type="button" data-brm="${i}" aria-label="Remove logo">×</button></div>`).join("")}</div>`:`<p class="hint">No brand logos yet.</p>`}
         <div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Add brand logos<input id="brandIn" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label></div></div>
       <label>Company name<input id="s_name" value="${esc(S.setDraft?.name??S.company.name)}"></label>
       <label>Report footer<textarea id="s_footer" placeholder="Address, phone, reg and VAT numbers">${esc(S.setDraft?.footer??S.company.footer)}</textarea></label>
@@ -337,7 +350,7 @@ document.addEventListener("change",e=>{
   if(id==="logoIn"&&e.target.files[0]){uploadLogo(e.target.files[0]);e.target.value="";return}
   if(id==="r_from"||id==="r_to"||id==="r_tech"){S.rep[id.slice(2)]=e.target.value;render()}
 });
-document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings()});
+document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="whoForm")saveWho()});
 
 /* ---------- form ---------- */
 const FIELDS=["jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
@@ -354,10 +367,10 @@ async function compress(file){
   let src;
   try{src=await createImageBitmap(file,{imageOrientation:"from-image"})}
   catch(_){src=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)})}
-  const w=src.width,h=src.height,s=Math.min(1,1600/Math.max(w,h));
+  const w=src.width,h=src.height,s=Math.min(1,1400/Math.max(w,h));
   const cv=document.createElement("canvas");cv.width=Math.round(w*s);cv.height=Math.round(h*s);
   cv.getContext("2d").drawImage(src,0,0,cv.width,cv.height);
-  return await new Promise(r=>cv.toBlob(r,"image/jpeg",0.8));
+  let out=await new Promise(r=>cv.toBlob(r,"image/jpeg",0.78));if(out.size>650000)out=await new Promise(r=>cv.toBlob(r,"image/jpeg",0.6));return out;
 }
 async function addPhotos(files){
   if(!assets){toast("Photo uploads aren't available for your access level");return}
@@ -365,14 +378,14 @@ async function addPhotos(files){
   for(const file of files){
     const p={preview:URL.createObjectURL(file),caption:"",uploading:true};S.form.photos.push(p);renderPhotos();
     try{const blob=await compress(file);const r=await assets.upload(blob,{type:"image/jpeg"});p.id=r.id;p.url=r.url;p.uploading=false}
-    catch(err){const i=S.form?.photos.indexOf(p);if(i>-1)S.form.photos.splice(i,1);toast(err?.code==="too_large"?"That photo is too large":"Photo didn't upload. Check your signal and try again")}
+    catch(err){const i=S.form?.photos.indexOf(p);if(i>-1)S.form.photos.splice(i,1);toast(err?.code==="too_large"?"That photo is too large":"Photo didn't save. Try again")}
     renderPhotos();
   }
 }
 async function saveCard(){
   readForm();const f=S.form;
   if(!f.jobNo){toast("Add a job number");$("#f_jobNo").focus();return}
-  if(f.photos.some(p=>p.uploading)){toast("Wait for photos to finish uploading");return}
+  if(f.photos.some(p=>p.uploading)){toast("Wait for photos to finish saving");return}
   if(!db){toast("Can't reach the job card store. Reopen the app and try again");return}
   const data={};for(const k of FIELDS)data[k]=f[k]||"";
   data.photos=f.photos.filter(p=>p.id).map(p=>({id:p.id,url:p.url||"",caption:p.caption||""}));
@@ -392,24 +405,25 @@ async function deleteCard(){
   catch(_){toast("Couldn't delete. Try again")}
 }
 async function saveSettings(){
-  const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim();
+  const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim(),me=$("#s_me").value.trim();
+  if(me&&me!==S.myName)setMyName(me);
   const lg=S.logoDraft||{id:S.company.logoId,url:S.company.logoUrl};
-  try{await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;toast("Settings saved");S.view="list";render()}
+  try{await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;S.setDraft=null;toast("Settings saved");S.view="list";render()}
   catch(_){toast("Couldn't save settings. You may need edit access")}
 }
 
-function logoSrc(){return S.company.logoUrl||(S.company.logoId?"/_blob/"+S.company.logoId:"")}
-function logoDraftUrl(){return S.logoDraft?(S.logoDraft.url||(S.logoDraft.id?"/_blob/"+S.logoDraft.id:"")):logoSrc()}
-function setLogo(){const im=$("#coLogo");const u=logoSrc();if(u){if(im.getAttribute("src")!==u)im.src=u;im.hidden=false}else im.hidden=true}
-function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value}}
+function logoDraftId(){return S.logoDraft?S.logoDraft.id:S.company.logoId}
+function setLogo(){const im=$("#coLogo");const id=S.company.logoId;if(!id){im.hidden=true;return}
+  const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;im.hidden=false}
+  else{im.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
+function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value,me:$("#s_me")?.value}}
 async function uploadLogo(file){
   if(!assets){toast("Only people with edit access can upload the logo");return}
   keepSettingsInputs();toast("Uploading logo…");
-  try{let blob=file;if(file.size>2e6){blob=await new Promise(async r=>{const b=await createImageBitmap(file);const s=Math.min(1,800/Math.max(b.width,b.height));const cv=document.createElement("canvas");cv.width=Math.round(b.width*s);cv.height=Math.round(b.height*s);cv.getContext("2d").drawImage(b,0,0,cv.width,cv.height);cv.toBlob(r,"image/png")})}
-    const res=await assets.upload(blob);S.logoDraft={id:res.id,url:res.url};render();toast("Logo ready. Tap Save settings")}
+  try{const res=await assets.upload(await shrinkLogo(file));S.logoDraft={id:res.id,url:res.url};render();toast("Logo ready. Tap Save settings")}
   catch(err){toast(err?.code==="unsupported_type"?"Use a PNG or JPG file":"Logo didn't upload. Try again")}
 }
-async function logoData(){const u=logoSrc();if(!u)return null;try{return await imgData(u)}catch(_){return null}}
+async function logoData(){const id=S.company.logoId;if(!id)return null;try{return await imgData(await blobUrl(id))}catch(_){return null}}
 /* ---------- van stock ---------- */
 const vanSubs={};
 function subVan(tid){
@@ -421,7 +435,7 @@ function subVan(tid){
 }
 function vanView(){
   const tid=S.vanTech;
-  if(!db||!tid)return `<div class="empty"><h2>Van stock</h2><p>Sign in to claude.ai to see your van stock.</p></div>`;
+  if(!db||!tid)return `<div class="empty"><h2>Van stock</h2><p>Loading van stock…</p></div>`;
   const list=S.vans[tid];const mine=tid===meId;
   const who=mine?"My van":`${esc(techName(tid))}'s van`;
   const sel=S.techs.length>1?`<label>Van<select id="vanTechSel">${S.techs.map(t=>`<option value="${esc(t)}" ${t===tid?"selected":""}>${t===meId?"My van":esc(techName(t))}</option>`).join("")}</select></label>`:"";
@@ -481,14 +495,14 @@ async function applyStock(tid,before,after){
   for(const u of after)delta[u.partId]=(delta[u.partId]||0)+(+u.qty||0);
   let err=false;const col=db.collection(`vanstock/${tid}/parts`);
   for(const [pid,d] of Object.entries(delta)){if(!d||!pid)continue;
-    try{const snap=await col.doc(pid).get();if(!snap.exists)continue;const cur=+snap.data().qty||0;await col.doc(pid).update({qty:Math.max(0,cur-d),updatedAt:Date.now()})}catch(_){err=true}}
+    try{const known=(S.vans[tid]||[]).find(x=>x.id===pid);let cur;if(known)cur=+known.qty||0;else{const snap=await col.doc(pid).get();if(!snap.exists)continue;cur=+snap.data().qty||0}await col.doc(pid).update({qty:Math.max(0,cur-d),updatedAt:Date.now()})}catch(_){err=true}}
   return err;
 }
 function brandDraft(){return S.brandDraft||S.company.brandLogos||[]}
 async function uploadBrands(files){
   if(!assets){toast("Only people with edit access can upload logos");return}
   keepSettingsInputs();const a=brandDraft().slice();toast("Uploading logos…");
-  for(const f of files){try{const r=await assets.upload(f);a.push({id:r.id,url:r.url})}catch(err){toast(err?.code==="unsupported_type"?"Use PNG or JPG files":"A logo didn't upload. Try again")}}
+  for(const f of files){try{const r=await assets.upload(await shrinkLogo(f));a.push({id:r.id,url:r.url})}catch(err){toast(err?.code==="unsupported_type"?"Use PNG or JPG files":"A logo didn't upload. Try again")}}
   S.brandDraft=a;render();toast("Logos ready. Tap Save settings");
 }
 /* ---------- text + PDF ---------- */
@@ -506,6 +520,7 @@ function summaryText(){
   return head+"\n\n"+rows.map(c=>`${fmtDate(c.date)} ${c.jobNo} – ${c.customer||"–"}${c.site?` (${c.site})`:""}, ${c.equipment||"machine"}: ${(STATUSES[c.status]||STATUSES.open).label}`).join("\n");
 }
 async function copyText(t){
+  if(window.Native?.isNative()){try{await window.Native.shareText(t)}catch(_){}return}
   try{await navigator.clipboard.writeText(t);toast("Copied. Paste it into WhatsApp")}
   catch(_){const ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(_){}ta.remove();toast(ok?"Copied. Paste it into WhatsApp":"Copy didn't work on this device")}
 }
@@ -524,7 +539,7 @@ function pdfBase(title,sub,logo){
   if(sub){doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(sub,196,20,{align:"right"})}
   doc.setDrawColor(217,223,229);doc.line(14,24,196,24);return doc;
 }
-async function brandData(){const out=[];for(const b of (S.company.brandLogos||[]).slice(0,8)){try{out.push(await imgData(b.url||"/_blob/"+b.id))}catch(_){}}return out}
+async function brandData(){const out=[];for(const b of (S.company.brandLogos||[]).slice(0,8)){try{out.push(await imgData(await blobUrl(b.id)))}catch(_){}}return out}
 function pdfFooter(doc,brands){
   const n=doc.getNumberOfPages();
   if(brands?.length){doc.setPage(1);const H=9,gap=6;const ws=brands.map(b=>Math.min(H*b.w/b.h,34));const total=ws.reduce((a,w)=>a+w,0)+gap*(ws.length-1);let x=105-total/2;
@@ -534,9 +549,11 @@ function pdfFooter(doc,brands){
     doc.text(`Page ${i} of ${n}`,196,288,{align:"right"})}
 }
 async function saveFile(name,blob,btn){
-  if(!downloads){toast("Saving files isn't available here. Open the app in the Claude app or a browser while signed in");return}
-  try{await downloads.save({filename:name,data:blob});toast("PDF saved. Share it from your downloads to WhatsApp or email")}
-  catch(err){if(err?.code!=="declined")toast("Couldn't save the PDF. Try again")}
+  // In the Android app this opens the share sheet so the PDF goes straight to WhatsApp or email
+  if(window.Native?.isNative()){try{await window.Native.sharePdf(name,blob)}catch(err){if(!/cancel/i.test(String(err?.message||err)))toast("Couldn't share the PDF. Try again")}return}
+  const file=new File([blob],name,{type:"application/pdf"});
+  if(navigator.canShare?.({files:[file]})){try{await navigator.share({files:[file],title:name});return}catch(err){if(err?.name==="AbortError")return}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("PDF saved to downloads");
 }
 async function pdfJob(c,btn){
   if(!window.jspdf){toast("PDF tool didn't load. Check your connection and reopen");return}
@@ -558,7 +575,7 @@ async function pdfJob(c,btn){
       doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(27,95,170);doc.text("PHOTOS",14,y);y+=4;
       const W=88,gap=6;let col=0,rowH=0;
       for(const p of c.photos){
-        let im;try{im=await imgData(photoUrl(p))}catch(_){continue}
+        let im;try{im=await imgData(await blobUrl(p.id))}catch(_){continue}
         const hh=Math.min(W*im.h/im.w,95);const ww=hh*im.w/im.h;
         if(y+hh+8>272){doc.addPage();y=20;col=0;rowH=0}
         const x=14+col*(W+gap);doc.addImage(im.data,"JPEG",x,y,ww,hh);
@@ -595,28 +612,142 @@ async function pdfSummary(btn){
   btn.disabled=false;
 }
 
-/* ---------- data ---------- */
-async function resolveNames(){
-  if(!user)return;const ids=[...new Set([...S.cards.map(c=>c.techId),...S.techs].filter(Boolean))];if(!ids.length)return;
-  try{const ps=await user.profiles(ids);let changed=false;for(const id of ids){const n=ps?.[id]?.name||"";if(n&&S.names[id]!==n){S.names[id]=n;changed=true}}if(changed&&S.view!=="form"&&S.view!=="settings")render()}catch(_){}
+/* ---------- storage ----------
+   Everything is saved on the phone first, so the app works with no signal.
+   - Local mode (no Firebase config yet): data stays in this phone's IndexedDB.
+   - Firebase mode: Firestore's offline cache holds the data on the phone and
+     uploads changes to the team as soon as there's signal.
+   Both expose the same small API the app uses: collection/doc, add/set/update/delete/get/onSnapshot. */
+const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(_){return null}};
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+
+function openIdb(){return new Promise((res,rej)=>{const r=indexedDB.open("bakery-jobcards",1);r.onupgradeneeded=()=>r.result.createObjectStore("docs");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function makeLocalDb(){
+  const h=await openIdb();const mem=new Map();const subs=new Set();
+  await new Promise((res,rej)=>{const rq=h.transaction("docs").objectStore("docs").openCursor();rq.onsuccess=()=>{const c=rq.result;if(c){mem.set(c.key,c.value);c.continue()}else res()};rq.onerror=()=>rej(rq.error)});
+  const persist=(path,val)=>new Promise((res,rej)=>{const tx=h.transaction("docs","readwrite");const st=tx.objectStore("docs");if(val===undefined)st.delete(path);else st.put(val,path);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)});
+  const notify=()=>{for(const f of [...subs]){try{f()}catch(e){console.error(e)}}};
+  const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
+  const snap=path=>{const d=mem.get(path);return {id:path.split("/").pop(),exists:d!==undefined,data:()=>clone(d)}};
+  const docRef=path=>({id:path.split("/").pop(),path,
+    async get(){return snap(path)},
+    async set(d){const v=clone(d);mem.set(path,v);notify();await persist(path,v)},
+    async update(p){const cur=mem.get(path);if(cur===undefined)throw Object.assign(new Error("Not found"),{code:"not-found"});const v={...cur,...clone(p)};mem.set(path,v);notify();await persist(path,v)},
+    async delete(){mem.delete(path);notify();await persist(path,undefined)},
+    onSnapshot(cb){const f=()=>cb(snap(path));subs.add(f);setTimeout(f,0);return()=>subs.delete(f)}});
+  const colRef=(path,order)=>{const list=()=>{const out=[];for(const [k,v] of mem){if(k.slice(0,k.lastIndexOf("/"))===path)out.push({id:k.split("/").pop(),exists:true,data:()=>clone(v),_v:v})}
+      if(order)out.sort((a,b)=>{const x=a._v[order.f],y=b._v[order.f];return (x>y?1:x<y?-1:0)*(order.d==="desc"?-1:1)});return out};
+    return {doc:id=>docRef(path+"/"+(id||newId())),
+      async add(d){const r=docRef(path+"/"+newId());await r.set(d);return r},
+      orderBy:(f,d)=>colRef(path,{f,d}),
+      async get(){return {docs:list()}},
+      onSnapshot(cb){const f=()=>cb({docs:list()});subs.add(f);setTimeout(f,0);return()=>subs.delete(f)}}};
+  return {collection:p=>colRef(p),doc:p=>docRef(p),entries:()=>[...mem.entries()]};
 }
+
+function makeFireDb(fs){
+  // Writes land in the phone's offline cache straight away; Firestore uploads them when online.
+  // We don't wait for the server, otherwise saving would hang with no signal.
+  const bg=p=>{p.catch(err=>{console.warn(err);toast("A change didn't sync ("+(err?.code||"error")+")")});return Promise.resolve()};
+  const doc=r=>({id:r.id,path:r.path,
+    get:()=>r.get({source:"cache"}).catch(()=>r.get()),
+    set:d=>bg(r.set(d)),update:d=>bg(r.update(d)),delete:()=>bg(r.delete()),
+    onSnapshot:(a,b)=>r.onSnapshot(a,b)});
+  const col=c=>({doc:id=>doc(id?c.doc(id):c.doc()),
+    add:async d=>{const r=c.doc();bg(r.set(d));return doc(r)},
+    orderBy:(f,d)=>col(c.orderBy(f,d)),
+    get:()=>c.get({source:"cache"}).catch(()=>c.get()),
+    onSnapshot:(a,b)=>c.onSnapshot(a,b)});
+  return {collection:p=>col(fs.collection(p)),doc:p=>doc(fs.doc(p))};
+}
+
+const sync={online:navigator.onLine,pending:false};
+function showSync(){const el=$("#syncState");if(!el)return;let t,c="";
+  if(syncMode!=="firebase"){t="Saved on this phone"}
+  else if(!sync.online){t="Offline · saved on phone";c="wait"}
+  else if(sync.pending){t="Syncing…";c="wait"}
+  else{t="Synced";c="ok"}
+  el.textContent=t;el.className="sync "+c}
+addEventListener("online",()=>{sync.online=true;showSync();if(syncMode==="firebase"&&!window.firebase.auth().currentUser)window.firebase.auth().signInAnonymously().catch(()=>{})});
+addEventListener("offline",()=>{sync.online=false;showSync()});
+
+async function openStore(){
+  const local=await makeLocalDb();
+  const cfg=window.FIREBASE_CONFIG;
+  if(!cfg||!cfg.apiKey||!window.firebase)return local;
+  const fb=window.firebase;fb.initializeApp(cfg);
+  const fs=fb.firestore();
+  try{await fs.enablePersistence({synchronizeTabs:true})}catch(err){console.warn("Offline cache unavailable",err)}
+  fb.auth().signInAnonymously().catch(()=>{}); // remembered on the phone after the first time online
+  syncMode="firebase";
+  // Job cards made before sync was switched on get uploaded once.
+  if(!LS("migrated")){for(const [path,data] of local.entries())fs.doc(path).set(data).catch(()=>{});LS("migrated","1")}
+  fs.collection("jobcards").onSnapshot({includeMetadataChanges:true},s=>{sync.pending=s.metadata.hasPendingWrites;showSync()},()=>{});
+  return makeFireDb(fs);
+}
+
+/* photos and logos: stored as compressed JPEG/PNG data in the "blobs" collection */
+const blobCache={};
+const toDataUrl=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)});
+async function uploadBlob(blob){
+  const url=await toDataUrl(blob);
+  if(url.length>950000)throw {code:"too_large"};
+  const ref=db.collection("blobs").doc();await ref.set({data:url,createdAt:Date.now()});
+  blobCache[ref.id]=url;return {id:ref.id,url:""};
+}
+function blobSrc(id){return (id&&blobCache[id])||""}
+async function blobUrl(id){
+  if(!id)return "";if(blobCache[id])return blobCache[id];
+  const s=await db.doc("blobs/"+id).get();const u=s.exists?(s.data().data||""):"";
+  if(u)blobCache[id]=u;return u;
+}
+function hydrate(){document.querySelectorAll("img[data-blob]:not([src])").forEach(im=>{const id=im.dataset.blob;if(!id)return;blobUrl(id).then(u=>{if(u)im.src=u}).catch(()=>{})})}
+async function shrinkLogo(file){
+  let b;try{b=await createImageBitmap(file)}catch(_){b=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)})}
+  const s=Math.min(1,600/Math.max(b.width,b.height));const cv=document.createElement("canvas");cv.width=Math.round(b.width*s);cv.height=Math.round(b.height*s);
+  cv.getContext("2d").drawImage(b,0,0,cv.width,cv.height);
+  const png=await new Promise(r=>cv.toBlob(r,"image/png"));if(png.size<600000)return png;
+  const c2=document.createElement("canvas");c2.width=cv.width;c2.height=cv.height;const x=c2.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c2.width,c2.height);x.drawImage(cv,0,0);
+  return await new Promise(r=>c2.toBlob(r,"image/jpeg",0.9));
+}
+
+/* who's using this phone */
+function whoView(){return `<form id="whoForm" class="stack" novalidate>
+  <div class="section"><fieldset><legend>Who's using this phone?</legend>
+    <label>Your name<input id="w_name" value="${esc(S.myName||"")}" placeholder="Name and surname" autocomplete="name"></label>
+    <p class="hint">Your name goes on your job cards and reports, and your van stock is kept under it. You can change it later in Settings.</p>
+  </fieldset></div>
+  <button class="btn primary" type="submit">Start</button></form>`}
+function setMyName(n){S.myName=n;LS("techName",n);S.names[meId]=n;if(db)db.doc("techs/"+meId).set({name:n,joined:+LS("joined")||Date.now()}).catch(()=>{})}
+function saveWho(){const n=$("#w_name").value.trim();if(!n){toast("Type your name");return}setMyName(n);S.view="list";render()}
+
+/* Android back button */
+window.onBack=()=>{
+  if(S.view==="form"){S.view=S.form?.id?"detail":"list";S.form=null;render();return true}
+  if(S.view==="van"&&S.partForm){S.partForm=null;render();return true}
+  if(S.view!=="list"&&S.view!=="who"){S.view="list";render();return true}
+  return false;
+};
+
+/* ---------- data ---------- */
 async function boot(){
-  render();
-  const C=window.claude;
-  if(!C?.use){S.error="Open this app from its claude.ai link to load the team's job cards.";S.loaded=true;render();return}
-  [db,assets,user,downloads]=await Promise.all([C.use("db"),C.use("assets"),C.use("user"),C.use("downloads")]);
-  if(!db){S.error="Sign in to claude.ai to see and log job cards.";S.loaded=true;render();return}
-  if(user){try{meId=await user.id()}catch(_){};try{const c=await user.can("data.write");if(c===false)canWrite=false}catch(_){}}
-  if(meId){S.vanTech=meId;subVan(meId);try{const td=db.doc("techs/"+meId);const g=await td.get();if(!g.exists)await td.set({joined:Date.now()})}catch(_){}}
-  db.collection("techs").onSnapshot(sn=>{S.techs=sn.docs.map(d=>d.id);resolveNames();if(S.view==="van")render()},()=>{});
-  const timer=setTimeout(()=>{if(!S.loaded){S.error="Job cards are taking long to load. Check your signal.";render()}},10000);
+  S.myName=LS("techName")||"";
+  meId=LS("techId");if(!meId){meId="t-"+newId();LS("techId",meId);LS("joined",String(Date.now()))}
+  if(S.myName)S.names[meId]=S.myName;
+  if(!S.myName)S.view="who";
+  render();showSync();
+  try{db=await openStore()}catch(err){console.error(err);S.error="Couldn't open the job card store on this phone. Close the app and open it again.";S.loaded=true;render();return}
+  assets={upload:uploadBlob};showSync();
+  S.vanTech=meId;subVan(meId);
+  if(S.myName)setMyName(S.myName);
+  db.collection("techs").onSnapshot(sn=>{S.techs=sn.docs.map(d=>d.id);if(!S.techs.includes(meId))S.techs.push(meId);let ch=false;for(const d of sn.docs){const n=d.data()?.name;if(n&&S.names[d.id]!==n){S.names[d.id]=n;ch=true}}if((ch||S.view==="van")&&S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render()},()=>{});
+  const timer=setTimeout(()=>{if(!S.loaded){S.error="Job cards are taking long to load.";render()}},10000);
   db.collection("jobcards").orderBy("createdAt","desc").onSnapshot(snap=>{
     clearTimeout(timer);S.loaded=true;S.error=null;
     S.cards=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(S.view!=="form"&&S.view!=="settings")render();
-    resolveNames();
-  },err=>{clearTimeout(timer);S.loaded=true;S.error="Couldn't load job cards. Check your signal and reopen the app.";if(S.view!=="form")render()});
-  db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||"",footer:d.footer||"",logoId:d.logoId||"",logoUrl:d.logoUrl||"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};if(S.view!=="form"&&S.view!=="settings")render();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{});
+    if(S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render();
+  },err=>{console.error(err);clearTimeout(timer);S.loaded=true;S.error="Couldn't load job cards. Close the app and open it again.";if(S.view!=="form")render()});
+  db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||"",footer:d.footer||"",logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};if(S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{});
 }
 setRange("week");boot();
 </script>

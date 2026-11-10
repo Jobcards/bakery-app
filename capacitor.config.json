@@ -1,0 +1,7 @@
+{
+  "appId": "com.bakerytech.jobcards",
+  "appName": "Bakery Job Cards",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "plugins": { "SystemBars": { "insetsHandling": "css", "style": "LIGHT" } }
+}
