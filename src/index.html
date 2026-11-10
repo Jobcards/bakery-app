@@ -163,6 +163,14 @@ textarea{resize:vertical;min-height:88px}
 .brands .bl img{max-height:50px;width:auto}
 .brands .bl .x{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(22,37,78,.75);color:#fff;cursor:pointer}
 
+/* technicians */
+.member{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:start}
+.member.off{background:#F7F9FC}
+.member .who{display:flex;flex-direction:column;min-width:0}
+.member .who b{font-size:1.05rem;overflow-wrap:anywhere}
+.member .who span{color:var(--muted);font-size:.88rem}
+.member .row{grid-column:1/-1}
+
 /* reports */
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
@@ -201,6 +209,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
   <button class="tab" role="tab" id="tabList" aria-selected="true" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M9 5H6v16h12V5h-3"/><path d="M9 12h6M9 16h4"/></svg></span>Job cards</button>
   <button class="tab" role="tab" id="tabVan" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Van stock</button>
   <button class="tab" role="tab" id="tabReports" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg></span>Reports</button>
+  <button class="tab" role="tab" id="tabTeam" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.2 3.2-4.8 6-4.8s5.200 1.600 6 4.800"/><circle cx="17" cy="9" r="2.500"/><path d="M17 14.500c2 .200 3.500 1.500 4 4"/></svg></span>Technicians</button>
 </div></nav>
 <div class="toast" id="toast" hidden></div>
 
@@ -223,9 +232,10 @@ function newJobNo(){const d=new Date();const p=n=>String(n).padStart(2,"0");retu
 /* ---------- rendering ---------- */
 const ICONS={machine:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M8 13h8v4H8z"/>',person:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.5 4-5 7-5s6 1.5 7 5"/>',camera:'<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',share:'<path d="M4 13v7h16v-7M12 15V3M7 8l5-5 5 5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',back:'<path d="M15 5l-7 7 7 7"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
-const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome"};
+const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome",login:"Sign in",wait:"Job cards",team:"Technicians"};
 function dayLabel(d){if(!d)return "No date";if(d===today())return "Today";const y=new Date();y.setDate(y.getDate()-1);if(d===y.toLocaleDateString("en-CA"))return "Yesterday";return new Date(d+"T00:00").toLocaleDateString("en-ZA",{weekday:"short",day:"numeric",month:"short"})}
-function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabReports").setAttribute("aria-selected",v==="reports")}
+function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail"||v==="form");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabReports").setAttribute("aria-selected",v==="reports");$("#tabTeam").setAttribute("aria-selected",v==="team");
+  const bare=["login","who","wait"].includes(v);document.querySelector(".tabbar").hidden=bare;$("#settingsBtn").hidden=bare;$("#tabTeam").hidden=!isAdmin}
 function render(){
   setTab(S.view);
   $("#fab").hidden=S.view!=="list"||!canWrite;
@@ -239,6 +249,9 @@ function render(){
   else if(S.view==="settings")app.innerHTML=settingsView();
   else if(S.view==="form"){app.innerHTML=formView();bindForm()}
   else if(S.view==="who")app.innerHTML=whoView();
+  else if(S.view==="login")app.innerHTML=loginView();
+  else if(S.view==="team")app.innerHTML=teamView();
+  else if(S.view==="wait")app.innerHTML=`<div class="empty"><p>Opening…</p></div>`;
   hydrate();window.scrollTo(0,0);
 }
 function statusPill(s){const st=STATUSES[s]||STATUSES.open;return `<span class="pill ${st.cls}">${st.label}</span>`}
@@ -270,7 +283,7 @@ function detailView(){
   if(!c)return `<div class="empty"><p>This job card was removed.</p><button class="btn" data-go="list" type="button">Back to job cards</button></div>`;
   const h=hours(c.timeIn,c.timeOut);
   const blk=(t,v)=>v?`<div class="block"><h3>${t}</h3><p>${esc(v)}</p></div>`:"";
-  const del=S.confirmDel?`<div class="confirm"><b>Delete job card ${esc(c.jobNo)}?</b><span class="hint">This removes it for the whole team.</span><div class="row"><button class="btn danger" id="delYes" type="button">Delete</button><button class="btn" id="delNo" type="button">Keep it</button></div></div>`:"";
+  const del=S.confirmDel?`<div class="confirm"><b>Delete job card ${esc(c.jobNo)}?</b><span class="hint">This removes it for good, for the admin too.</span><div class="row"><button class="btn danger" id="delYes" type="button">Delete</button><button class="btn" id="delNo" type="button">Keep it</button></div></div>`:"";
   return `<div class="stack detail">
     <div class="jobhead">
       <div class="top"><button class="btn icon-btn back" data-go="list" type="button">${ic("back")}Job cards</button>${statusPill(c.status)}</div>
@@ -354,12 +367,10 @@ function reportsView(){
   </div>`;
 }
 function settingsView(){
+  if(syncMode==="firebase"&&!isAdmin)return `<div class="stack"><div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>${accountSection()}</div>`;
   return `<form id="setForm" class="stack" novalidate>
     <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Report settings</b><span></span></div>
-    <div class="section"><fieldset><legend>This phone</legend>
-      <label>Technician name<input id="s_me" value="${esc(S.setDraft?.me??S.myName)}" placeholder="Name and surname"></label>
-      <p class="hint">${syncMode==="firebase"?"Job cards are saved on this phone and sync to the team when there's signal.":"Job cards are saved on this phone only. Team sync switches on once the Firebase project is connected."}</p>
-    </fieldset></div>
+    ${accountSection()}
     <div class="section"><fieldset><legend>Company on reports</legend>
       <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<img src="${DEFAULT_LOGO}" alt="Macadams logo">`}</div><div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Replace logo<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
       <div class="stack" style="gap:8px"><span class="hint"><b>Brand logos</b> (printed along the bottom of the first PDF page)</span>
@@ -382,6 +393,14 @@ function setRange(k){const d=new Date();const iso=x=>x.toLocaleDateString("en-CA
 /* ---------- events ---------- */
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-open]");if(!t)return;
+  if(t.id==="tabTeam"){S.view="team";S.teamForm=null;render();return}
+  if(t.id==="goSetup"){S.loginMode="setup";render();return}
+  if(t.id==="cancelSetup"){S.loginMode=null;render();return}
+  if(t.id==="signOut"){trySignOut();return}
+  if(t.id==="addTech"){S.teamForm={mode:"add"};render();return}
+  if(t.id==="cancelTeam"){S.teamForm=null;render();return}
+  if(t.dataset.resetpw){const m=(S.team||[]).find(x=>x.uid===t.dataset.resetpw);if(m){S.teamForm={mode:"reset",uid:m.uid,name:m.name,username:m.username};render()}return}
+  if(t.dataset.toggle){toggleTech(t.dataset.toggle);return}
   if(t.id==="tabList"){S.view="list";render()}
   else if(t.id==="tabReports"){S.view="reports";render()}
   else if(t.id==="tabVan"){S.view="van";S.partForm=null;if(!S.vanTech)S.vanTech=meId;subVan(S.vanTech);render()}
@@ -423,7 +442,7 @@ document.addEventListener("change",e=>{
   if(id==="logoIn"&&e.target.files[0]){uploadLogo(e.target.files[0]);e.target.value="";return}
   if(id==="r_from"||id==="r_to"||id==="r_tech"){S.rep[id.slice(2)]=e.target.value;render()}
 });
-document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="whoForm")saveWho()});
+document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="whoForm")saveWho();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam()});
 
 /* ---------- form ---------- */
 const FIELDS=["serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
@@ -466,8 +485,8 @@ async function saveCard(){
   data.updatedAt=Date.now();if(data.serviceCo)LS("serviceCo",data.serviceCo);
   for(const b of ["#saveTop","#saveBottom"])$(b).disabled=true;
   try{
-    if(f.id){data.techId=f.techId||meId||"";data.createdAt=f.createdAt||Date.now();await db.collection("jobcards").doc(f.id).set(data);S.detailId=f.id}
-    else{data.techId=meId||"";data.createdAt=Date.now();const ref=await db.collection("jobcards").add(data);S.detailId=ref.id}
+    if(f.id){data.techId=f.techId||meId||"";data.techName=f.techName||techName(data.techId);data.createdAt=f.createdAt||Date.now();await db.collection("jobcards").doc(f.id).set(data);S.detailId=f.id}
+    else{data.techId=meId||"";data.techName=S.myName||"";data.createdAt=Date.now();const ref=await db.collection("jobcards").add(data);S.detailId=ref.id}
     const stockErr=await applyStock(data.techId,f._orig||[],data.partsUsed);
     S.form=null;S.view="detail";S.confirmDel=false;toast(stockErr?"Job card saved, but van stock didn't update. Check Van stock":"Job card saved");render();
   }catch(err){toast(err?.code==="permission_denied"||err?.code==="not_granted"?"You don't have permission to save job cards. Ask the app owner for access":"Didn't save. Check your signal and tap Save again");for(const b of ["#saveTop","#saveBottom"]){const x=$(b);if(x)x.disabled=false}}
@@ -478,8 +497,8 @@ async function deleteCard(){
   catch(_){toast("Couldn't delete. Try again")}
 }
 async function saveSettings(){
-  const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim(),me=$("#s_me").value.trim();
-  if(me&&me!==S.myName)setMyName(me);
+  const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim(),me=($("#s_me")?.value||"").trim();
+  if(me&&me!==S.myName&&syncMode!=="firebase")setMyName(me);
   const lg=S.logoDraft||{id:S.company.logoId,url:S.company.logoUrl};
   try{await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;S.setDraft=null;toast("Settings saved");S.view="list";render()}
   catch(_){toast("Couldn't save settings. You may need edit access")}
@@ -729,34 +748,32 @@ function makeFireDb(fs){
     onSnapshot:(a,b)=>r.onSnapshot(a,b)});
   const col=c=>({doc:id=>doc(id?c.doc(id):c.doc()),
     add:async d=>{const r=c.doc();bg(r.set(d));return doc(r)},
-    orderBy:(f,d)=>col(c.orderBy(f,d)),
+    orderBy:(f,d)=>col(c.orderBy(f,d)),where:(f,o,v)=>col(c.where(f,o,v)),
     get:()=>c.get({source:"cache"}).catch(()=>c.get()),
-    onSnapshot:(a,b)=>c.onSnapshot(a,b)});
+    onSnapshot:(...a)=>c.onSnapshot(...a)});
   return {collection:p=>col(fs.collection(p)),doc:p=>doc(fs.doc(p))};
 }
 
 const sync={online:navigator.onLine,pending:false};
 function showSync(){const el=$("#syncState");if(!el)return;let t,c="";
+  if(S.view==="login"||S.view==="wait"){el.textContent=sync.online?"":"Offline";el.className="sync";el.hidden=sync.online;return}el.hidden=false;
   if(syncMode!=="firebase"){t="Saved on this phone"}
   else if(!sync.online){t="Offline · saved on phone";c="wait"}
   else if(sync.pending){t="Syncing…";c="wait"}
   else{t="Synced";c="ok"}
   el.textContent=t;el.className="sync "+c}
-addEventListener("online",()=>{sync.online=true;showSync();if(syncMode==="firebase"&&!window.firebase.auth().currentUser)window.firebase.auth().signInAnonymously().catch(()=>{})});
+addEventListener("online",()=>{sync.online=true;showSync()});
 addEventListener("offline",()=>{sync.online=false;showSync()});
 
+let FB=null,localDb=null;
 async function openStore(){
-  const local=await makeLocalDb();
+  localDb=await makeLocalDb();
   const cfg=window.FIREBASE_CONFIG;
-  if(!cfg||!cfg.apiKey||!window.firebase)return local;
+  if(!cfg||!cfg.apiKey||!window.firebase)return localDb;
   const fb=window.firebase;fb.initializeApp(cfg);
   const fs=fb.firestore();
   try{await fs.enablePersistence({synchronizeTabs:true})}catch(err){console.warn("Offline cache unavailable",err)}
-  fb.auth().signInAnonymously().catch(()=>{}); // remembered on the phone after the first time online
-  syncMode="firebase";
-  // Job cards made before sync was switched on get uploaded once.
-  if(!LS("migrated")){for(const [path,data] of local.entries())fs.doc(path).set(data).catch(()=>{});LS("migrated","1")}
-  fs.collection("jobcards").onSnapshot({includeMetadataChanges:true},s=>{sync.pending=s.metadata.hasPendingWrites;showSync()},()=>{});
+  FB={fb,fs,auth:fb.auth(),cfg};syncMode="firebase";
   return makeFireDb(fs);
 }
 
@@ -766,7 +783,7 @@ const toDataUrl=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=
 async function uploadBlob(blob){
   const url=await toDataUrl(blob);
   if(url.length>950000)throw {code:"too_large"};
-  const ref=db.collection("blobs").doc();await ref.set({data:url,createdAt:Date.now()});
+  const ref=db.collection("blobs").doc();await ref.set({data:url,techId:meId||"",createdAt:Date.now()});
   blobCache[ref.id]=url;return {id:ref.id,url:""};
 }
 function blobSrc(id){return (id&&blobCache[id])||""}
@@ -800,31 +817,209 @@ function saveWho(){const n=$("#w_name").value.trim();if(!n){toast("Type your nam
 window.onBack=()=>{
   if(S.view==="form"){S.view=S.form?.id?"detail":"list";S.form=null;render();return true}
   if(S.view==="van"&&S.partForm){S.partForm=null;render();return true}
+  if(S.view==="team"&&S.teamForm){S.teamForm=null;render();return true}
+  if(S.view==="login"){if(S.loginMode){S.loginMode=null;render();return true}return false}
   if(S.view!=="list"&&S.view!=="who"){S.view="list";render();return true}
   return false;
 };
 
+/* ---------- sign-in and technicians (used once the Firebase project is connected) ----------
+   users/{authUid}   {name, username, role: "admin"|"tech", techId, active}
+   logins/{username} {email}   - lets a username be looked up at sign-in
+   meta/admin        {uid}     - the one main admin
+   A tech's phone only loads job cards where techId is theirs; the admin loads all of them. */
+let profile=null,isAdmin=false;const unsubs=[];
+const DOMAIN="@jobcards.example.com";
+const normUser=v=>String(v||"").trim().toLowerCase().replace(/[^a-z0-9._-]/g,"");
+const mkEmail=un=>un+"."+Date.now().toString(36)+DOMAIN;
+function authMsg(err,fallback){const c=String(err?.code||"")+" "+String(err?.message||"");
+  return /network|unavailable|offline/i.test(c)?"No signal. Connect to the internet and try again":/too-many/i.test(c)?"Too many tries. Wait a few minutes and try again":/weak-password/i.test(c)?"Use a password of 6 or more characters":/permission/i.test(c)?"You don't have permission to do that":fallback}
+function softRender(){if(!["form","settings","who","login","wait"].includes(S.view)&&!(S.view==="team"&&S.teamForm)&&!(S.view==="van"&&S.partForm))render()}
+
+function loginView(){
+  if(S.loginMode==="setup")return `<form id="setupForm" class="stack" novalidate>
+    <div class="welcome"><h2>Set up the admin</h2><p>The admin sees every technician's job cards and gives each technician a login. You only do this once.</p></div>
+    <div class="section"><fieldset><legend>Admin account</legend>
+      <label>Your name<input id="a_name" autocomplete="name" placeholder="Name and surname"></label>
+      <label>Username<input id="a_user" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. admin"></label>
+      <label>Password<input id="a_pass" type="password" autocomplete="new-password" placeholder="6 or more characters"></label>
+    </fieldset></div>
+    <button class="btn primary" type="submit" id="setupBtn">Create admin account</button>
+    <button class="btn" type="button" id="cancelSetup">Back to sign in</button></form>`;
+  return `<form id="loginForm" class="stack" novalidate>
+    <div class="welcome"><h2>Macadams job cards</h2><p>Sign in with the username and password your admin gave you.</p></div>
+    <div class="section"><fieldset><legend>Sign in</legend>
+      <label>Username<input id="l_user" autocapitalize="none" autocomplete="username" spellcheck="false"></label>
+      <label>Password<input id="l_pass" type="password" autocomplete="current-password"></label>
+    </fieldset></div>
+    <button class="btn primary" type="submit" id="loginBtn">Sign in</button>
+    ${S.needSetup?`<button class="btn" type="button" id="goSetup">Set up the admin account</button><p class="hint">No admin has been set up yet. Do this first on the admin's phone.</p>`:""}</form>`;
+}
+async function checkSetup(){
+  try{const s=await FB.fs.doc("meta/admin").get({source:"server"});S.needSetup=!s.exists}catch(_){S.needSetup=false}
+  if(S.needSetup&&S.view==="login"&&!S.loginMode&&!$("#l_user")?.value)render();
+}
+async function doLogin(){
+  const un=normUser($("#l_user").value),pw=$("#l_pass").value;if(!un||!pw){toast("Type your username and password");return}
+  const b=$("#loginBtn");b.disabled=true;b.textContent="Signing in…";
+  try{const s=await FB.fs.doc("logins/"+un).get({source:"server"});if(!s.exists)throw {code:"auth/wrong-password"};
+    await FB.auth.signInWithEmailAndPassword(s.data().email,pw)}
+  catch(err){toast(authMsg(err,"Wrong username or password"));const x=$("#loginBtn");if(x){x.disabled=false;x.textContent="Sign in"}}
+}
+async function doSetup(){
+  const name=$("#a_name").value.trim(),un=normUser($("#a_user").value),pw=$("#a_pass").value;
+  if(!name||!un){toast("Type your name and a username");return}
+  if(pw.length<6){toast("Use a password of 6 or more characters");return}
+  const b=$("#setupBtn");b.disabled=true;b.textContent="Creating…";S.settingUp=true;
+  try{const email=mkEmail(un);const cred=await FB.auth.createUserWithEmailAndPassword(email,pw);const uid=cred.user.uid;
+    await FB.fs.doc("meta/admin").set({uid,createdAt:Date.now()});
+    await FB.fs.doc("users/"+uid).set({name,username:un,role:"admin",techId:uid,active:true,createdAt:Date.now()});
+    await FB.fs.doc("logins/"+un).set({email});
+    S.settingUp=false;S.loginMode=null;S.needSetup=false;await onAuth(FB.auth.currentUser);
+  }catch(err){S.settingUp=false;console.error(err);
+    toast(/permission/i.test(String(err?.code)+err?.message)?"An admin already exists. Sign in instead":authMsg(err,"Couldn't create the admin account. Try again"));
+    if(FB.auth.currentUser)FB.auth.signOut().catch(()=>{});const x=$("#setupBtn");if(x){x.disabled=false;x.textContent="Create admin account"}}
+}
+function trySignOut(){
+  if(sync.pending){toast(sync.online?"Still syncing. Try again in a moment":"Job cards on this phone haven't synced yet. Connect to the internet before signing out");return}
+  FB.auth.signOut().catch(()=>toast("Couldn't sign out. Try again"));
+}
+
+/* technicians (admin) */
+function teamView(){
+  const techs=(S.team||[]).filter(t=>t.role!=="admin").sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  const f=S.teamForm;
+  if(f)return `<form id="teamForm" class="stack" novalidate>
+    <div class="formbar"><button class="btn icon-btn" id="cancelTeam" type="button">Cancel</button><b>${f.mode==="add"?"Add technician":"New password"}</b><button class="btn primary icon-btn" type="submit" id="teamSave">Save</button></div>
+    <div class="section"><fieldset><legend>${f.mode==="add"?"Technician login":esc(f.name)}</legend>
+      ${f.mode==="add"?`<label>Name<input id="t_name" autocomplete="off" placeholder="Name and surname"></label>
+      <label>Username<input id="t_user" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. sipho"></label>`
+      :`<p class="hint">Username: <b>${esc(f.username)}</b>. The old password stops working and their phone asks them to sign in again. Make sure their phone has synced first.</p>`}
+      <label>${f.mode==="add"?"Password":"New password"}<input id="t_pass" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="6 or more characters"></label>
+      <p class="hint">Give the username and password to the technician. They sign in once and the phone remembers it.</p>
+    </fieldset></div></form>`;
+  const rows=techs.map(t=>{const n=S.cards.filter(c=>c.techId===t.techId).length,off=t.active===false;return `<div class="member${off?" off":""}">
+    <div class="who"><b>${esc(t.name)}</b><span>Username: ${esc(t.username)}</span><span>${n} job card${n===1?"":"s"}</span></div>
+    ${off?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}
+    <div class="row"><button class="btn icon-btn" type="button" data-resetpw="${esc(t.uid)}">New password</button><button class="btn icon-btn${off?"":" danger"}" type="button" data-toggle="${esc(t.uid)}">${off?"Switch on":"Switch off"}</button></div></div>`}).join("");
+  return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${techs.length} technician${techs.length===1?"":"s"}</span><button class="btn primary" id="addTech" type="button">${ic("plus")}Add technician</button></div>
+    ${rows||`<div class="empty"><h2>No technicians yet</h2><p>Add each technician and give them their username and password. Their job cards come to you when their phone syncs.</p></div>`}</div>`;
+}
+async function newAccount(email,pw){ // a second connection, so the admin stays signed in
+  const fb=FB.fb;const sec=fb.apps.find(a=>a.name==="accounts")||fb.initializeApp(FB.cfg,"accounts");
+  try{await sec.auth().setPersistence(fb.auth.Auth.Persistence.NONE)}catch(_){}
+  const cred=await sec.auth().createUserWithEmailAndPassword(email,pw);const uid=cred.user.uid;
+  await sec.auth().signOut().catch(()=>{});return uid;
+}
+async function saveTeam(){
+  const f=S.teamForm,pw=$("#t_pass").value.trim();
+  const name=f.mode==="add"?$("#t_name").value.trim():f.name,un=f.mode==="add"?normUser($("#t_user").value):f.username;
+  if(!name||!un){toast("Type the technician's name and a username");return}
+  if(pw.length<6){toast("Use a password of 6 or more characters");return}
+  const b=$("#teamSave");b.disabled=true;
+  try{
+    if(f.mode==="add"){
+      const taken=await FB.fs.doc("logins/"+un).get({source:"server"});if(taken.exists){toast("That username is taken. Choose another");b.disabled=false;return}
+      const email=mkEmail(un),uid=await newAccount(email,pw);
+      await FB.fs.doc("users/"+uid).set({name,username:un,role:"tech",techId:uid,active:true,createdAt:Date.now()});
+      await FB.fs.doc("logins/"+un).set({email});
+      toast("Login created for "+name);
+    }else{
+      const old=(S.team||[]).find(t=>t.uid===f.uid);if(!old)throw new Error("gone");
+      const email=mkEmail(un),uid=await newAccount(email,pw);const {uid:_drop,...rest}=old;
+      await FB.fs.doc("users/"+uid).set({...rest,updatedAt:Date.now()});
+      await FB.fs.doc("logins/"+un).set({email});
+      await FB.fs.doc("users/"+f.uid).delete();
+      toast("New password set for "+name);
+    }
+    S.teamForm=null;render();
+  }catch(err){console.error(err);toast(authMsg(err,"Couldn't save. Try again"));const x=$("#teamSave");if(x)x.disabled=false}
+}
+async function toggleTech(uid){
+  const t=(S.team||[]).find(x=>x.uid===uid);if(!t)return;const on=t.active===false;
+  try{await FB.fs.doc("users/"+uid).update({active:on});toast(on?t.name+" can sign in again":t.name+"'s login is switched off")}
+  catch(err){toast(authMsg(err,"Couldn't change the login. Try again"))}
+}
+function accountSection(){
+  if(syncMode!=="firebase")return `<div class="section"><fieldset><legend>This phone</legend>
+      <label>Technician name<input id="s_me" value="${esc(S.setDraft?.me??S.myName)}" placeholder="Name and surname"></label>
+      <p class="hint">Job cards are saved on this phone only. Logins and team sync switch on once the Firebase project is connected.</p>
+    </fieldset></div>`;
+  return `<div class="section"><fieldset><legend>Signed in</legend>
+      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isAdmin?"Admin":"Technician"}</dd></dl>
+      <p class="hint">${isAdmin?"You see every technician's job cards.":"Your job cards are saved on this phone and go to the admin when there's signal."}</p>
+      <div><button class="btn" id="signOut" type="button">Sign out</button></div>
+    </fieldset></div>`;
+}
+
+/* first sign-in on a phone that already has job cards: hand them to this login */
+async function migrateLocal(){
+  if(LS("migrated")||!localDb)return;const old=LS("techId");
+  for(const [path,data] of localDb.entries()){
+    if(path.startsWith("jobcards/"))FB.fs.doc(path).set({...data,techId:meId,techName:S.myName}).catch(()=>{});
+    else if(old&&path.startsWith("vanstock/"+old+"/"))FB.fs.doc(path.replace("vanstock/"+old+"/","vanstock/"+meId+"/")).set(data).catch(()=>{});
+    else if(path.startsWith("blobs/"))FB.fs.doc(path).set({...data,techId:meId}).catch(()=>{});
+  }
+  LS("migrated","1");
+}
+function stopData(){
+  while(unsubs.length){try{unsubs.pop()()}catch(_){}}
+  for(const k of Object.keys(vanSubs)){try{vanSubs[k]()}catch(_){}delete vanSubs[k]}
+  for(const k of Object.keys(blobCache))delete blobCache[k];
+  S.cards=[];S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;sync.pending=false;
+}
+async function onAuth(u){
+  if(S.settingUp)return;
+  stopData();
+  if(!u){profile=null;isAdmin=false;meId=null;S.myName="";S.view="login";render();showSync();checkSetup();return}
+  let p=null,known=false;
+  try{const s=await FB.fs.doc("users/"+u.uid).get();known=true;if(s.exists)p=s.data()}catch(_){}
+  if(!known){try{p=JSON.parse(LS("profile:"+u.uid)||"null")}catch(_){}}
+  if(!p||p.active===false){toast(p?"This login is switched off. Speak to the admin":"This login no longer works. Sign in again");LS("profile:"+u.uid,"null");await FB.auth.signOut().catch(()=>{});return}
+  LS("profile:"+u.uid,JSON.stringify(p));
+  profile=p;isAdmin=p.role==="admin";meId=p.techId||u.uid;S.myName=p.name||"";S.names[meId]=S.myName;
+  await migrateLocal();
+  S.view="list";render();showSync();startData();
+  unsubs.push(FB.fs.doc("users/"+u.uid).onSnapshot(s=>{if(s.metadata.fromCache)return;
+    if(!s.exists||s.data().active===false){toast(s.exists?"This login is switched off. Speak to the admin":"Your password was changed. Sign in again");LS("profile:"+u.uid,"null");FB.auth.signOut().catch(()=>{})}
+    else LS("profile:"+u.uid,JSON.stringify(s.data()))},()=>{}));
+}
+
 /* ---------- data ---------- */
+function startData(){
+  const fire=syncMode==="firebase";
+  S.vanTech=meId;subVan(meId);
+  if(!fire)unsubs.push(db.collection("techs").onSnapshot(sn=>{S.techs=sn.docs.map(d=>d.id);if(!S.techs.includes(meId))S.techs.push(meId);for(const d of sn.docs){const n=d.data()?.name;if(n)S.names[d.id]=n}softRender()},()=>{}));
+  else if(isAdmin)unsubs.push(db.collection("users").onSnapshot(sn=>{S.team=sn.docs.map(d=>({uid:d.id,...d.data()}));for(const t of S.team)if(t.techId&&t.name)S.names[t.techId]=t.name;S.techs=[meId,...new Set(S.team.map(t=>t.techId).filter(x=>x&&x!==meId))];softRender()},()=>{}));
+  else S.techs=[meId];
+  const timer=setTimeout(()=>{if(!S.loaded){S.error="Job cards are taking long to load.";softRender()}},10000);
+  const q=fire&&!isAdmin?db.collection("jobcards").where("techId","==",meId):db.collection("jobcards");
+  let first=true;
+  const onCards=snap=>{
+    if(fire){sync.pending=!!snap.metadata?.hasPendingWrites;showSync();if(!first&&!snap.docChanges().length)return}
+    first=false;clearTimeout(timer);S.loaded=true;S.error=null;
+    S.cards=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    for(const c of S.cards)if(c.techId&&c.techName&&!S.names[c.techId])S.names[c.techId]=c.techName;
+    softRender();
+  };
+  const onErr=err=>{console.error(err);clearTimeout(timer);S.loaded=true;S.error="Couldn't load job cards. Close the app and open it again.";softRender()};
+  unsubs.push(fire?q.onSnapshot({includeMetadataChanges:true},onCards,onErr):q.onSnapshot(onCards,onErr));
+  unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
+    if(!["form","settings","who","login","wait"].includes(S.view)&&!(S.view==="team"&&S.teamForm))softRender();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{}));
+}
 async function boot(){
+  S.view="wait";render();showSync();
+  try{db=await openStore()}catch(err){console.error(err);S.view="list";S.error="Couldn't open the job card store on this phone. Close the app and open it again.";S.loaded=true;render();return}
+  assets={upload:uploadBlob};showSync();
+  if(syncMode==="firebase"){FB.auth.onAuthStateChanged(u=>{onAuth(u).catch(err=>console.error(err))});return}
   S.myName=LS("techName")||"";
   meId=LS("techId");if(!meId){meId="t-"+newId();LS("techId",meId);LS("joined",String(Date.now()))}
   if(S.myName)S.names[meId]=S.myName;
-  if(!S.myName)S.view="who";
-  render();showSync();
-  try{db=await openStore()}catch(err){console.error(err);S.error="Couldn't open the job card store on this phone. Close the app and open it again.";S.loaded=true;render();return}
-  assets={upload:uploadBlob};showSync();
-  S.vanTech=meId;subVan(meId);
+  S.view=S.myName?"list":"who";render();
+  startData();
   if(S.myName)setMyName(S.myName);
-  db.collection("techs").onSnapshot(sn=>{S.techs=sn.docs.map(d=>d.id);if(!S.techs.includes(meId))S.techs.push(meId);let ch=false;for(const d of sn.docs){const n=d.data()?.name;if(n&&S.names[d.id]!==n){S.names[d.id]=n;ch=true}}if((ch||S.view==="van")&&S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render()},()=>{});
-  const timer=setTimeout(()=>{if(!S.loaded){S.error="Job cards are taking long to load.";render()}},10000);
-  db.collection("jobcards").orderBy("createdAt","desc").onSnapshot(snap=>{
-    clearTimeout(timer);S.loaded=true;S.error=null;
-    S.cards=snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render();
-  },err=>{console.error(err);clearTimeout(timer);S.loaded=true;S.error="Couldn't load job cards. Close the app and open it again.";if(S.view!=="form")render()});
-  db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};if(S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{});
 }
-setRange("week");boot();
+S.rep.from=S.rep.to="";(()=>{const d=new Date(),iso=x=>x.toLocaleDateString("en-CA"),mon=new Date(d);mon.setDate(d.getDate()-(d.getDay()+6)%7);S.rep.from=iso(mon);S.rep.to=iso(d)})();boot();
 </script>
 
 </body></html>

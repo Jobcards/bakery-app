@@ -1,9 +1,58 @@
 rules_version = '2';
-// Only phones running the app (signed in anonymously) can read or write.
+// One main admin sees everything. Each technician sees only their own job cards and van stock.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/meta/admin)
+        && get(/databases/$(database)/documents/meta/admin).data.uid == request.auth.uid;
+    }
+    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isActive() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && me().active == true;
+    }
+
+    // The main admin: set once, on first setup. Never changed from the app.
+    match /meta/admin {
+      allow get: if true;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+    }
+
+    // Username -> sign-in address. Looked up one at a time when signing in.
+    match /logins/{username} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // Logins the admin has handed out.
+    match /users/{uid} {
+      allow get: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow list, write: if isAdmin();
+    }
+
+    match /jobcards/{id} {
+      allow read, delete: if isAdmin() || (isActive() && resource.data.techId == me().techId);
+      allow create: if isAdmin() || (isActive() && request.resource.data.techId == me().techId);
+      allow update: if isAdmin()
+        || (isActive() && resource.data.techId == me().techId && request.resource.data.techId == me().techId);
+    }
+
+    match /vanstock/{techId}/parts/{id} {
+      allow read, write: if isAdmin() || (isActive() && me().techId == techId);
+    }
+
+    // Photos and logos. Fetched one at a time by id; only the admin can list them.
+    match /blobs/{id} {
+      allow get, create: if isAdmin() || isActive();
+      allow list, update, delete: if isAdmin();
+    }
+
+    match /settings/{doc} {
+      allow read: if isAdmin() || isActive();
+      allow write: if isAdmin();
     }
   }
 }
