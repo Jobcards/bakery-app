@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bakery Tech Job Cards</title>
-<meta name="theme-color" content="#1B5FAA">
+<meta name="theme-color" content="#23335D">
 <link rel="stylesheet" href="fonts.css">
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/jspdf.plugin.autotable.min.js"></script>
@@ -13,7 +13,7 @@
 /* Layout: one-column phone tool — sticky header with tabs, card list, full-screen form, floating "New" button */
 :root{
   --bg:#F3F5F7; --surface:#FFFFFF; --ink:#141A21; --muted:#5B6673; --line:#D9DFE5;
-  --accent:#1B5FAA; --accent-ink:#FFFFFF; --accent-soft:#E3EDF8;
+  --accent:#23335D; --accent-ink:#FFFFFF; --accent-soft:#E4E8F2; --red:#AF3131;
   --ok:#1E7A46; --ok-soft:#E1F2E8; --warn:#A35F00; --warn-soft:#FBEED9; --wait:#6A3FB0; --wait-soft:#EEE7F8; --open:#5B6673; --open-soft:#E8ECF0;
   --danger:#B42318;
   --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
@@ -22,12 +22,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
-  --accent:#5C9EE8; --accent-ink:#0B1520; --accent-soft:#1C2F45;
+  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#E06A6A;
   --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
   --danger:#F2867D; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1419; --surface:#18202A; --ink:#E8EDF2; --muted:#98A4B1; --line:#2B3643;
-  --accent:#5C9EE8; --accent-ink:#0B1520; --accent-soft:#1C2F45;
+  --accent:#8EA3D8; --accent-ink:#0B1520; --accent-soft:#1E2840; --red:#E06A6A;
   --ok:#5CC98A; --ok-soft:#173826; --warn:#F0B35A; --warn-soft:#3A2A12; --wait:#B596EE; --wait-soft:#2C2340; --open:#98A4B1; --open-soft:#243040;
   --danger:#F2867D; color-scheme:dark}
 *{box-sizing:border-box}
@@ -47,7 +47,8 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var
 .brand small{display:block;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs{display:flex;gap:4px}
 .tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:10px 4px;font:600 .95rem var(--f-body);color:var(--muted);cursor:pointer}
-.tab[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--red)}
+header{border-top:4px solid var(--red)}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer}
@@ -147,9 +148,10 @@ th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;
 <div class="toast" id="toast" hidden></div>
 
 <script>
+const MACADAMS={name:"Macadams International",footer:"Macadams Durban: Unit 3, 2 Corobrik Road, Riverhorse Valley, Durban 4017 · +27 (0)31 569 6290 · 24/7 technical call centre 087 015 0123 · MacadamsHelpdesk@macadams.co.za"};
 const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
-const EQUIP=["Deck oven","Rack oven","Convection oven","Combi oven","Rotary oven","Proofer","Retarder-proofer","Spiral mixer","Planetary mixer","Dough divider","Moulder","Dough sheeter","Bread slicer","Fryer","Bakery refrigeration"];
-const S={view:"list",cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:"",footer:"",logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
+const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
+const S={view:"list",cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
   rep:{from:"",to:"",tech:"all"}};
 let db=null,assets=null,meId=null,canWrite=true,syncMode="local";
 const $=s=>document.querySelector(s);
@@ -210,6 +212,7 @@ function detailView(){
     <div class="section"><dl class="kv">
       <dt>Date</dt><dd>${fmtDate(c.date)}</dd>
       <dt>Technician</dt><dd>${esc(techName(c.techId))}</dd>
+      ${c.serviceCo?`<dt>Service company</dt><dd>${esc(c.serviceCo)}</dd>`:""}
       <dt>Time on site</dt><dd>${esc(c.timeIn||"–")} to ${esc(c.timeOut||"–")}${h!=null?` <span class="mono">(${h} h)</span>`:""}</dd>
       ${c.contact?`<dt>Site contact</dt><dd>${esc(c.contact)}</dd>`:""}
       <dt>Equipment</dt><dd>${esc(c.equipment||"–")}${c.model?` · ${esc(c.model)}`:""}</dd>
@@ -228,6 +231,7 @@ function formView(){
     <div class="section"><fieldset><legend>Job</legend>
       <div class="grid2"><label>Job no.<input id="f_jobNo" value="${esc(f.jobNo)}" required></label><label>Date<input id="f_date" type="date" value="${esc(f.date)}"></label></div>
       <div class="grid2"><label>Time in<input id="f_timeIn" type="time" value="${esc(f.timeIn)}"></label><label>Time out<input id="f_timeOut" type="time" value="${esc(f.timeOut)}"></label></div>
+      <label>Service company<input id="f_serviceCo" value="${esc(f.serviceCo)}" placeholder="Company doing the work"></label>
       <label>Status<select id="f_status">${Object.entries(STATUSES).map(([k,v])=>opt(k,v.label)).join("")}</select></label>
     </fieldset></div>
     <div class="section"><fieldset><legend>Customer</legend>
@@ -353,9 +357,9 @@ document.addEventListener("change",e=>{
 document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="whoForm")saveWho()});
 
 /* ---------- form ---------- */
-const FIELDS=["jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
+const FIELDS=["serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
 function startForm(c){
-  S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",photos:[]};
+  S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",serviceCo:LS("serviceCo")||"",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",photos:[]};
   S.view="form";subVan(S.form.techId||meId);render();
 }
 function bindForm(){
@@ -390,7 +394,7 @@ async function saveCard(){
   const data={};for(const k of FIELDS)data[k]=f[k]||"";
   data.photos=f.photos.filter(p=>p.id).map(p=>({id:p.id,url:p.url||"",caption:p.caption||""}));
   data.partsUsed=(f.partsUsed||[]).map(u=>({partId:u.partId,partNo:u.partNo||"",desc:u.desc||"",qty:+u.qty||0}));
-  data.updatedAt=Date.now();
+  data.updatedAt=Date.now();if(data.serviceCo)LS("serviceCo",data.serviceCo);
   for(const b of ["#saveTop","#saveBottom"])$(b).disabled=true;
   try{
     if(f.id){data.techId=f.techId||meId||"";data.createdAt=f.createdAt||Date.now();await db.collection("jobcards").doc(f.id).set(data);S.detailId=f.id}
@@ -508,7 +512,7 @@ async function uploadBrands(files){
 /* ---------- text + PDF ---------- */
 function jobText(c){
   const h=hours(c.timeIn,c.timeOut);const L=[];
-  L.push(`*Job card ${c.jobNo}*`,`${fmtDate(c.date)} · ${techName(c.techId)}`,`*Customer:* ${c.customer||"–"}${c.site?` (${c.site})`:""}`);
+  L.push(`*Job card ${c.jobNo}*`,`${fmtDate(c.date)} · ${techName(c.techId)}${c.serviceCo?` (${c.serviceCo})`:""}`,`*Customer:* ${c.customer||"–"}${c.site?` (${c.site})`:""}`);
   if(c.equipment||c.model)L.push(`*Machine:* ${[c.equipment,c.model].filter(Boolean).join(" · ")}${c.serial?` · S/N ${c.serial}`:""}`);
   if(c.fault)L.push(`*Fault:* ${c.fault}`);if(c.work)L.push(`*Work done:* ${c.work}`);if(c.partsUsed?.length)L.push(`*Parts:* ${c.partsUsed.map(u=>`${u.qty}x ${u.partNo} ${u.desc}`).join(", ")}`);if(c.parts)L.push(`*Other parts:* ${c.parts}`);if(c.notes)L.push(`*Notes:* ${c.notes}`);
   L.push(`*Status:* ${(STATUSES[c.status]||STATUSES.open).label}${h!=null?` · ${h} h on site`:""}`);
@@ -532,7 +536,7 @@ async function imgData(url){
 }
 function pdfBase(title,sub,logo){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
-  doc.setFillColor(27,95,170);doc.rect(0,0,210,4,"F");
+  doc.setFillColor(35,51,93);doc.rect(0,0,210,4,"F");doc.setFillColor(175,49,49);doc.rect(0,4,210,1.2,"F");
   doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(20,26,33);let nx=14;if(logo){const lh=14,lw=Math.min(lh*logo.w/logo.h,48);const lh2=lw*logo.h/logo.w;doc.addImage(logo.data,"JPEG",14,8+(lh-lh2)/2,lw,lh2);nx=14+lw+4}
   doc.text(S.company.name||"Service department",nx,15);
   doc.setFontSize(11);doc.setTextColor(91,102,115);doc.text(title,196,15,{align:"right"});
@@ -545,7 +549,7 @@ function pdfFooter(doc,brands){
   if(brands?.length){doc.setPage(1);const H=9,gap=6;const ws=brands.map(b=>Math.min(H*b.w/b.h,34));const total=ws.reduce((a,w)=>a+w,0)+gap*(ws.length-1);let x=105-total/2;
     doc.setDrawColor(217,223,229);doc.line(14,273,196,273);brands.forEach((b,i)=>{const w=ws[i],h=w*b.h/b.w;doc.addImage(b.data,"JPEG",x,275+(H-h)/2,w,h);x+=w+gap})}
   for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(91,102,115);
-    if(S.company.footer)doc.text(doc.splitTextToSize(S.company.footer.replace(/\n/g," · "),150),14,288);
+    if(S.company.footer){const fl=doc.splitTextToSize(S.company.footer.replace(/\n/g," · "),160).slice(0,2);doc.text(fl,14,292.5-fl.length*3.4)}
     doc.text(`Page ${i} of ${n}`,196,288,{align:"right"})}
 }
 async function saveFile(name,blob,btn){
@@ -562,17 +566,17 @@ async function pdfJob(c,btn){
     const doc=pdfBase("SERVICE JOB CARD",c.jobNo,await logoData());let y=32;
     const h=hours(c.timeIn,c.timeOut);
     doc.autoTable({startY:y,theme:"grid",styles:{fontSize:9.5,cellPadding:2.2,textColor:[20,26,33],lineColor:[217,223,229]},columnStyles:{0:{fontStyle:"bold",cellWidth:34,fillColor:[243,245,247]},2:{fontStyle:"bold",cellWidth:34,fillColor:[243,245,247]}},
-      body:[["Job no.",c.jobNo,"Date",fmtDate(c.date)],["Customer",c.customer||"",  "Branch / site",c.site||""],["Site contact",c.contact||"","Order / ref no.",c.custRef||""],["Machine",c.equipment||"","Make / model",c.model||""],["Serial no.",c.serial||"","Technician",techName(c.techId)],["Time in / out",`${c.timeIn||"–"} – ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`,"Status",(STATUSES[c.status]||STATUSES.open).label]]});
+      body:[["Job no.",c.jobNo,"Date",fmtDate(c.date)],["Customer",c.customer||"",  "Branch / site",c.site||""],["Site contact",c.contact||"","Order / ref no.",c.custRef||""],["Machine",c.equipment||"","Make / model",c.model||""],["Serial no.",c.serial||"","Technician",techName(c.techId)],["Time in / out",`${c.timeIn||"–"} – ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`,"Status",(STATUSES[c.status]||STATUSES.open).label],...(c.serviceCo?[["Service company",c.serviceCo,"",""]]:[])]});
     y=doc.lastAutoTable.finalY+6;
     const sections=[["Fault reported",c.fault],["Work done",c.work],["Parts used",[...(c.partsUsed||[]).map(u=>`${u.qty} x ${u.partNo}  ${u.desc}`),c.parts].filter(Boolean).join("\n")],["Follow-up / notes",c.notes]].filter(s=>s[1]);
     for(const [t,v] of sections){
       const lines=doc.splitTextToSize(v,182);if(y+8+lines.length*4.6>270){doc.addPage();y=20}
-      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(27,95,170);doc.text(t.toUpperCase(),14,y);y+=5;
+      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(35,51,93);doc.text(t.toUpperCase(),14,y);y+=5;
       doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(20,26,33);doc.text(lines,14,y);y+=lines.length*4.6+4;
     }
     if(c.photos?.length){
       if(y>230){doc.addPage();y=20}
-      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(27,95,170);doc.text("PHOTOS",14,y);y+=4;
+      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(35,51,93);doc.text("PHOTOS",14,y);y+=4;
       const W=88,gap=6;let col=0,rowH=0;
       for(const p of c.photos){
         let im;try{im=await imgData(await blobUrl(p.id))}catch(_){continue}
@@ -602,7 +606,7 @@ async function pdfSummary(btn){
     const done=rows.filter(c=>c.status==="done").length,hrs=Math.round(rows.reduce((a,c)=>a+(hours(c.timeIn,c.timeOut)||0),0)*10)/10;
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(20,26,33);
     doc.text(`${rows.length} jobs   ·   ${done} completed   ·   ${rows.filter(c=>c.status==="follow").length} need follow-up   ·   ${rows.filter(c=>c.status==="parts").length} awaiting parts   ·   ${hrs} h on site`,14,32);
-    doc.autoTable({startY:37,headStyles:{fillColor:[27,95,170],textColor:255,fontSize:8.5},styles:{fontSize:8.5,cellPadding:1.8,textColor:[20,26,33],lineColor:[217,223,229]},alternateRowStyles:{fillColor:[243,245,247]},
+    doc.autoTable({startY:37,headStyles:{fillColor:[35,51,93],textColor:255,fontSize:8.5},styles:{fontSize:8.5,cellPadding:1.8,textColor:[20,26,33],lineColor:[217,223,229]},alternateRowStyles:{fillColor:[243,245,247]},
       head:[["Date","Job no.","Customer / site","Machine","Work done","Tech","Status","Hrs"]],
       body:rows.map(c=>[fmtDate(c.date),c.jobNo,[c.customer,c.site].filter(Boolean).join(" · "),[c.equipment,c.serial?`S/N ${c.serial}`:""].filter(Boolean).join("\n"),(c.work||c.fault||"").slice(0,160),techName(c.techId),(STATUSES[c.status]||STATUSES.open).label,hours(c.timeIn,c.timeOut)??"–"]),
       columnStyles:{0:{cellWidth:17},1:{cellWidth:24},4:{cellWidth:50},7:{cellWidth:9,halign:"right"}},margin:{left:10,right:10,bottom:16}});
@@ -747,7 +751,7 @@ async function boot(){
     S.cards=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render();
   },err=>{console.error(err);clearTimeout(timer);S.loaded=true;S.error="Couldn't load job cards. Close the app and open it again.";if(S.view!=="form")render()});
-  db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||"",footer:d.footer||"",logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};if(S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{});
+  db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};if(S.view!=="form"&&S.view!=="settings"&&S.view!=="who")render();else{$("#coName").textContent=S.company.name||"Service department";setLogo()}},()=>{});
 }
 setRange("week");boot();
 </script>
