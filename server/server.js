@@ -51,12 +51,13 @@ function owner(p, data, old) { // the technician a record belongs to
 function validPath(p) {
   const a = String(p).split("/");
   if (!a.every(x => SAFE_ID.test(x))) return false;
-  return (a[0] === "jobcards" && a.length === 2) || (a[0] === "vanstock" && a.length === 4 && a[2] === "parts") || (a[0] === "settings" && a.length === 2) || (a[0] === "blobs" && a.length === 2);
+  return (a[0] === "jobcards" && a.length === 2) || (a[0] === "vanstock" && a.length === 4 && a[2] === "parts") || (a[0] === "settings" && a.length === 2) || (a[0] === "customers" && a.length === 2) || (a[0] === "blobs" && a.length === 2);
 }
 function mayWrite(u, p, data, old) {
   const admin = u.role === "admin", top = p.split("/")[0];
   if (admin) return true;
   if (top === "settings") return false;
+  if (top === "customers") return !!data; // every technician adds to the shared customer list; only the admin removes one
   if (top === "jobcards") return (!old || old.owner === u.id) && (!data || data.techId === u.id);
   if (top === "vanstock") return p.split("/")[1] === u.id;
   return false;
@@ -64,7 +65,7 @@ function mayWrite(u, p, data, old) {
 function maySee(u, p, d) {
   if (u.role === "admin") return true;
   const top = p.split("/")[0];
-  if (top === "settings") return true;
+  if (top === "settings" || top === "customers") return true;
   return d.owner === u.id;
 }
 

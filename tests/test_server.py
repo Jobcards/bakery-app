@@ -17,8 +17,19 @@ async def shot(pg,name):
     if SHOTS: await pg.screenshot(path=os.path.join(SHOTS,name))
 async def login(pg,u,p):
     await pg.wait_for_selector("#l_user"); await pg.fill("#l_user",u); await pg.fill("#l_pass",p); await pg.click("#loginBtn")
-async def newcard(pg,cust,photo=True):
+async def sign(pg):
+    cv=pg.locator("#signPad"); await cv.scroll_into_view_if_needed(); bx=await cv.bounding_box()
+    await pg.mouse.move(bx["x"]+30,bx["y"]+90); await pg.mouse.down()
+    for i in range(1,40): await pg.mouse.move(bx["x"]+30+i*7,bx["y"]+90+(30 if i%2 else -30)*(1-i/60))
+    await pg.mouse.up()
+async def newcard(pg,cust,photo=True,full=False):
     await pg.click("#tabList"); await pg.click("#fab"); await pg.fill("#f_customer",cust); await pg.fill("#f_equipment","Rack oven"); await pg.fill("#f_work","Serviced")
+    if full:
+        await pg.fill("#f_site","Empangeni"); await pg.fill("#f_contact","Zanele 082 555 0101"); await pg.fill("#f_model","Rotomax 68"); await pg.fill("#f_serial","RM-4471"); await pg.fill("#f_timeIn","08:00"); await pg.fill("#f_timeOut","10:30")
+        await pg.fill("#f_fault","Oven not reaching temperature.\nBurner cutting out after 10 minutes."); await pg.fill("#f_work","Cleaned flame sensor and replaced the door seal.\nTested for 45 minutes at 220 C, holding temperature."); await pg.fill("#f_notes","Recommend replacing the steam solenoid at next service.")
+        await pg.click("[data-status=follow]")
+        await pg.select_option("#usedPick",index=1); await pg.fill("#usedQty","1"); await pg.click("#addUsed")
+        await pg.fill("#f_signName","Zanele Mthembu"); await sign(pg); await shot(pg,"6_form_sign.png")
     if photo:
         await pg.set_input_files("#galIn",os.path.join(HERE,"photo.jpg")); await pg.wait_for_function("!document.querySelector('.ph .up')",timeout=15000)
     await pg.click("#saveBottom"); await pg.wait_for_selector("#pdfOne"); await pg.click("[data-go=list]")
@@ -46,13 +57,27 @@ async def main():
     await login(sipho,"sipho","nope"); await sipho.wait_for_selector("text=Wrong username or password"); ok("wrong password refused",True)
     await login(sipho,"sipho","oven123"); await sipho.wait_for_selector("text=No job cards yet"); ok("technician has no Technicians tab",await sipho.eval_on_selector("#tabTeam","e=>e.hidden"))
     await sipho.click("#tabVan"); await sipho.click("#addPart"); await sipho.fill("#p_partNo","EL-1"); await sipho.fill("#p_desc","Element"); await sipho.fill("#p_qty","4"); await sipho.click("#partForm button[type=submit]"); await sipho.wait_for_selector("text=Element")
-    await newcard(sipho,"Bakery A"); await newcard(sipho,"Bakery B"); await synced(sipho)
+    await newcard(sipho,"Bakery A",full=True); await newcard(sipho,"Bakery B"); await synced(sipho)
+    await sipho.click(".card:has-text('Bakery A')"); await sipho.wait_for_selector(".signbox img[src]"); ok("signature shows on the saved job card",True)
+    ok("status chosen with the chips was saved",await sipho.locator(".jobhead .pill:has-text('Follow-up needed')").count()==1)
+    async with sipho.expect_download() as dl: await sipho.click("#pdfOne")
+    d=await dl.value
+    if SHOTS: await d.save_as(os.path.join(SHOTS,"job.pdf"))
+    await sipho.click("[data-go=list]")
+    await sipho.click("#tabCust"); await sipho.wait_for_selector(".card.cust:has-text('Bakery A')"); await shot(sipho,"7_customers.png"); await sipho.click(".card.cust:has-text('Bakery A')")
+    await sipho.wait_for_selector(".mach:has-text('RM-4471')"); await shot(sipho,"8_customer.png"); ok("machine went into the customer's profile",True)
+    ok("customer profile shows the job history",await sipho.locator(".hist").count()==1)
+    await sipho.click("[data-machjob='0']"); await sipho.wait_for_selector("#f_serial"); ok("new job from a saved machine is pre-filled",await sipho.input_value("#f_serial")=="RM-4471" and await sipho.input_value("#f_customer")=="Bakery A" and await sipho.input_value("#f_site")=="Empangeni")
+    await sipho.click("#cancelForm"); await sipho.click("#tabList")
     await admin.click("#tabList"); await admin.click("#settingsBtn"); await admin.click("#syncBtn"); await admin.click("[data-go=list]"); await cards(admin,2)
     ok("Sipho's job cards reached the admin",True)
     await admin.wait_for_selector(".thumbs-mini img[src]"); ok("photos load on the admin side",True)
 
     tctx,thabo=await page(b); await login(thabo,"thabo","mixer456"); await thabo.wait_for_selector("text=No job cards yet"); await synced(thabo)
     ok("Thabo doesn't see Sipho's job cards",await thabo.locator(".card").count()==0)
+    await thabo.click("#fab"); await thabo.fill("#f_customer","Bakery A"); await thabo.press("#f_customer","Tab"); await thabo.wait_for_selector("[data-mach='0']")
+    ok("another tech gets the customer's site and contact filled in",await thabo.input_value("#f_site")=="Empangeni" and "Zanele" in await thabo.input_value("#f_contact"))
+    await thabo.click("[data-mach='0']"); ok("another tech can pick the saved machine",await thabo.input_value("#f_serial")=="RM-4471"); await thabo.click("#cancelForm")
     await thabo.click("#tabVan"); await thabo.wait_for_timeout(300); ok("Thabo doesn't see Sipho's van stock",await thabo.locator("text=Element").count()==0)
     # offline: card is saved on the phone, then goes up when the connection is back
     await tctx.set_offline(True); await newcard(thabo,"Bakery C (no signal)",photo=False)
@@ -75,8 +100,14 @@ async def main():
     await admin.select_option("#vanTechSel",label="Sipho Dlamini"); await admin.wait_for_selector("text=Element"); ok("admin sees Sipho's van stock",True)
     await admin.click("#tabList"); await admin.click(".card:has-text('Bakery A')"); await shot(admin,"3_admin_card.png")
     async with admin.expect_download() as dl: await admin.click("#pdfOne")
-    d=await dl.value; ok("admin can make the PDF report of a technician's card",os.path.getsize(await d.path())>20000,d.suggested_filename)
-    await admin.click("[data-go=list]"); await admin.click("#tabTeam"); await admin.wait_for_selector(".member"); await admin.wait_for_timeout(2700); await shot(admin,"4_technicians.png")
+    d=await dl.value
+    if SHOTS: await d.save_as(os.path.join(SHOTS,"job_admin.pdf"))
+    ok("admin can make the PDF report of a technician's card",os.path.getsize(await d.path())>20000,d.suggested_filename)
+    await admin.click("[data-go=list]"); await admin.click("#tabReports"); await admin.wait_for_selector("#pdfSum")
+    async with admin.expect_download() as dl: await admin.click("#pdfSum")
+    d=await dl.value
+    if SHOTS: await d.save_as(os.path.join(SHOTS,"summary.pdf"))
+    await admin.click("#tabTeam"); await admin.wait_for_selector(".member"); await admin.wait_for_timeout(2700); await shot(admin,"4_technicians.png")
     # new password: old one stops, the phone is asked to sign in again, and its job cards are kept
     await admin.click(".member:has-text('Sipho') [data-resetpw]"); await admin.fill("#t_pass","newpass9"); await admin.click("#teamSave"); await admin.wait_for_selector("text=New password set")
     await sipho.click("#settingsBtn"); await sipho.click("#syncBtn"); await sipho.wait_for_selector("#l_user"); ok("after a new password, the phone asks Sipho to sign in again",True)

@@ -162,6 +162,25 @@ textarea{resize:vertical;min-height:88px}
 .brands .bl img{max-height:50px;width:auto}
 .brands .bl .x{position:absolute;top:2px;right:2px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(22,37,78,.75);color:#fff;cursor:pointer}
 
+/* customers, machines, sign-off */
+.chips.wrap{flex-wrap:wrap;overflow:visible}
+.chip[data-mach]{max-width:100%;white-space:normal;text-align:left;border-radius:var(--r)}
+.lbl{font-size:.88rem;font-weight:600}
+.filebtn{flex-direction:row;font-size:.95rem;font-weight:700;color:var(--navy)}
+.mach{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.mach .pd{display:flex;flex-direction:column;min-width:0}
+.mach .pd b{overflow-wrap:anywhere}
+.mach .pd span{color:var(--muted);font-size:.88rem;overflow-wrap:anywhere}
+.hist{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;width:100%;background:#F7F9FC;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;cursor:pointer}
+.hist .sub{grid-column:1/-1;color:var(--muted);font-size:.88rem}
+.signpad{position:relative;border:1.5px dashed var(--line-2);border-radius:var(--r);background:#fff;height:170px;touch-action:none}
+.signpad canvas{width:100%;height:100%;display:block;touch-action:none;border-radius:var(--r)}
+.signpad span{position:absolute;left:0;right:0;bottom:12px;text-align:center;color:var(--muted);font-size:.88rem;pointer-events:none}
+.signbox{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:8px;display:flex;flex-direction:column;gap:8px}
+.signbox img{max-height:120px;width:auto;align-self:flex-start}
+.tab{font-size:.74rem}
+.tab .ic{width:48px}
+
 /* technicians */
 .member{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:start}
 .member.off{background:#F7F9FC}
@@ -206,6 +225,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 <button class="btn fab" id="fab" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New job card</button>
 <nav class="tabbar" role="tablist"><div class="tabbar-in">
   <button class="tab" role="tab" id="tabList" aria-selected="true" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M9 5H6v16h12V5h-3"/><path d="M9 12h6M9 16h4"/></svg></span>Job cards</button>
+  <button class="tab" role="tab" id="tabCust" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6M4 20h16"/></svg></span>Customers</button>
   <button class="tab" role="tab" id="tabVan" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Van stock</button>
   <button class="tab" role="tab" id="tabReports" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg></span>Reports</button>
   <button class="tab" role="tab" id="tabTeam" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.2 3.2-4.8 6-4.8s5.200 1.600 6 4.800"/><circle cx="17" cy="9" r="2.500"/><path d="M17 14.500c2 .200 3.500 1.500 4 4"/></svg></span>Technicians</button>
@@ -213,10 +233,10 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const MACADAMS={name:"Macadams International",footer:"Macadams Durban: Unit 3, 2 Corobrik Road, Riverhorse Valley, Durban 4017 · +27 (0)31 569 6290 · 24/7 technical call centre 087 015 0123 · MacadamsHelpdesk@macadams.co.za"};
+const MACADAMS={name:"Macadams International",footer:"Unit 3, 2 Corobrik Road, Riverhorse Valley, Durban 4017\nTel +27 (0)31 569 6290\n24/7 technical call centre 087 015 0123\nMacadamsHelpdesk@macadams.co.za"};
 const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
 const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
-const S={view:"list",cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
+const S={view:"list",customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
   rep:{from:"",to:"",tech:"all"}};
 let db=null,assets=null,meId=null,canWrite=true;
 const $=s=>document.querySelector(s);
@@ -231,9 +251,9 @@ function newJobNo(){const d=new Date();const p=n=>String(n).padStart(2,"0");retu
 /* ---------- rendering ---------- */
 const ICONS={machine:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M8 13h8v4H8z"/>',person:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.5 4-5 7-5s6 1.5 7 5"/>',camera:'<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',share:'<path d="M4 13v7h16v-7M12 15V3M7 8l5-5 5 5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',back:'<path d="M15 5l-7 7 7 7"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
-const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome",login:"Sign in",wait:"Job cards",team:"Technicians"};
+const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome",login:"Sign in",wait:"Job cards",team:"Technicians",cust:"Customers",customer:"Customer"};
 function dayLabel(d){if(!d)return "No date";if(d===today())return "Today";const y=new Date();y.setDate(y.getDate()-1);if(d===y.toLocaleDateString("en-CA"))return "Yesterday";return new Date(d+"T00:00").toLocaleDateString("en-ZA",{weekday:"short",day:"numeric",month:"short"})}
-function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail"||v==="form");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabReports").setAttribute("aria-selected",v==="reports");$("#tabTeam").setAttribute("aria-selected",v==="team");
+function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail"||v==="form");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabCust").setAttribute("aria-selected",v==="cust"||v==="customer");$("#tabReports").setAttribute("aria-selected",v==="reports");$("#tabTeam").setAttribute("aria-selected",v==="team");
   const bare=["login","who","wait"].includes(v);document.querySelector(".tabbar").hidden=bare;$("#settingsBtn").hidden=bare;$("#tabTeam").hidden=!isAdmin}
 function render(){
   setTab(S.view);
@@ -249,6 +269,8 @@ function render(){
   else if(S.view==="form"){app.innerHTML=formView();bindForm()}
   else if(S.view==="login")app.innerHTML=loginView();
   else if(S.view==="team")app.innerHTML=teamView();
+  else if(S.view==="cust")app.innerHTML=custListView();
+  else if(S.view==="customer")app.innerHTML=customerView();
   else if(S.view==="wait")app.innerHTML=`<div class="empty"><p>Opening…</p></div>`;
   hydrate();window.scrollTo(0,0);
 }
@@ -301,6 +323,7 @@ function detailView(){
     </dl></div>
     <div class="section stack">${blk("Fault reported",c.fault)}${blk("Work done",c.work)}${c.partsUsed?.length?`<div class="block"><h3>Parts from van</h3><p>${c.partsUsed.map(u=>`${u.qty} × ${esc(u.partNo)} ${esc(u.desc)}`).join("\n")}</p></div>`:""}${blk("Other parts",c.parts)}${blk("Follow-up / notes",c.notes)}${!(c.fault||c.work||c.parts||c.notes||c.partsUsed?.length)?`<p class="hint">No details written yet.</p>`:""}</div>
     ${c.photos?.length?`<div class="section"><div class="block"><h3>Photos</h3></div><div class="gallery">${c.photos.map(p=>`<figure><img ${imgSrc(p.id)} alt="${esc(p.caption||"Job photo")}">${p.caption?`<figcaption>${esc(p.caption)}</figcaption>`:""}</figure>`).join("")}</div></div>`:""}
+    ${c.signId||c.signName?`<div class="section stack"><div class="block"><h3>Customer sign-off</h3></div>${c.signId?`<div class="signbox"><img ${imgSrc(c.signId)} alt="Customer signature"></div>`:""}<p class="hint">${esc(c.signName||"")}${c.signedAt?`${c.signName?", ":""}signed ${new Date(c.signedAt).toLocaleDateString("en-GB")}`:""}</p></div>`:""}
     ${canWrite?(del||`<div><button class="btn danger" id="delAsk" type="button">Delete job card</button></div>`):""}
   </div>`;
 }
@@ -312,14 +335,15 @@ function formView(){
       <div class="grid2"><label>Job no.<input id="f_jobNo" value="${esc(f.jobNo)}" required></label><label>Date<input id="f_date" type="date" value="${esc(f.date)}"></label></div>
       <div class="grid2"><label>Time in<input id="f_timeIn" type="time" value="${esc(f.timeIn)}"></label><label>Time out<input id="f_timeOut" type="time" value="${esc(f.timeOut)}"></label></div>
       <label>Service company<input id="f_serviceCo" value="${esc(f.serviceCo)}" placeholder="Company doing the work"></label>
-      <label>Status<select id="f_status">${Object.entries(STATUSES).map(([k,v])=>opt(k,v.label)).join("")}</select></label>
+      <div class="stack" style="gap:6px"><span class="lbl">Status</span><input type="hidden" id="f_status" value="${esc(f.status)}"><div class="chips wrap">${Object.entries(STATUSES).map(([k,v])=>`<button type="button" class="chip" data-status="${k}" aria-pressed="${f.status===k}">${v.label}</button>`).join("")}</div></div>
     </fieldset></div>
     <div class="section"><fieldset><legend>Customer</legend>
-      <label>Customer / bakery<input id="f_customer" value="${esc(f.customer)}" placeholder="e.g. store or bakery name"></label>
-      <div class="grid2 stack-sm"><label>Branch / site<input id="f_site" value="${esc(f.site)}"></label><label>Site contact<input id="f_contact" value="${esc(f.contact)}" placeholder="Name and number"></label></div>
+      <label>Customer / bakery<input id="f_customer" list="custList" autocomplete="off" value="${esc(f.customer)}" placeholder="e.g. store or bakery name"><datalist id="custList">${[...new Set(S.customers.map(c=>c.name))].map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
+      <div class="grid2 stack-sm"><label>Branch / site<input id="f_site" list="siteList" autocomplete="off" value="${esc(f.site)}"><datalist id="siteList"></datalist></label><label>Site contact<input id="f_contact" value="${esc(f.contact)}" placeholder="Name and number"></label></div>
       <label>Order / ref no.<input id="f_custRef" value="${esc(f.custRef)}"></label>
     </fieldset></div>
     <div class="section"><fieldset><legend>Equipment</legend>
+      <div id="machBox" class="stack" style="gap:6px"></div>
       <label>Machine type<input id="f_equipment" list="equipList" value="${esc(f.equipment)}"><datalist id="equipList">${EQUIP.map(e=>`<option value="${e}">`).join("")}</datalist></label>
       <div class="grid2 stack-sm"><label>Make / model<input id="f_model" value="${esc(f.model)}"></label><label>Serial no.<input id="f_serial" value="${esc(f.serial)}"></label></div>
     </fieldset></div>
@@ -334,12 +358,12 @@ function formView(){
       <p class="hint">Parts picked here come off ${f.techId&&f.techId!==meId?esc(techName(f.techId))+"'s":"your"} van stock when you save.</p>
     </fieldset></div>
     <div class="section"><fieldset><legend>Photos</legend>
-      <div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Take photo<input id="camIn" type="file" accept="image/*" capture="environment" hidden></label>
-      <label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Add from gallery<input id="galIn" type="file" accept="image/*" multiple hidden></label></div>
-      ${assets?"":`<p class="hint">Photo uploads aren't available for your access level. Ask the app owner for edit access.</p>`}
+      <div class="row"><label class="btn filebtn">${ic("camera")}Take photo<input id="camIn" type="file" accept="image/*" capture="environment" hidden></label>
+      <label class="btn filebtn">Add from gallery<input id="galIn" type="file" accept="image/*" multiple hidden></label></div>
       <div class="photos" id="photoGrid"></div>
       <p class="hint">Photos are resized so they sync quickly on mobile data. Add a caption like "before" or "after".</p>
     </fieldset></div>
+    ${signSection(f)}
     <button class="btn primary" type="submit" id="saveBottom">Save job card</button>
   </form>`;
 }
@@ -370,13 +394,13 @@ function settingsView(){
     <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Report settings</b><span></span></div>
     ${accountSection()}
     <div class="section"><fieldset><legend>Company on reports</legend>
-      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<img src="${DEFAULT_LOGO}" alt="Macadams logo">`}</div><div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Replace logo<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
+      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<img src="${DEFAULT_LOGO}" alt="Macadams logo">`}</div><div class="row"><label class="btn filebtn">Replace logo<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
       <div class="stack" style="gap:8px"><span class="hint"><b>Brand logos</b> (printed along the bottom of the first PDF page)</span>
         ${brandDraft().length?`<div class="brands">${brandDraft().map((b,i)=>`<div class="bl"><img ${imgSrc(b.id)} alt="Brand logo"><button class="x" type="button" data-brm="${i}" aria-label="Remove logo">×</button></div>`).join("")}</div>`:`<p class="hint">No brand logos yet.</p>`}
-        <div class="row"><label class="btn" style="flex-direction:row;color:var(--ink);font-size:1rem">Add brand logos<input id="brandIn" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label></div></div>
+        <div class="row"><label class="btn filebtn">Add brand logos<input id="brandIn" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label></div></div>
       <label>Company name<input id="s_name" value="${esc(S.setDraft?.name??S.company.name)}"></label>
-      <label>Report footer<textarea id="s_footer" placeholder="Address, phone, reg and VAT numbers">${esc(S.setDraft?.footer??S.company.footer)}</textarea></label>
-      <p class="hint">Shown at the top and bottom of every PDF. Changes apply for the whole team.</p>
+      <label>Company details<textarea id="s_footer" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(S.setDraft?.footer??S.company.footer)}</textarea></label>
+      <p class="hint">Printed next to the logo at the top of every job card and summary, one line each (up to 5). Changes apply for the whole team.</p>
     </fieldset></div>
     <button class="btn primary" type="submit" ${canWrite?"":"disabled"}>Save settings</button>
   </form>`;
@@ -392,6 +416,14 @@ function setRange(k){const d=new Date();const iso=x=>x.toLocaleDateString("en-CA
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-open]");if(!t)return;
   if(t.id==="tabTeam"){S.view="team";S.teamForm=null;render();loadTeam();return}
+  if(t.id==="tabCust"){S.view="cust";render();return}
+  if(t.dataset.cust){S.custId=t.dataset.cust;S.view="customer";render();return}
+  if(t.id==="newHere"||t.dataset.machjob!=null){const c=S.customers.find(x=>x.id===S.custId);if(c){const m=t.dataset.machjob!=null?(c.machines||[])[+t.dataset.machjob]:null;startForm(null,{customer:c.name,site:c.site||"",contact:c.contact||"",...(m?{equipment:m.equipment||"",model:m.model||"",serial:m.serial||""}:{})})}return}
+  if(t.dataset.rmmach!=null){removeMachine(+t.dataset.rmmach);return}
+  if(t.dataset.mach!=null){pickMachine(+t.dataset.mach);return}
+  if(t.dataset.status){$("#f_status").value=t.dataset.status;document.querySelectorAll("[data-status]").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
+  if(t.id==="signClear"){clearPad();return}
+  if(t.id==="signAgain"){signAgain();return}
   if(t.id==="goSetup"){S.loginMode="setup";render();return}
   if(t.id==="cancelSetup"){S.loginMode=null;render();return}
   if(t.id==="signOut"){trySignOut();return}
@@ -430,12 +462,14 @@ document.addEventListener("click",e=>{
   else if(t.id==="copySum")copyText(summaryText());
 });
 document.addEventListener("input",e=>{
-  if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$("#q");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
+  if(e.target.id==="cq"){S.custQ=e.target.value;const pos=e.target.selectionStart;render();const q=$("#cq");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
+  else if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$("#q");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
   else if(e.target.id==="vq"){S.vanQ=e.target.value;const pos=e.target.selectionStart;render();const q=$("#vq");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
   else if(e.target.dataset.cap!=null){S.form.photos[+e.target.dataset.cap].caption=e.target.value}
 });
 document.addEventListener("change",e=>{
   const id=e.target.id;
+  if(id==="f_customer"||id==="f_site"){custAssist(true);return}
   if(id==="brandIn"&&e.target.files.length){uploadBrands([...e.target.files]);e.target.value="";return}
   if(id==="vanTechSel"){S.vanTech=e.target.value;S.partForm=null;subVan(S.vanTech);render();return}
   if(id==="logoIn"&&e.target.files[0]){uploadLogo(e.target.files[0]);e.target.value="";return}
@@ -444,13 +478,13 @@ document.addEventListener("change",e=>{
 document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam()});
 
 /* ---------- form ---------- */
-const FIELDS=["serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
-function startForm(c){
-  S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",serviceCo:LS("serviceCo")||"",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",photos:[]};
+const FIELDS=["signName","serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
+function startForm(c,pre){
+  S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",serviceCo:LS("serviceCo")||"",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",signName:"",photos:[],...(pre||{})};
   S.view="form";subVan(S.form.techId||meId);render();
 }
 function bindForm(){
-  renderPhotos();renderUsed();
+  renderPhotos();renderUsed();custAssist(false);setupPad();
   for(const id of ["camIn","galIn"])$("#"+id).addEventListener("change",e=>{addPhotos([...e.target.files]);e.target.value=""});
 }
 function readForm(){for(const k of FIELDS){const el=$("#f_"+k);if(el)S.form[k]=el.value.trim()}}
@@ -482,13 +516,17 @@ async function saveCard(){
   data.photos=f.photos.filter(p=>p.id).map(p=>({id:p.id,url:p.url||"",caption:p.caption||""}));
   data.partsUsed=(f.partsUsed||[]).map(u=>({partId:u.partId,partNo:u.partNo||"",desc:u.desc||"",qty:+u.qty||0}));
   data.updatedAt=Date.now();if(data.serviceCo)LS("serviceCo",data.serviceCo);
+  let sign={id:f.signId||"",at:f.signedAt||0};if(f._signCleared)sign={id:"",at:0};
+  if(f._signed){try{const blob=await new Promise(r=>$("#signPad").toBlob(r,"image/png"));const r=await assets.upload(blob);sign={id:r.id,at:Date.now()}}catch(_){toast("Couldn't save the signature. Try again");return}}
+  data.signId=sign.id;data.signedAt=sign.at;
   for(const b of ["#saveTop","#saveBottom"])$(b).disabled=true;
   try{
     if(f.id){data.techId=f.techId||meId||"";data.techName=f.techName||techName(data.techId);data.createdAt=f.createdAt||Date.now();await db.collection("jobcards").doc(f.id).set(data);S.detailId=f.id}
     else{data.techId=meId||"";data.techName=S.myName||"";data.createdAt=Date.now();const ref=await db.collection("jobcards").add(data);S.detailId=ref.id}
     const stockErr=await applyStock(data.techId,f._orig||[],data.partsUsed);
+    rememberCustomer(data).catch(err=>console.warn(err));
     S.form=null;S.view="detail";S.confirmDel=false;toast(stockErr?"Job card saved, but van stock didn't update. Check Van stock":"Job card saved");render();
-  }catch(err){toast(err?.code==="permission_denied"||err?.code==="not_granted"?"You don't have permission to save job cards. Ask the app owner for access":"Didn't save. Check your signal and tap Save again");for(const b of ["#saveTop","#saveBottom"]){const x=$(b);if(x)x.disabled=false}}
+  }catch(err){console.error(err);toast("Didn't save. Tap Save again");for(const b of ["#saveTop","#saveBottom"]){const x=$(b);if(x)x.disabled=false}}
 }
 async function deleteCard(){
   const c=S.cards.find(x=>x.id===S.detailId);
@@ -596,12 +634,102 @@ async function uploadBrands(files){
   for(const f of files){try{const r=await assets.upload(await shrinkLogo(f));a.push({id:r.id,url:r.url})}catch(err){toast(err?.code==="unsupported_type"?"Use PNG or JPG files":"A logo didn't upload. Try again")}}
   S.brandDraft=a;render();toast("Logos ready. Tap Save settings");
 }
+/* ---------- customers and their machines ----------
+   A profile per customer + site. Each machine a tech logs on a job card is added to the profile,
+   so the next job at that site can pick it instead of retyping. Profiles are shared by all technicians. */
+const slug=s=>String(s||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,36);
+const custId=(name,site)=>(slug(name)||"x")+"--"+(slug(site)||"main");
+const machKey=m=>m.serial?("s:"+String(m.serial).trim().toLowerCase()):("m:"+[m.equipment,m.model].join("|").trim().toLowerCase());
+const machLabel=m=>[m.equipment,m.model,m.serial&&("S/N "+m.serial)].filter(Boolean).join(", ");
+const custJobs=c=>S.cards.filter(j=>j.customer&&custId(j.customer,j.site)===c.id).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||0)-(a.createdAt||0));
+async function rememberCustomer(card){
+  if(!card.customer)return;const id=custId(card.customer,card.site);
+  const cur=S.customers.find(c=>c.id===id);const d=cur?{...cur}:{contact:"",machines:[],createdAt:Date.now()};delete d.id;
+  d.name=card.customer;d.site=card.site||"";if(card.contact)d.contact=card.contact;
+  const ms=(d.machines||[]).map(m=>({...m}));
+  if(card.equipment||card.model||card.serial){
+    const m={equipment:card.equipment||"",model:card.model||"",serial:card.serial||""};
+    let ex=ms.find(x=>machKey(x)===machKey(m));
+    if(!ex&&m.serial)ex=ms.find(x=>!x.serial&&x.equipment===m.equipment&&x.model===m.model); // logged before without a serial number
+    if(ex)Object.assign(ex,m);else{ex={...m,addedAt:Date.now()};ms.push(ex)}
+    if(!ex.lastDate||(card.date||"")>=ex.lastDate){ex.lastDate=card.date||"";ex.lastJob=card.jobNo||""}
+  }
+  d.machines=ms;d.updatedAt=Date.now();
+  await db.doc("customers/"+id).set(d);
+}
+function custListView(){
+  const q=(S.custQ||"").trim().toLowerCase();
+  const rows=S.customers.filter(c=>!q||[c.name,c.site,c.contact,...(c.machines||[]).flatMap(m=>[m.equipment,m.model,m.serial])].join(" ").toLowerCase().includes(q));
+  let body;
+  if(!S.customers.length)body=`<div class="empty"><h2>No customers yet</h2><p>Customers are added by themselves. Save a job card and the customer, site and machine are kept here for next time.</p></div>`;
+  else if(!rows.length)body=`<div class="empty"><p>No customers match this search.</p></div>`;
+  else body=rows.map(c=>{const n=(c.machines||[]).length,j=custJobs(c).length;return `<button type="button" class="card cust" data-cust="${esc(c.id)}">
+      <span class="t">${esc(c.name)}</span><span class="jn">${n} machine${n===1?"":"s"}</span>
+      <span class="s">${esc(c.site||"")}</span>
+      <span class="m"><span>${ic("doc")}${j} job card${j===1?"":"s"}</span>${c.contact?`<span>${ic("person")}${esc(c.contact)}</span>`:""}</span>
+    </button>`}).join("");
+  return `<div class="stack"><div class="row"><input class="search" id="cq" type="search" placeholder="Search customer, site, machine, serial…" value="${esc(S.custQ||"")}" aria-label="Search customers"></div>${body}</div>`;
+}
+function customerView(){
+  const c=S.customers.find(x=>x.id===S.custId);
+  if(!c)return `<div class="empty"><p>This customer was removed.</p><button class="btn" data-go="cust" type="button">Back to customers</button></div>`;
+  const jobs=custJobs(c),ms=c.machines||[];
+  return `<div class="stack detail">
+    <div class="jobhead"><div class="top"><button class="btn icon-btn back" data-go="cust" type="button">${ic("back")}Customers</button></div>
+      <h2>${esc(c.name)}</h2>${c.site?`<span class="site">${esc(c.site)}</span>`:""}${c.contact?`<span class="jn">${esc(c.contact)}</span>`:""}</div>
+    ${canWrite?`<div class="actions"><button class="btn primary" id="newHere" type="button">New job card here</button></div>`:""}
+    <div class="section stack"><div class="block"><h3>Machines at this site</h3></div>
+      ${ms.length?ms.map((m,i)=>`<div class="mach"><div class="pd"><b>${esc(m.equipment||"Machine")}</b><span>${esc([m.model,m.serial&&("S/N "+m.serial)].filter(Boolean).join(", ")||"No model or serial yet")}</span>${m.lastDate?`<span>Last job ${fmtDate(m.lastDate)}${m.lastJob?", "+esc(m.lastJob):""}</span>`:""}</div>
+        ${canWrite?`<div class="row"><button class="btn icon-btn" type="button" data-machjob="${i}">New job</button><button class="btn icon-btn danger" type="button" data-rmmach="${i}">Remove</button></div>`:""}</div>`).join(""):`<p class="hint">No machines logged here yet. They are added when a job card with a machine is saved.</p>`}
+    </div>
+    <div class="section stack"><div class="block"><h3>Job history</h3></div>
+      ${jobs.length?jobs.map(j=>`<button type="button" class="hist" data-open="${esc(j.id)}"><b>${fmtDate(j.date)}</b>${statusPill(j.status)}<span class="sub">${esc(j.jobNo)}</span><span class="sub">${esc([j.equipment,j.serial&&("S/N "+j.serial)].filter(Boolean).join(", "))}</span><span class="sub">${esc(techName(j.techId))}</span></button>`).join(""):`<p class="hint">No job cards on this ${isAdmin?"server":"phone"} for this customer yet.</p>`}
+    </div></div>`;
+}
+async function removeMachine(i){
+  const c=S.customers.find(x=>x.id===S.custId);if(!c)return;const ms=(c.machines||[]).filter((_,k)=>k!==i);
+  try{await db.doc("customers/"+c.id).update({machines:ms,updatedAt:Date.now()});toast("Machine removed from this customer")}catch(_){toast("Couldn't remove the machine")}
+}
+/* form helpers: suggest sites, fill the contact, and offer this site's machines */
+function custAssist(fill){
+  const nmEl=$("#f_customer");if(!nmEl)return;const nm=nmEl.value.trim();
+  const same=S.customers.filter(c=>slug(c.name)===slug(nm));
+  const sl=$("#siteList");if(sl)sl.innerHTML=same.filter(c=>c.site).map(c=>`<option value="${esc(c.site)}">`).join("");
+  const siteEl=$("#f_site");if(fill&&same.length===1&&!siteEl.value.trim()&&same[0].site)siteEl.value=same[0].site;
+  const cur=nm?S.customers.find(c=>c.id===custId(nm,siteEl.value)):null;
+  if(fill&&cur?.contact&&!$("#f_contact").value.trim())$("#f_contact").value=cur.contact;
+  S.formMach=cur?.machines||[];const box=$("#machBox");
+  if(box)box.innerHTML=S.formMach.length?`<span class="hint">Machines logged at this site. Tap one to fill it in.</span><div class="chips wrap">${S.formMach.map((m,i)=>`<button type="button" class="chip" data-mach="${i}">${esc(machLabel(m))}</button>`).join("")}</div>`:"";
+}
+function pickMachine(i){const m=(S.formMach||[])[i];if(!m)return;$("#f_equipment").value=m.equipment||"";$("#f_model").value=m.model||"";$("#f_serial").value=m.serial||"";
+  document.querySelectorAll("[data-mach]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mach===String(i)))}
+
+/* ---------- customer sign-off ---------- */
+function setupPad(){
+  const cv=$("#signPad");if(!cv)return;
+  cv._fit=()=>{const r=cv.getBoundingClientRect();if(!r.width)return;const d=window.devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);
+    const x=cv.getContext("2d");x.scale(d,d);x.lineWidth=2.2;x.lineCap="round";x.lineJoin="round";x.strokeStyle="#141B2D";x.fillStyle="#141B2D"};
+  cv._fit();let on=false,lx=0,ly=0;const pos=e=>{const r=cv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]};
+  cv.addEventListener("pointerdown",e=>{e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(_){}on=true;[lx,ly]=pos(e);const x=cv.getContext("2d");x.beginPath();x.arc(lx,ly,1.1,0,6.3);x.fill();
+    S.form._signed=true;S.form._signCleared=false;$("#signHint").hidden=true});
+  cv.addEventListener("pointermove",e=>{if(!on)return;e.preventDefault();const [x1,y1]=pos(e);const x=cv.getContext("2d");x.beginPath();x.moveTo(lx,ly);x.lineTo(x1,y1);x.stroke();lx=x1;ly=y1});
+  for(const ev of ["pointerup","pointercancel"])cv.addEventListener(ev,()=>{on=false});
+}
+function clearPad(){const cv=$("#signPad");if(!cv)return;cv._fit();S.form._signed=false;S.form._signCleared=true;$("#signHint").hidden=false}
+function signAgain(){$("#signOld").hidden=true;$("#signNew").hidden=false;clearPad()}
+function signSection(f){return `<div class="section"><fieldset><legend>Customer sign-off</legend>
+      <label>Customer's name<input id="f_signName" value="${esc(f.signName||"")}" placeholder="Person signing for the work"></label>
+      <div id="signOld" class="signbox" ${f.signId?"":"hidden"}><img ${imgSrc(f.signId)} alt="Customer signature"><div><button class="btn icon-btn" id="signAgain" type="button">Sign again</button></div></div>
+      <div id="signNew" class="stack" ${f.signId?"hidden":""}><div class="signpad"><canvas id="signPad"></canvas><span id="signHint">Customer signs here with a finger</span></div><div><button class="btn icon-btn" id="signClear" type="button">Clear</button></div></div>
+    </fieldset></div>`}
+
 /* ---------- text + PDF ---------- */
 function jobText(c){
   const h=hours(c.timeIn,c.timeOut);const L=[];
   L.push(`*Job card ${c.jobNo}*`,`${fmtDate(c.date)} · ${techName(c.techId)}${c.serviceCo?` (${c.serviceCo})`:""}`,`*Customer:* ${c.customer||"–"}${c.site?` (${c.site})`:""}`);
   if(c.equipment||c.model)L.push(`*Machine:* ${[c.equipment,c.model].filter(Boolean).join(" · ")}${c.serial?` · S/N ${c.serial}`:""}`);
   if(c.fault)L.push(`*Fault:* ${c.fault}`);if(c.work)L.push(`*Work done:* ${c.work}`);if(c.partsUsed?.length)L.push(`*Parts:* ${c.partsUsed.map(u=>`${u.qty}x ${u.partNo} ${u.desc}`).join(", ")}`);if(c.parts)L.push(`*Other parts:* ${c.parts}`);if(c.notes)L.push(`*Notes:* ${c.notes}`);
+  if(c.signName)L.push(`*Signed off by:* ${c.signName}`);
   L.push(`*Status:* ${(STATUSES[c.status]||STATUSES.open).label}${h!=null?` · ${h} h on site`:""}`);
   return L.join("\n");
 }
@@ -621,23 +749,30 @@ async function imgData(url){
   const s=Math.min(1,1200/Math.max(bmp.width,bmp.height));const cv=document.createElement("canvas");cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);
   const cx=cv.getContext("2d");cx.fillStyle="#FFFFFF";cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(bmp,0,0,cv.width,cv.height);return {data:cv.toDataURL("image/jpeg",0.9),w:cv.width,h:cv.height};
 }
+const NAVY=[22,37,78],INK=[20,27,45],GREY=[94,103,130],RULE=[220,225,235],TINT=[238,241,247];
+function coLines(){return String(S.company.footer||"").split(/\n|\s·\s/).map(x=>x.trim()).filter(Boolean)}
+/* Page 1 header: logo on the left, company details on the right, then a navy title band */
 function pdfBase(title,sub,logo){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
-  doc.setFillColor(35,51,93);doc.rect(0,0,210,4,"F");doc.setFillColor(242,210,46);doc.rect(0,4,210,1.2,"F");
-  doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(20,26,33);let nx=14;if(logo){const lh=14,lw=Math.min(lh*logo.w/logo.h,48);const lh2=lw*logo.h/logo.w;doc.addImage(logo.data,"JPEG",14,8+(lh-lh2)/2,lw,lh2);nx=14+lw+4}
-  doc.text(S.company.name||"Service department",nx,15);
-  doc.setFontSize(11);doc.setTextColor(91,102,115);doc.text(title,196,15,{align:"right"});
-  if(sub){doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text(sub,196,20,{align:"right"})}
-  doc.setDrawColor(217,223,229);doc.line(14,24,196,24);return doc;
+  if(logo){const lh=25,lw=Math.min(lh*logo.w/logo.h,62);const lh2=lw*logo.h/logo.w;doc.addImage(logo.data,"JPEG",14,10+(lh-lh2)/2,lw,lh2)}
+  doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text(S.company.name||"Service department",196,15,{align:"right"});
+  doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...GREY);
+  const cl=coLines().slice(0,5);cl.forEach((l,i)=>doc.text(l,196,20+i*4,{align:"right"}));
+  const by=Math.max(39,20+cl.length*4+1);
+  doc.setFillColor(...NAVY);doc.rect(14,by,182,11,"F");doc.setFillColor(242,210,46);doc.rect(14,by+11,182,1.3,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(255,255,255);doc.text(title,18,by+7.3);
+  if(sub){doc.setFontSize(10.5);doc.text(sub,192,by+7.3,{align:"right"})}
+  doc._top=by+18;return doc;
 }
+function pdfHead(doc,t,y){doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text(t,14,y);doc.setDrawColor(...RULE);doc.setLineWidth(0.3);doc.line(14,y+1.8,196,y+1.8);return y+7}
 async function brandData(){const out=[];for(const b of (S.company.brandLogos||[]).slice(0,8)){try{out.push(await imgData(await blobUrl(b.id)))}catch(_){}}return out}
-function pdfFooter(doc,brands){
+function pdfFooter(doc,brands,left){
   const n=doc.getNumberOfPages();
   if(brands?.length){doc.setPage(1);const H=9,gap=6;const ws=brands.map(b=>Math.min(H*b.w/b.h,34));const total=ws.reduce((a,w)=>a+w,0)+gap*(ws.length-1);let x=105-total/2;
-    doc.setDrawColor(217,223,229);doc.line(14,273,196,273);brands.forEach((b,i)=>{const w=ws[i],h=w*b.h/b.w;doc.addImage(b.data,"JPEG",x,275+(H-h)/2,w,h);x+=w+gap})}
-  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(91,102,115);
-    if(S.company.footer){const fl=doc.splitTextToSize(S.company.footer.replace(/\n/g," · "),160).slice(0,2);doc.text(fl,14,292.5-fl.length*3.4)}
-    doc.text(`Page ${i} of ${n}`,196,288,{align:"right"})}
+    brands.forEach((b,i)=>{const w=ws[i],h=w*b.h/b.w;doc.addImage(b.data,"JPEG",x,272+(H-h)/2,w,h);x+=w+gap})}
+  for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(...RULE);doc.setLineWidth(0.3);doc.line(14,284,196,284);
+    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);
+    doc.text([S.company.name,left].filter(Boolean).join("   |   "),14,288.5);doc.text(`Page ${i} of ${n}`,196,288.5,{align:"right"})}
 }
 async function saveFile(name,blob,btn){
   // In the Android app this opens the share sheet so the PDF goes straight to WhatsApp or email
@@ -647,59 +782,77 @@ async function saveFile(name,blob,btn){
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("PDF saved to downloads");
 }
 async function pdfJob(c,btn){
-  if(!window.jspdf){toast("PDF tool didn't load. Check your connection and reopen");return}
+  if(!window.jspdf){toast("PDF tool didn't load. Close the app and open it again");return}
   btn.disabled=true;btn.textContent="Building PDF…";
   try{
-    const doc=pdfBase("SERVICE JOB CARD",c.jobNo,await logoData());let y=32;
+    const brands=await brandData();const LIMIT=brands.length?266:278; // keep clear of the brand logos and footer
+    const doc=pdfBase("SERVICE JOB CARD",c.jobNo,await logoData());let y=doc._top;
     const h=hours(c.timeIn,c.timeOut);
-    doc.autoTable({startY:y,theme:"grid",styles:{fontSize:9.5,cellPadding:2.2,textColor:[20,26,33],lineColor:[217,223,229]},columnStyles:{0:{fontStyle:"bold",cellWidth:34,fillColor:[243,245,247]},2:{fontStyle:"bold",cellWidth:34,fillColor:[243,245,247]}},
-      body:[["Job no.",c.jobNo,"Date",fmtDate(c.date)],["Customer",c.customer||"",  "Branch / site",c.site||""],["Site contact",c.contact||"","Order / ref no.",c.custRef||""],["Machine",c.equipment||"","Make / model",c.model||""],["Serial no.",c.serial||"","Technician",techName(c.techId)],["Time in / out",`${c.timeIn||"–"} – ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`,"Status",(STATUSES[c.status]||STATUSES.open).label],...(c.serviceCo?[["Service company",c.serviceCo,"",""]]:[])]});
-    y=doc.lastAutoTable.finalY+6;
-    const sections=[["Fault reported",c.fault],["Work done",c.work],["Parts used",[...(c.partsUsed||[]).map(u=>`${u.qty} x ${u.partNo}  ${u.desc}`),c.parts].filter(Boolean).join("\n")],["Follow-up / notes",c.notes]].filter(s=>s[1]);
-    for(const [t,v] of sections){
-      const lines=doc.splitTextToSize(v,182);if(y+8+lines.length*4.6>270){doc.addPage();y=20}
-      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(35,51,93);doc.text(t.toUpperCase(),14,y);y+=5;
-      doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(20,26,33);doc.text(lines,14,y);y+=lines.length*4.6+4;
+    const lab={fontSize:8,textColor:GREY,cellWidth:29,fillColor:TINT},val={fontStyle:"bold"};
+    doc.autoTable({startY:y-4,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:{top:2,bottom:2,left:2.4,right:2.4},textColor:INK,lineColor:RULE,lineWidth:0.2,valign:"middle"},columnStyles:{0:lab,1:val,2:lab,3:val},
+      body:[["Customer",c.customer||"","Date",fmtDate(c.date)],["Branch / site",c.site||"","Technician",techName(c.techId)],["Site contact",c.contact||"","Service company",c.serviceCo||""],["Order / ref no.",c.custRef||"","Time on site",`${c.timeIn||"–"} to ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`],["Status",(STATUSES[c.status]||STATUSES.open).label,"",""]]});
+    y=doc.lastAutoTable.finalY+8;
+    y=pdfHead(doc,"Equipment",y);
+    doc.autoTable({startY:y-3,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:2,textColor:INK,lineColor:RULE,lineWidth:0.2},headStyles:{fillColor:TINT,textColor:GREY,fontSize:8,fontStyle:"normal"},
+      head:[["Machine type","Make / model","Serial no."]],body:[[c.equipment||"–",c.model||"–",c.serial||"–"]]});
+    y=doc.lastAutoTable.finalY+8;
+    const text=(t,v)=>{if(!v)return;const lines=doc.splitTextToSize(v,180);if(y+9+lines.length*4.6>LIMIT){doc.addPage();y=20}
+      y=pdfHead(doc,t,y);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(lines,14,y);y+=lines.length*4.6+5};
+    text("Fault reported",c.fault);text("Work done",c.work);
+    if(c.partsUsed?.length){
+      if(y+22>LIMIT){doc.addPage();y=20}
+      y=pdfHead(doc,"Parts used",y);
+      doc.autoTable({startY:y-3,theme:"grid",margin:{left:14,right:14,bottom:20},styles:{fontSize:9.5,cellPadding:2,textColor:INK,lineColor:RULE,lineWidth:0.2},headStyles:{fillColor:TINT,textColor:GREY,fontSize:8,fontStyle:"normal"},columnStyles:{0:{cellWidth:16,halign:"right"},1:{cellWidth:46}},
+        head:[["Qty","Part no.","Description"]],body:c.partsUsed.map(u=>[u.qty,u.partNo||"",u.desc||""])});
+      y=doc.lastAutoTable.finalY+8;
     }
+    text(c.partsUsed?.length?"Other parts":"Parts used",c.parts);text("Follow-up / notes",c.notes);
     if(c.photos?.length){
-      if(y>230){doc.addPage();y=20}
-      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(35,51,93);doc.text("PHOTOS",14,y);y+=4;
-      const W=88,gap=6;let col=0,rowH=0;
-      for(const p of c.photos){
-        let im;try{im=await imgData(await blobUrl(p.id))}catch(_){continue}
+      const W=88,gap=6;let col=0,rowH=0;const ims=[];
+      for(const p of c.photos){try{ims.push({p,im:await imgData(await blobUrl(p.id))})}catch(_){}}
+      if(ims.length){const first=Math.min(W*ims[0].im.h/ims[0].im.w,95);if(y+first+16>LIMIT){doc.addPage();y=20}y=pdfHead(doc,"Photos",y)-2} // keep the heading with its first photo
+      for(const {p,im} of ims){
         const hh=Math.min(W*im.h/im.w,95);const ww=hh*im.w/im.h;
-        if(y+hh+8>272){doc.addPage();y=20;col=0;rowH=0}
+        if(y+hh+8>(doc.getNumberOfPages()===1?LIMIT:278)){doc.addPage();y=20;col=0;rowH=0}
         const x=14+col*(W+gap);doc.addImage(im.data,"JPEG",x,y,ww,hh);
-        if(p.caption){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(91,102,115);doc.text(doc.splitTextToSize(p.caption,W)[0],x,y+hh+4)}
+        if(p.caption){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...GREY);doc.text(doc.splitTextToSize(p.caption,W)[0],x,y+hh+4)}
         rowH=Math.max(rowH,hh+7);col++;if(col===2){col=0;y+=rowH;rowH=0}
       }
-      if(col)y+=rowH;
+      if(col)y+=rowH;y+=3;
     }
-    if(y>262){doc.addPage();y=20}
-    y=Math.max(y+8,262);doc.setDrawColor(150,160,170);doc.line(14,y,90,y);doc.line(120,y,196,y);
-    doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(91,102,115);doc.text("Technician signature",14,y+4);doc.text("Customer name and signature",120,y+4);
-    pdfFooter(doc,await brandData());
+    // sign-off
+    const lim=doc.getNumberOfPages()===1?LIMIT:278;if(y+40>lim){doc.addPage();y=20}
+    y=pdfHead(doc,"Sign-off",y)-1;
+    const box=(x,title,name,sub)=>{doc.setDrawColor(...RULE);doc.setLineWidth(0.3);doc.rect(x,y,88,30);
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);doc.text(title,x+3,y+4.5);doc.line(x+3,y+22,x+85,y+22);
+      doc.setFont("helvetica","bold");doc.setFontSize(9.5);doc.setTextColor(...INK);if(name)doc.text(String(name),x+3,y+26.5);
+      if(sub){doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);doc.text(sub,x+85,y+26.5,{align:"right"})}};
+    box(14,"Technician",techName(c.techId),fmtDate(c.date));
+    box(108,"Customer",c.signName||"",c.signedAt?"Signed "+new Date(c.signedAt).toLocaleDateString("en-GB"):"");
+    if(c.signId){try{const im=await imgData(await blobUrl(c.signId));const sh=Math.min(15,60*im.h/im.w),sw=sh*im.w/im.h;doc.addImage(im.data,"JPEG",108+3,y+21.5-sh,sw,sh)}catch(_){}}
+    pdfFooter(doc,brands,"Job card "+c.jobNo);
     await saveFile(`${c.jobNo}.pdf`,doc.output("blob"),btn);
-  }catch(err){toast("Couldn't build the PDF. Try again")}
+  }catch(err){console.error(err);toast("Couldn't build the PDF. Try again")}
   btn.disabled=false;btn.textContent="PDF report";
 }
 async function pdfSummary(btn){
-  if(!window.jspdf){toast("PDF tool didn't load. Check your connection and reopen");return}
+  if(!window.jspdf){toast("PDF tool didn't load. Close the app and open it again");return}
   btn.disabled=true;
   try{
     const rows=reportRows(),r=S.rep;
-    const range=`${r.from?fmtDate(r.from):"Start"} – ${r.to?fmtDate(r.to):fmtDate(today())}`;
-    const doc=pdfBase("JOB SUMMARY",range+(r.tech!=="all"?" · "+techName(r.tech):""),await logoData());
+    const range=`${r.from?fmtDate(r.from):"Start"} to ${r.to?fmtDate(r.to):fmtDate(today())}`;
+    const doc=pdfBase("JOB SUMMARY",range,await logoData());let y=doc._top-3;
     const done=rows.filter(c=>c.status==="done").length,hrs=Math.round(rows.reduce((a,c)=>a+(hours(c.timeIn,c.timeOut)||0),0)*10)/10;
-    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(20,26,33);
-    doc.text(`${rows.length} jobs   ·   ${done} completed   ·   ${rows.filter(c=>c.status==="follow").length} need follow-up   ·   ${rows.filter(c=>c.status==="parts").length} awaiting parts   ·   ${hrs} h on site`,14,32);
-    doc.autoTable({startY:37,headStyles:{fillColor:[35,51,93],textColor:255,fontSize:8.5},styles:{fontSize:8.5,cellPadding:1.8,textColor:[20,26,33],lineColor:[217,223,229]},alternateRowStyles:{fillColor:[243,245,247]},
+    const stats=[[rows.length,"Jobs"],[done,"Completed"],[rows.filter(c=>c.status==="follow").length,"Follow-up needed"],[rows.filter(c=>c.status==="parts").length,"Awaiting parts"],[hrs,"Hours on site"]];
+    stats.forEach(([n,l],i)=>{const x=14+i*36.4;doc.setFillColor(...TINT);doc.rect(x,y,34.4,15,"F");doc.setFont("helvetica","bold");doc.setFontSize(14);doc.setTextColor(...NAVY);doc.text(String(n),x+3,y+7);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(...GREY);doc.text(l,x+3,y+12)});
+    if(r.tech!=="all"){doc.setFontSize(9);doc.setTextColor(...INK);doc.text("Technician: "+techName(r.tech),14,y+21)}
+    doc.autoTable({startY:y+(r.tech!=="all"?25:20),headStyles:{fillColor:NAVY,textColor:255,fontSize:8},styles:{fontSize:8,cellPadding:1.9,textColor:INK,lineColor:RULE,lineWidth:0.1},alternateRowStyles:{fillColor:[246,248,251]},
       head:[["Date","Job no.","Customer / site","Machine","Work done","Tech","Status","Hrs"]],
-      body:rows.map(c=>[fmtDate(c.date),c.jobNo,[c.customer,c.site].filter(Boolean).join(" · "),[c.equipment,c.serial?`S/N ${c.serial}`:""].filter(Boolean).join("\n"),(c.work||c.fault||"").slice(0,160),techName(c.techId),(STATUSES[c.status]||STATUSES.open).label,hours(c.timeIn,c.timeOut)??"–"]),
-      columnStyles:{0:{cellWidth:17},1:{cellWidth:24},4:{cellWidth:50},7:{cellWidth:9,halign:"right"}},margin:{left:10,right:10,bottom:16}});
-    pdfFooter(doc,await brandData());
+      body:rows.map(c=>[fmtDate(c.date),c.jobNo,[c.customer,c.site].filter(Boolean).join(", "),[c.equipment,c.serial?`S/N ${c.serial}`:""].filter(Boolean).join("\n"),(c.work||c.fault||"").slice(0,160),techName(c.techId),(STATUSES[c.status]||STATUSES.open).label,hours(c.timeIn,c.timeOut)??"–"]),
+      columnStyles:{0:{cellWidth:18},1:{cellWidth:27},2:{cellWidth:31},3:{cellWidth:25},5:{cellWidth:20},6:{cellWidth:19},7:{cellWidth:9,halign:"right"}},margin:{left:14,right:14,bottom:18}});
+    pdfFooter(doc,await brandData(),"Job summary "+range);
     await saveFile(`Job-summary-${(r.from||"start")}-to-${(r.to||today())}.pdf`,doc.output("blob"),btn);
-  }catch(err){toast("Couldn't build the PDF. Try again")}
+  }catch(err){console.error(err);toast("Couldn't build the PDF. Try again")}
   btn.disabled=false;
 }
 
@@ -824,6 +977,7 @@ async function shrinkLogo(file){
 window.onBack=()=>{
   if(S.view==="form"){S.view=S.form?.id?"detail":"list";S.form=null;render();return true}
   if(S.view==="van"&&S.partForm){S.partForm=null;render();return true}
+  if(S.view==="customer"){S.view="cust";render();return true}
   if(S.view==="team"&&S.teamForm){S.teamForm=null;render();return true}
   if(S.view==="login"){if(S.loginMode){S.loginMode=null;render();return true}return false}
   if(S.view!=="list"&&S.view!=="wait"){S.view="list";render();return true}
@@ -967,7 +1121,7 @@ function accountSection(){
 function stopData(){
   while(unsubs.length){try{unsubs.pop()()}catch(_){}}
   for(const k of Object.keys(vanSubs)){try{vanSubs[k]()}catch(_){}delete vanSubs[k]}
-  S.cards=[];S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
+  S.cards=[];S.customers=[];S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
 }
 function startData(){
   S.vanTech=meId;subVan(meId);if(!isAdmin)S.techs=[meId];
@@ -977,6 +1131,7 @@ function startData(){
     for(const c of S.cards)if(c.techId&&c.techName&&!S.names[c.techId])S.names[c.techId]=c.techName;
     softRender();
   }));
+  unsubs.push(db.collection("customers").onSnapshot(snap=>{S.customers=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.name).sort((a,b)=>(a.name+a.site).localeCompare(b.name+b.site));softRender()}));
   unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
     if(["form","settings","login","wait"].includes(S.view)||(S.view==="team"&&S.teamForm)){$("#coName").textContent=S.company.name||"Service department";setLogo()}else softRender()}));
 }
