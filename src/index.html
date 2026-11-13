@@ -485,7 +485,10 @@ document.addEventListener("click",e=>{
   if(t.id==="addCo"){S.coForm={mode:"add"};render();return}
   if(t.id==="cancelCo"){S.coForm=null;render();return}
   if(t.dataset.editco){const c=S.companies.find(x=>x.id===t.dataset.editco);if(c){S.coForm={mode:"edit",co:c};render()}return}
-  if(t.id==="coToggle"){toggleCompany();return}
+  if(t.id==="coToggle"){toggleCompany(S.coForm?.co);return}
+  if(t.dataset.cooff){S.coOff=t.dataset.cooff;render();return}
+  if(t.dataset.cooffno){S.coOff=null;render();return}
+  if(t.dataset.cooffyes||t.dataset.coon){S.coOff=null;toggleCompany(S.companies.find(x=>x.id===(t.dataset.cooffyes||t.dataset.coon)));return}
   if(t.id==="tabCust"){S.view="cust";render();return}
   if(t.dataset.cust){S.custId=t.dataset.cust;S.view="customer";render();return}
   if(t.id==="newHere"||t.dataset.machjob!=null){const c=S.customers.find(x=>x.id===S.custId);if(c){const m=t.dataset.machjob!=null?(c.machines||[])[+t.dataset.machjob]:null;startForm(null,{customer:c.name,site:c.site||"",contact:c.contact||"",...(m?{equipment:m.equipment||"",model:m.model||"",serial:m.serial||""}:{})})}return}
@@ -887,7 +890,7 @@ function devView(){
   const list=[...S.companies].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${list.length} compan${list.length===1?"y":"ies"}</span><button class="btn primary" id="addCo" type="button">${ic("plus")}Add company</button></div>
     ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who"><b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.invoicing?"invoicing on":"invoicing off"}</span></div>
-      ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button></div></div>`).join("")
+      ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button>${S.coOff===c.id?`<span class="hint" style="align-self:center">Switch ${esc(c.name)} off?</span><button class="btn icon-btn danger" type="button" data-cooffyes="${esc(c.id)}">Switch off</button><button class="btn icon-btn" type="button" data-cooffno="1">Keep on</button>`:c.active===false?`<button class="btn icon-btn" type="button" data-coon="${esc(c.id)}">Switch on</button>`:`<button class="btn icon-btn danger" type="button" data-cooff="${esc(c.id)}">Switch off</button>`}</div></div>`).join("")
     :`<div class="empty"><h2>No companies yet</h2><p>Add each company with its details and an admin login. Each company only ever sees its own job cards.</p></div>`}</div>`;
 }
 async function readDocC(club,path){
@@ -932,9 +935,10 @@ async function saveCompany(){
 }
 async function sendLogo(club,now){const url=S.coForm?.logo;if(!url)return "";const id=newId();await sendDoc("blobs/"+id,{data:url,createdAt:now},now,club);return id}
 async function pickCoLogo(file){try{const url=await toDataUrl(await shrinkLogo(file));if(url.length>900000){toast("That logo file is too big");return}S.coForm.logo=url;$("#c_logoBox").innerHTML=`<img src="${esc(url)}" alt="Company logo">`}catch(_){toast("Use a PNG or JPG file")}}
-async function toggleCompany(){
-  const c=S.coForm?.co;if(!c)return;const on=c.active===false;
-  try{await sendDoc("settings/account",{active:on},Date.now(),clubOf(c.sk));await db.doc("companies/"+c.id).update({active:on,updatedAt:Date.now()});S.coForm=null;render();toast(on?c.name+" is switched back on":c.name+" is switched off. Its phones are signed out when they next sync")}
+async function toggleCompany(c){
+  if(!c)return;const on=c.active===false;
+  if(navigator.onLine===false){toast("Connect to the internet to change this");return}
+  try{await sendDoc("settings/account",{active:on},Date.now(),clubOf(c.sk));await db.doc("companies/"+c.id).update({active:on,updatedAt:Date.now()});S.coForm=null;render();toast(on?c.name+" is switched back on. Its people can sign in again":c.name+" is switched off. Its phones are signed out as soon as they're online")}
   catch(_){toast("Couldn't change it. Check the connection and try again")}
 }
 
@@ -1352,7 +1356,9 @@ async function publish(ev){return await Promise.any(rpool().publish(RELAYS,ev))}
 const sendTime=path=>Math.max(Math.floor(Date.now()/1000),((RM[path]||[])[1]||0)+1);
 /* send one record; big ones (photos) are split into parts */
 async function sendDoc(path,data,ts,club){ // club: another company's space (developer only); otherwise this phone's company
-  const json=JSON.stringify({p:path,d:data===undefined?null:data,ts}),d=dTag("r|"+path,club),t=club?Math.floor(Date.now()/1000):sendTime(path);let content;
+  const json=JSON.stringify({p:path,d:data===undefined?null:data,ts}),d=dTag("r|"+path,club);let content,t=club?Math.floor(Date.now()/1000):sendTime(path);
+  if(club){ // writing into a company's space: go after whatever its phones last wrote there, so the relays keep this version
+    try{const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[club.pk],"#d":[d]},{maxWait:6000});for(const e of evs)t=Math.max(t,e.created_at+1)}catch(_){}}
   if(json.length<=PART)content=enc({b:json},club);
   else{const cid=newId(),n=Math.ceil(json.length/PART);
     for(let i=0;i<n;i++)await publish(NT.finalizeEvent({kind:REC_KIND,created_at:t,tags:[["d",d+"."+i],["t",FILE_T]],content:enc({cid,i,part:json.slice(i*PART,(i+1)*PART)},club)},skB(club)));
@@ -1466,6 +1472,9 @@ async function relayApi(path,body){
     if(!u&&base){const {password,...a}=BASE;u=a;RL.afterEnter=()=>{const cur=getUsers();if(!cur.some(x=>x.id===a.id))setUsers([a,...cur])}} // first sign-in anywhere: the admin starts the list
     if(!u)throw {msg:"This login isn't ready yet. Open the admin's phone so it can sync, then try again"};
     if(u.active===false)throw {msg:"This login is switched off. Speak to the admin"};
+    const acc=await readDocC(CLUB,"settings/account");
+    if(acc&&acc.active===false)throw {msg:"This company's access is switched off. Speak to Macadams"};
+    await db.applyRemote([{path:"settings/account",data:acc||{active:true}}],true); // drop an old "switched off" note kept on this phone
     return {token:"relay",user:u}});
   if(path==="/api/users")return net(async()=>{
     const list=getUsers();if(list.some(x=>x.username===body.username))throw {msg:"That username is taken. Choose another"};

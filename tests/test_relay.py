@@ -124,6 +124,18 @@ async def main():
     await shot(admin,"s_signin.png")
     await login(admin,"zspadmin","zsp-1234"); await admin.wait_for_selector("text=Wrong username or password",timeout=20000)
     await login(admin,"zspadmin","zsp-9999"); await cards(admin,3); ok("developer's new admin password works; the old one doesn't",True)
+    # developer switches a whole company off, then back on
+    await dev.click(".member:has-text('Zululand') [data-cooff]"); await dev.click("[data-cooffyes]"); await dev.wait_for_selector(".member.off:has-text('Zululand')",timeout=30000); await shot(dev,"off_list.png")
+    await admin.wait_for_selector("text=switched off",timeout=40000); await admin.wait_for_selector("#l_user"); ok("switching a company off signs its phones out",True)
+    await sipho.wait_for_selector("#l_user",timeout=40000); ok("its technicians are signed out too",True)
+    await admin.wait_for_timeout(3000)
+    await login(admin,"zspadmin","zsp-9999")
+    try: await admin.wait_for_selector("#loginBtn:not([disabled])",timeout=40000)
+    except Exception:
+        await shot(admin,"stuck.png"); raise
+    ok("a switched-off company can't sign in",await admin.locator("#l_user").count()==1 and await admin.locator("text=This company's access is switched off").count()>0)
+    await dev.click(".member:has-text('Zululand') [data-coon]"); await dev.wait_for_selector(".member:not(.off):has-text('Zululand')",timeout=30000)
+    await login(admin,"zspadmin","zsp-9999"); await cards(admin,3); ok("switched back on: the admin signs in and the job cards are all still there",True)
     # the admin signs in on a second phone and gets everything
     a2ctx,admin2=await page(b); await login(admin2,"zspadmin","zsp-9999"); await cards(admin2,3); ok("admin signing in on another phone gets all the job cards",True)
     await b.close()
