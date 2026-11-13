@@ -16,6 +16,14 @@ async def newcard(pg,cust,photo=True,parts=0,km=""):
     await pg.fill("#f_timeIn","08:00"); await pg.fill("#f_timeOut","10:30")
     if km: await pg.fill("#f_km",km)
     if parts:
+        await pg.click("[data-tog='jobType:breakdown']"); await pg.click("[data-tog='dept:bakery']"); await pg.click("[data-tog='dept:deli']")
+        await pg.fill("#f_custRef","PO 55120"); await pg.fill("#f_model","Rotomax 68"); await pg.fill("#f_fault","Oven not reaching temperature, burner cutting out after 10 minutes."); await pg.fill("#f_work","Cleaned flame sensor and replaced the door seal. Tested for 45 minutes at 220 C, holding temperature.")
+        await pg.fill("#f_parts","1 Door seal 600mm"); await pg.fill("#f_partsNeeded","1 Steam solenoid valve\n2 Oven light globes")
+        await pg.fill("#f_signName","Zanele Mthembu"); cv=pg.locator("#signPad"); await cv.scroll_into_view_if_needed(); bx=await cv.bounding_box()
+        await pg.mouse.move(bx["x"]+30,bx["y"]+90); await pg.mouse.down()
+        for i in range(1,40): await pg.mouse.move(bx["x"]+30+i*7,bx["y"]+90+(30 if i%2 else -30)*(1-i/60))
+        await pg.mouse.up()
+    if parts:
         await pg.click("#pickOpen"); await pg.wait_for_selector("#picker .part")
         for _ in range(parts): await pg.click("#picker .part:has-text('Element') button[data-d='1']")
         await shot(pg,"p1_picker.png"); await pg.click("#pickDone")
@@ -46,7 +54,7 @@ async def main():
     await login(admin,"zspadmin","zsp-1234"); await admin.wait_for_selector("#tabTeam:not([hidden])",timeout=30000); await admin.wait_for_function("document.querySelector('#coName').textContent==='Zululand Service Providers'",timeout=20000)
     ok("company admin signs in and sees their own company name",True)
     ok("invoicing is on for this company (set by the developer)",await admin.eval_on_selector("#tabInv","e=>!e.hidden"))
-    await admin.wait_for_function("document.querySelector('#coLogo').getAttribute('src').startsWith('data:')",timeout=30000); ok("the company's own logo shows, not the Macadams one",True)
+    await admin.wait_for_function("!document.querySelector('#coBadge').hidden&&document.querySelector('#coLogo2').getAttribute('src').startsWith('data:')",timeout=30000); ok("the company's own logo shows next to the Macadams one",await admin.eval_on_selector('#coLogo','e=>e.getAttribute("src")')=='macadams-logo.png')
     await admin.click("#tabTeam")
     for n,u,pw in [("Sipho Dlamini","sipho","oven-1234"),("Thabo Nkosi","thabo","mixer-4567")]:
         await admin.click("#addTech"); await admin.fill("#t_name",n); await admin.fill("#t_user",u); await admin.fill("#t_pass",pw); await admin.click("#teamSave"); await admin.wait_for_selector(f".member:has-text('{n}')",timeout=20000)
@@ -57,6 +65,11 @@ async def main():
     await login(sipho,"sipho","oven-1234"); await sipho.wait_for_selector("text=No job cards yet",timeout=30000); ok("Sipho signed in on his own phone with just username and password",await sipho.eval_on_selector("#tabTeam","e=>e.hidden"))
     await sipho.click("#tabVan"); await sipho.click("#addPart"); await sipho.fill("#p_partNo","EL-1"); await sipho.fill("#p_desc","Element"); await sipho.fill("#p_qty","5"); await sipho.fill("#p_price","450"); await sipho.click("#partForm button[type=submit]"); await sipho.wait_for_selector(".part:has-text('Element')")
     await newcard(sipho,"Bakery A",parts=2,km="40"); await newcard(sipho,"Bakery B",photo=False); await synced(sipho)
+    await sipho.click(".card:has-text('Bakery A')"); await sipho.wait_for_selector("text=Breakdown"); ok("job type and department show on the job card",await sipho.locator("text=Bakery, Deli").count()==1)
+    async with sipho.expect_download() as dl: await sipho.click("#pdfOne")
+    d=await dl.value
+    if SHOTS: await d.save_as(os.path.join(SHOTS,"job.pdf"))
+    await sipho.click("[data-go=list]")
     await sipho.click("#tabVan"); await sipho.wait_for_timeout(300); ok("picked parts came off the van stock (5 - 2 = 3)",await sipho.inner_text(".part:has-text('Element') .qty output")=="3"); await sipho.click("#tabList")
     await sipho.click(".card:has-text('Bakery A')"); await sipho.click("#editOne"); await sipho.click("#pickOpen"); await sipho.click("#picker .part:has-text('Element') button[data-d='-1']"); await sipho.click("#pickDone"); await sipho.click("#saveTop"); await sipho.wait_for_selector("#pdfOne"); await sipho.click("[data-go=list]")
     await sipho.click("#tabVan"); await sipho.wait_for_timeout(300); ok("taking one back off the job card returns it to the van (4)",await sipho.inner_text(".part:has-text('Element') .qty output")=="4"); await sipho.click("#tabList"); await synced(sipho)

@@ -31,7 +31,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 header.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.08)}
 .bar{display:flex;align-items:center;gap:12px;min-height:72px;padding-block:10px}
 .badge{flex:none;height:54px;min-width:54px;max-width:96px;padding:5px 8px;border-radius:12px;background:#fff;display:grid;place-items:center;border-bottom:4px solid var(--yellow)}
-#coLogo{height:40px;width:auto;max-width:80px;object-fit:contain}
+#coLogo,#coLogo2{height:40px;width:auto;max-width:80px;object-fit:contain}
+.logos{display:flex;gap:6px;flex:none}
+.badge.co{max-width:84px}
+@media (max-width:380px){.badge{max-width:70px}#coLogo,#coLogo2{max-width:56px}}
 .titles{min-width:0;flex:1;display:flex;flex-direction:column}
 #coName{font-size:.8rem;font-weight:500;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .titles h1{margin:0;font-size:1.35rem;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -242,7 +245,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 
 <header class="appbar">
   <div class="wrap bar">
-    <span class="badge"><img id="coLogo" src="macadams-logo.png" alt=""></span>
+    <span class="logos"><span class="badge"><img id="coLogo" src="macadams-logo.png" alt="Macadams"></span><span class="badge co" id="coBadge" hidden><img id="coLogo2" alt=""></span></span>
     <div class="titles"><span id="coName">Macadams International</span><h1 id="viewTitle">Job cards</h1><span id="syncState" class="sync"></span></div>
     <button class="iconbtn" id="settingsBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg></button>
   </div>
@@ -346,6 +349,8 @@ function detailView(){
     <div class="actions"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">${ic("share")}WhatsApp text</button>${canWrite?`<button class="btn" id="editOne" type="button">${ic("edit")}Edit</button>`:""}${invOn()&&c.status==="done"?(invFor(c.id)?`<button class="btn" type="button" data-inv="${esc(invFor(c.id).id)}">${ic("doc")}Invoice ${esc(invFor(c.id).no)}</button>`:`<button class="btn" type="button" data-newinv="${esc(c.id)}">${ic("doc")}Create invoice</button>`):""}</div>
     <div class="section"><dl class="kv">
       <dt>Date</dt><dd>${fmtDate(c.date)}</dd>
+      ${c.jobType?`<dt>Type of job</dt><dd>${esc(labelsOf(c.jobType,JOBTYPES).join(", "))}</dd>`:""}
+      ${c.dept?`<dt>Department</dt><dd>${esc(labelsOf(c.dept,DEPTS).join(", "))}</dd>`:""}
       <dt>Technician</dt><dd>${esc(techName(c.techId))}</dd>
       ${c.serviceCo?`<dt>Service company</dt><dd>${esc(c.serviceCo)}</dd>`:""}
       <dt>Time on site</dt><dd>${esc(c.timeIn||"–")} to ${esc(c.timeOut||"–")}${h!=null?` <span class="mono">(${h} h)</span>`:""}</dd>
@@ -355,7 +360,7 @@ function detailView(){
       ${c.serial?`<dt>Serial no.</dt><dd class="mono">${esc(c.serial)}</dd>`:""}
       ${c.custRef?`<dt>Order / ref no.</dt><dd class="mono">${esc(c.custRef)}</dd>`:""}
     </dl></div>
-    <div class="section stack">${blk("Fault reported",c.fault)}${blk("Work done",c.work)}${c.partsUsed?.length?`<div class="block"><h3>Parts from van</h3><p>${c.partsUsed.map(u=>`${u.qty} × ${esc(u.partNo)} ${esc(u.desc)}`).join("\n")}</p></div>`:""}${blk("Other parts",c.parts)}${blk("Follow-up / notes",c.notes)}${!(c.fault||c.work||c.parts||c.notes||c.partsUsed?.length)?`<p class="hint">No details written yet.</p>`:""}</div>
+    <div class="section stack">${blk("Fault reported",c.fault)}${blk("Work done",c.work)}${c.partsUsed?.length?`<div class="block"><h3>Parts from van</h3><p>${c.partsUsed.map(u=>`${u.qty} × ${esc(u.partNo)} ${esc(u.desc)}`).join("\n")}</p></div>`:""}${blk("Other parts",c.parts)}${blk("Parts needed",c.partsNeeded)}${blk("Follow-up / notes",c.notes)}${!(c.fault||c.work||c.parts||c.notes||c.partsUsed?.length)?`<p class="hint">No details written yet.</p>`:""}</div>
     ${c.photos?.length?`<div class="section"><div class="block"><h3>Photos</h3></div><div class="gallery">${c.photos.map(p=>`<figure><img ${imgSrc(p.id)} alt="${esc(p.caption||"Job photo")}">${p.caption?`<figcaption>${esc(p.caption)}</figcaption>`:""}</figure>`).join("")}</div></div>`:""}
     ${c.signId||c.signName?`<div class="section stack"><div class="block"><h3>Customer sign-off</h3></div>${c.signId?`<div class="signbox"><img ${imgSrc(c.signId)} alt="Customer signature"></div>`:""}<p class="hint">${esc(c.signName||"")}${c.signedAt?`${c.signName?", ":""}signed ${new Date(c.signedAt).toLocaleDateString("en-GB")}`:""}</p></div>`:""}
     ${canWrite?(del||`<div><button class="btn danger" id="delAsk" type="button">Delete job card</button></div>`):""}
@@ -370,6 +375,8 @@ function formView(){
       <div class="grid2"><label>Time in<input id="f_timeIn" type="time" value="${esc(f.timeIn)}"></label><label>Time out<input id="f_timeOut" type="time" value="${esc(f.timeOut)}"></label></div>
       <label>Travel (km)<input id="f_km" type="number" inputmode="decimal" step="any" min="0" value="${esc(f.km||"")}" placeholder="Leave empty if travel is not charged"></label>
       <label>Service company<input id="f_serviceCo" value="${esc(f.serviceCo)}" placeholder="Company doing the work"></label>
+      <div class="stack" style="gap:6px"><span class="lbl">Type of job</span><input type="hidden" id="f_jobType" value="${esc(f.jobType||"")}"><div class="chips wrap">${JOBTYPES.map(([k,l])=>`<button type="button" class="chip" data-tog="jobType:${k}" aria-pressed="${listOf(f.jobType).includes(k)}">${l}</button>`).join("")}</div></div>
+      <div class="stack" style="gap:6px"><span class="lbl">Department</span><input type="hidden" id="f_dept" value="${esc(f.dept||"")}"><div class="chips wrap">${DEPTS.map(([k,l])=>`<button type="button" class="chip" data-tog="dept:${k}" aria-pressed="${listOf(f.dept).includes(k)}">${l}</button>`).join("")}</div></div>
       <div class="stack" style="gap:6px"><span class="lbl">Status</span><input type="hidden" id="f_status" value="${esc(f.status)}"><div class="chips wrap">${Object.entries(STATUSES).map(([k,v])=>`<button type="button" class="chip" data-status="${k}" aria-pressed="${f.status===k}">${v.label}</button>`).join("")}</div></div>
     </fieldset></div>
     <div class="section"><fieldset><legend>Customer</legend>
@@ -386,6 +393,7 @@ function formView(){
       <label>Fault reported<textarea id="f_fault">${esc(f.fault)}</textarea></label>
       <label>Work done<textarea id="f_work">${esc(f.work)}</textarea></label>
       <label>Other parts (not on van)<textarea id="f_parts" placeholder="One part per line: qty, part, part no.">${esc(f.parts)}</textarea></label>
+      <label>Parts needed<textarea id="f_partsNeeded" placeholder="Parts still to order, one per line: qty, part">${esc(f.partsNeeded||"")}</textarea></label>
       <label>Follow-up / notes<textarea id="f_notes">${esc(f.notes)}</textarea></label>
     </fieldset></div>
     <div class="section"><fieldset><legend>Parts from van</legend>
@@ -429,7 +437,7 @@ function settingsView(){
     <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>
     ${accountSection()}
     <div class="section"><fieldset><legend>Company on reports</legend>
-      <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<img src="${DEFAULT_LOGO}" alt="Macadams logo">`}</div><div class="row"><label class="btn filebtn">Replace logo<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
+      <div class="stack" style="gap:8px"><span class="hint"><b>Your company logo</b> (shown next to the Macadams logo)</span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<span class="hint">No company logo yet. Only the Macadams logo shows.</span>`}</div><div class="row"><label class="btn filebtn">${logoDraftId()?"Replace logo":"Add logo"}<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
       <div class="stack" style="gap:8px"><span class="hint"><b>Brand logos</b> (printed along the bottom of the first PDF page)</span>
         ${brandDraft().length?`<div class="brands">${brandDraft().map((b,i)=>`<div class="bl"><img ${imgSrc(b.id)} alt="Brand logo"><button class="x" type="button" data-brm="${i}" aria-label="Remove logo">×</button></div>`).join("")}</div>`:`<p class="hint">No brand logos yet.</p>`}
         <div class="row"><label class="btn filebtn">Add brand logos<input id="brandIn" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label></div></div>
@@ -477,6 +485,8 @@ document.addEventListener("click",e=>{
   if(t.id==="newHere"||t.dataset.machjob!=null){const c=S.customers.find(x=>x.id===S.custId);if(c){const m=t.dataset.machjob!=null?(c.machines||[])[+t.dataset.machjob]:null;startForm(null,{customer:c.name,site:c.site||"",contact:c.contact||"",...(m?{equipment:m.equipment||"",model:m.model||"",serial:m.serial||""}:{})})}return}
   if(t.dataset.rmmach!=null){removeMachine(+t.dataset.rmmach);return}
   if(t.dataset.mach!=null){pickMachine(+t.dataset.mach);return}
+  if(t.dataset.tog){const [k,v]=t.dataset.tog.split(":"),el=$("#f_"+k),cur=listOf(el.value),on=!cur.includes(v);
+    el.value=(on?[...cur,v]:cur.filter(x=>x!==v)).join(",");t.setAttribute("aria-pressed",on);return}
   if(t.dataset.status){$("#f_status").value=t.dataset.status;document.querySelectorAll("[data-status]").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
   if(t.id==="signClear"){clearPad();return}
   if(t.id==="signAgain"){signAgain();return}
@@ -537,9 +547,9 @@ document.addEventListener("change",e=>{
 document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam();else if(e.target.id==="invForm")saveInvoice();else if(e.target.id==="coForm")saveCompany()});
 
 /* ---------- form ---------- */
-const FIELDS=["km","signName","serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
+const FIELDS=["jobType","dept","partsNeeded","km","signName","serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
 function startForm(c,pre){
-  S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",serviceCo:LS("serviceCo")||"",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",signName:"",photos:[],...(pre||{})};
+  S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",serviceCo:LS("serviceCo")||"",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",signName:"",jobType:"",dept:"",partsNeeded:"",photos:[],...(pre||{})};
   S.view="form";subVan(S.form.techId||meId);render();
 }
 function bindForm(){
@@ -602,9 +612,10 @@ async function saveSettings(){
 
 function logoDraftId(){return S.logoDraft?S.logoDraft.id:S.company.logoId}
 const DEFAULT_LOGO="macadams-logo.png";
-function setLogo(){const im=$("#coLogo");const id=S.company.logoId;if(!id){if(im.getAttribute("src")!==DEFAULT_LOGO)im.src=DEFAULT_LOGO;im.hidden=false;return}
-  const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;im.hidden=false}
-  else{im.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
+function setLogo(){const im=$("#coLogo2"),b=$("#coBadge");if(!im)return;const id=S.company.logoId;
+  if(!id||isDev){b.hidden=true;return}
+  const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;b.hidden=false}
+  else{b.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
 function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value,inv:readInvSettings()||undefined}}
 async function uploadLogo(file){
   if(!assets){toast("Only people with edit access can upload the logo");return}
@@ -612,7 +623,8 @@ async function uploadLogo(file){
   try{const res=await assets.upload(await shrinkLogo(file));S.logoDraft={id:res.id,url:res.url};render();toast("Logo ready. Tap Save settings")}
   catch(err){toast(err?.code==="unsupported_type"?"Use a PNG or JPG file":"Logo didn't upload. Try again")}
 }
-async function logoData(){const id=S.company.logoId;if(!id){try{return await imgData(DEFAULT_LOGO)}catch(_){return null}}try{return await imgData(await blobUrl(id))}catch(_){return null}}
+async function logoData(){const out={mac:null,co:null};try{out.mac=await imgData(DEFAULT_LOGO)}catch(_){}
+  const id=S.company.logoId;if(id){try{out.co=await imgData(await blobUrl(id))}catch(_){}}return out}
 /* ---------- van stock ---------- */
 const vanSubs={};
 function subVan(tid){
@@ -852,7 +864,7 @@ function devView(){
     <div class="section"><fieldset><legend>Company</legend>
       <label>Company name<input id="c_name" value="${esc(c.name||"")}" placeholder="e.g. Zululand Service Providers"></label>
       <label>Company details<textarea id="c_details" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(c.details||"")}</textarea></label>
-      <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet. The Macadams logo is used until one is added.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></div>
+      <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet. The Macadams logo always shows; this one goes next to it.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></div>
       <p class="hint">The name, details and logo show at the top of this company's job cards, summaries and invoices.</p>
       <label class="check"><input type="checkbox" id="c_inv" ${c.invoicing?"checked":""}><span>This company makes invoices in the app</span></label>
     </fieldset></div>
@@ -1009,9 +1021,9 @@ function signSection(f){return `<div class="section"><fieldset><legend>Customer 
 /* ---------- text + PDF ---------- */
 function jobText(c){
   const h=hours(c.timeIn,c.timeOut);const L=[];
-  L.push(`*Job card ${c.jobNo}*`,`${fmtDate(c.date)} · ${techName(c.techId)}${c.serviceCo?` (${c.serviceCo})`:""}`,`*Customer:* ${c.customer||"–"}${c.site?` (${c.site})`:""}`);
+  L.push(`*Job card ${c.jobNo}*`,`${fmtDate(c.date)} · ${techName(c.techId)}${c.serviceCo?` (${c.serviceCo})`:""}`,`*Customer:* ${c.customer||"–"}${c.site?` (${c.site})`:""}`);if(c.jobType)L.push(`*Job:* ${labelsOf(c.jobType,JOBTYPES).join(", ")}${c.dept?`, ${labelsOf(c.dept,DEPTS).join("/")}`:""}`);
   if(c.equipment||c.model)L.push(`*Machine:* ${[c.equipment,c.model].filter(Boolean).join(" · ")}${c.serial?` · S/N ${c.serial}`:""}`);
-  if(c.fault)L.push(`*Fault:* ${c.fault}`);if(c.work)L.push(`*Work done:* ${c.work}`);if(c.partsUsed?.length)L.push(`*Parts:* ${c.partsUsed.map(u=>`${u.qty}x ${u.partNo} ${u.desc}`).join(", ")}`);if(c.parts)L.push(`*Other parts:* ${c.parts}`);if(c.notes)L.push(`*Notes:* ${c.notes}`);
+  if(c.fault)L.push(`*Fault:* ${c.fault}`);if(c.work)L.push(`*Work done:* ${c.work}`);if(c.partsUsed?.length)L.push(`*Parts:* ${c.partsUsed.map(u=>`${u.qty}x ${u.partNo} ${u.desc}`).join(", ")}`);if(c.parts)L.push(`*Other parts:* ${c.parts}`);if(c.partsNeeded)L.push(`*Parts needed:* ${c.partsNeeded.replace(/\n/g,", ")}`);if(c.notes)L.push(`*Notes:* ${c.notes}`);
   if(c.signName)L.push(`*Signed off by:* ${c.signName}`);
   L.push(`*Status:* ${(STATUSES[c.status]||STATUSES.open).label}${h!=null?` · ${h} h on site`:""}`);
   return L.join("\n");
@@ -1037,7 +1049,7 @@ function coLines(){return String(S.company.footer||"").split(/\n|\s·\s/).map(x=
 /* Page 1 header: logo on the left, company details on the right, then a navy title band */
 function pdfBase(title,sub,logo){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
-  if(logo){const lh=25,lw=Math.min(lh*logo.w/logo.h,62);const lh2=lw*logo.h/logo.w;doc.addImage(logo.data,"JPEG",14,10+(lh-lh2)/2,lw,lh2)}
+  if(logo)drawLogos(doc,logo,14,10,25);
   doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text(S.company.name||"",196,15,{align:"right"});
   doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...GREY);
   const cl=coLines().slice(0,5);cl.forEach((l,i)=>doc.text(l,196,20+i*4,{align:"right"}));
@@ -1064,56 +1076,86 @@ async function saveFile(name,blob,btn){
   if(navigator.canShare?.({files:[file]})){try{await navigator.share({files:[file],title:name});return}catch(err){if(err?.name==="AbortError")return}}
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("PDF saved to downloads");
 }
+/* Job card PDF laid out like the printed Macadams job card book */
+const JOBTYPES=[["breakdown","Breakdown"],["service","Service"],["delivery","Delivery"],["collection","Collection"]];
+const DEPTS=[["bakery","Bakery"],["deli","Deli"],["butchery","Butchery"]];
+const listOf=v=>String(v||"").split(",").map(x=>x.trim()).filter(Boolean);
+const labelsOf=(v,opts)=>listOf(v).map(k=>(opts.find(o=>o[0]===k)||[k,k])[1]);
+function drawLogos(doc,L,x,y,h){ // Macadams logo, then the company's own logo, side by side
+  let cx=x;
+  for(const im of [L.mac,L.co].filter(Boolean)){const w=Math.min(h*im.w/im.h,46),hh=w*im.h/im.w;doc.addImage(im.data,"JPEG",cx,y+(h-hh)/2,w,hh);cx+=w+5}
+  return cx;
+}
 async function pdfJob(c,btn){
   if(!window.jspdf){toast("PDF tool didn't load. Close the app and open it again");return}
   btn.disabled=true;btn.textContent="Building PDF…";
   try{
-    const brands=await brandData();const LIMIT=brands.length?266:278; // keep clear of the brand logos and footer
-    const doc=pdfBase("SERVICE JOB CARD",c.jobNo,await logoData());let y=doc._top;
-    const h=hours(c.timeIn,c.timeOut);
-    const lab={fontSize:8,textColor:GREY,cellWidth:29,fillColor:TINT},val={fontStyle:"bold"};
-    doc.autoTable({startY:y-4,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:{top:2,bottom:2,left:2.4,right:2.4},textColor:INK,lineColor:RULE,lineWidth:0.2,valign:"middle"},columnStyles:{0:lab,1:val,2:lab,3:val},
-      body:[["Customer",c.customer||"","Date",fmtDate(c.date)],["Branch / site",c.site||"","Technician",techName(c.techId)],["Site contact",c.contact||"","Service company",c.serviceCo||""],["Order / ref no.",c.custRef||"","Time on site",`${c.timeIn||"–"} to ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`],["Status",(STATUSES[c.status]||STATUSES.open).label,"Travel",+c.km?c.km+" km":""]]});
-    y=doc.lastAutoTable.finalY+8;
-    y=pdfHead(doc,"Equipment",y);
-    doc.autoTable({startY:y-3,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:2,textColor:INK,lineColor:RULE,lineWidth:0.2},headStyles:{fillColor:TINT,textColor:GREY,fontSize:8,fontStyle:"normal"},
-      head:[["Machine type","Make / model","Serial no."]],body:[[c.equipment||"–",c.model||"–",c.serial||"–"]]});
-    y=doc.lastAutoTable.finalY+8;
-    const text=(t,v)=>{if(!v)return;const lines=doc.splitTextToSize(v,180);if(y+9+lines.length*4.6>LIMIT){doc.addPage();y=20}
-      y=pdfHead(doc,t,y);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(...INK);doc.text(lines,14,y);y+=lines.length*4.6+5};
-    text("Fault reported",c.fault);text("Work done",c.work);
-    if(c.partsUsed?.length){
-      if(y+22>LIMIT){doc.addPage();y=20}
-      y=pdfHead(doc,"Parts used",y);
-      doc.autoTable({startY:y-3,theme:"grid",margin:{left:14,right:14,bottom:20},styles:{fontSize:9.5,cellPadding:2,textColor:INK,lineColor:RULE,lineWidth:0.2},headStyles:{fillColor:TINT,textColor:GREY,fontSize:8,fontStyle:"normal"},columnStyles:{0:{cellWidth:16,halign:"right"},1:{cellWidth:46}},
-        head:[["Qty","Part no.","Description"]],body:c.partsUsed.map(u=>[u.qty,u.partNo||"",u.desc||""])});
-      y=doc.lastAutoTable.finalY+8;
-    }
-    text(c.partsUsed?.length?"Other parts":"Parts used",c.parts);text("Follow-up / notes",c.notes);
-    if(c.photos?.length){
-      const W=88,gap=6;let col=0,rowH=0;const ims=[];
-      for(const p of c.photos){try{ims.push({p,im:await imgData(await blobUrl(p.id))})}catch(_){}}
-      if(ims.length){const first=Math.min(W*ims[0].im.h/ims[0].im.w,95);if(y+first+16>LIMIT){doc.addPage();y=20}y=pdfHead(doc,"Photos",y)-2} // keep the heading with its first photo
-      for(const {p,im} of ims){
-        const hh=Math.min(W*im.h/im.w,95);const ww=hh*im.w/im.h;
-        if(y+hh+8>(doc.getNumberOfPages()===1?LIMIT:278)){doc.addPage();y=20;col=0;rowH=0}
+    const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});const L=await logoData();
+    const CAP={fontSize:7.5,textColor:GREY,fontStyle:"normal"},VAL={fontSize:9.5,textColor:INK,fontStyle:"bold"};
+    const grid={theme:"grid",margin:{left:14,right:14,bottom:18},styles:{lineColor:[70,80,110],lineWidth:0.25,cellPadding:{top:1.8,bottom:1.8,left:2,right:2},valign:"middle",textColor:INK,fontSize:9.5},headStyles:{fillColor:[255,255,255],...CAP,lineColor:[70,80,110],lineWidth:0.25}};
+    // header: logos left, job number box and company details right
+    drawLogos(doc,L,14,9,26);
+    doc.setDrawColor(...NAVY);doc.setLineWidth(0.5);doc.rect(146,8,50,13);
+    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);doc.text("No.",149,16.3);
+    doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(178,34,34);doc.text(c.jobNo||"",193,16.6,{align:"right"});
+    doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(...NAVY);doc.text((S.company.name||"").toUpperCase(),196,27.5,{align:"right"});
+    doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...INK);
+    const cl=coLines().slice(0,5);cl.forEach((l,i)=>doc.text(l,196,32+i*3.9,{align:"right"}));
+    let y=Math.max(40,32+cl.length*3.9+2);
+    doc.setFontSize(10);doc.setTextColor(...INK);doc.text("Authorised service provider for MACADAMS INTERNATIONAL",105,y,{align:"center"});y+=3;
+    // store, job type, order and department
+    const types=listOf(c.jobType),tick=k=>types.includes(k)?"X":"";
+    const dept=labelsOf(c.dept,DEPTS).join(" / ");
+    const lab=t=>({content:t.toUpperCase(),styles:{...CAP}}),val=(t,more)=>({content:t||"",styles:{...VAL},...(more||{})}),box=k=>({content:tick(k),styles:{halign:"center",fontStyle:"bold",fontSize:11,textColor:NAVY}});
+    doc.autoTable({...grid,startY:y,columnStyles:{0:{cellWidth:30},1:{cellWidth:56},2:{cellWidth:28},3:{cellWidth:12},4:{cellWidth:30},5:{cellWidth:26}},
+      body:[[lab("Store name"),val(c.customer),lab("Breakdown"),box("breakdown"),lab("Delivery"),box("delivery")],
+            [lab("Town name"),val(c.site),lab("Service"),box("service"),lab("Collection"),box("collection")],
+            [lab("Date"),val(fmtDate(c.date)),lab("Order no."),val(c.custRef,{colSpan:3})],
+            [lab("Technician name"),val(techName(c.techId)),lab("Department"),val(dept,{colSpan:3})]]});
+    y=doc.lastAutoTable.finalY+4;
+    // equipment
+    const eqRows=[[c.equipment||"",c.model||"",c.serial||""]];while(eqRows.length<3)eqRows.push(["","",""]);
+    doc.autoTable({...grid,startY:y,head:[["EQUIPMENT","MODEL","SERIAL NO."]],body:eqRows,bodyStyles:{minCellHeight:7},columnStyles:{0:{cellWidth:64},1:{cellWidth:64}}});
+    y=doc.lastAutoTable.finalY+4;
+    // work done
+    const desc=[c.fault&&("Fault: "+c.fault),c.work&&("Work done: "+c.work),c.notes&&("Notes: "+c.notes)].filter(Boolean).join("\n");
+    const done=c.status==="done"?"Yes":(STATUSES[c.status]||STATUSES.open).label;
+    const wRows=[[c.equipment||"",desc,done]];while(wRows.length<4)wRows.push(["","",""]);
+    doc.autoTable({...grid,startY:y,head:[["EQUIPMENT","DESCRIPTION OF WORK DONE","WORK COMPLETE"]],body:wRows,bodyStyles:{minCellHeight:7},columnStyles:{0:{cellWidth:40},2:{cellWidth:32,halign:"center",fontStyle:"bold"}}});
+    y=doc.lastAutoTable.finalY+4;
+    // parts used (two columns) and parts needed
+    const used=[...(c.partsUsed||[]).map(u=>[String(u.qty),[u.partNo,u.desc].filter(Boolean).join("  ")]),
+      ...String(c.parts||"").split("\n").map(x=>x.trim()).filter(Boolean).map(t=>{const m=/^(\d+(?:[.,]\d+)?)\s*[x×]?\s+(.+)$/i.exec(t);return m?[m[1],m[2]]:["",t]})];
+    const need=String(c.partsNeeded||"").split("\n").map(x=>x.trim()).filter(Boolean).map(t=>{const m=/^(\d+(?:[.,]\d+)?)\s*[x×]?\s+(.+)$/i.exec(t);return m?[m[1],m[2]]:["",t]});
+    const per=Math.max(4,Math.ceil(used.length/2)),left=used.slice(0,per),right=used.slice(per);
+    while(left.length<per)left.push(["",""]);while(right.length<Math.max(2,per-3))right.push(["",""]);
+    const nd=need.slice();while(nd.length<Math.max(2,per-right.length-1))nd.push(["",""]);
+    while(left.length<right.length+1+nd.length)left.push(["",""]);
+    const pcol={0:{cellWidth:13,halign:"center"}};
+    doc.autoTable({...grid,startY:y,margin:{left:14,right:107,bottom:18},head:[["QTY","PARTS USED"]],body:left,bodyStyles:{minCellHeight:6.6},columnStyles:pcol});
+    const yl=doc.lastAutoTable.finalY;
+    doc.autoTable({...grid,startY:y,margin:{left:107,right:14,bottom:18},head:[["QTY","PARTS USED"]],body:[...right,[{content:"PARTS NEEDED",colSpan:2,styles:{...CAP,halign:"center"}}],...nd],bodyStyles:{minCellHeight:6.6},columnStyles:pcol});
+    y=Math.max(yl,doc.lastAutoTable.finalY)+4;
+    // times and sign-off
+    let sig=null;if(c.signId){try{sig=await imgData(await blobUrl(c.signId))}catch(_){}}
+    if(y+46>279){doc.addPage();y=16}
+    const T=(n,t)=>({content:`${n} TIME:  ${t||""}`,styles:{fontSize:9.5}});
+    doc.autoTable({...grid,startY:y,head:[["TIME IN","MANAGER","TIME OUT","MANAGER"]],
+      body:[[T(1,c.timeIn),{content:c.signName||"",styles:{valign:"bottom",fontSize:8.5,minCellHeight:17}},T(1,c.timeOut),""],[T(2),"",T(2),""],[T(3),"",T(3),""]],
+      bodyStyles:{minCellHeight:11},columnStyles:{0:{cellWidth:34},2:{cellWidth:34}},
+      didDrawCell:d=>{if(sig&&d.section==="body"&&d.row.index===0&&d.column.index===1){const h=Math.min(10,d.cell.height-6.5),w=Math.min(h*sig.w/sig.h,d.cell.width-4);doc.addImage(sig.data,"JPEG",d.cell.x+2,d.cell.y+1,w,w*sig.h/sig.w)}}});
+    y=doc.lastAutoTable.finalY+4;
+    doc.setFont("helvetica","bold");doc.setFontSize(7.3);doc.setTextColor(...INK);
+    const terms=`BY SIGNING THIS JOB CARD YOU ACCEPT THAT THE WORK SPECIFIED HAS BEEN DONE IN A SATISFACTORY MANNER AND ACCEPT OUR TERMS AND CONDITIONS. PLEASE NOTE SPARES REMAIN THE PROPERTY OF ${(S.company.name||"THE SERVICE PROVIDER").toUpperCase()} UNTIL PAID IN FULL.`;
+    doc.text(doc.splitTextToSize(terms,182),14,y+1);
+    // photos on their own page
+    const ims=[];for(const p of c.photos||[]){try{ims.push({p,im:await imgData(await blobUrl(p.id))})}catch(_){}}
+    if(ims.length){doc.addPage();y=16;y=pdfHead(doc,"Photos, job card "+(c.jobNo||""),y)-2;const W=88,gap=6;let col=0,rowH=0;
+      for(const {p,im} of ims){const hh=Math.min(W*im.h/im.w,95),ww=hh*im.w/im.h;if(y+hh+8>278){doc.addPage();y=16;col=0;rowH=0}
         const x=14+col*(W+gap);doc.addImage(im.data,"JPEG",x,y,ww,hh);
         if(p.caption){doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...GREY);doc.text(doc.splitTextToSize(p.caption,W)[0],x,y+hh+4)}
-        rowH=Math.max(rowH,hh+7);col++;if(col===2){col=0;y+=rowH;rowH=0}
-      }
-      if(col)y+=rowH;y+=3;
-    }
-    // sign-off
-    const lim=doc.getNumberOfPages()===1?LIMIT:278;if(y+40>lim){doc.addPage();y=20}
-    y=pdfHead(doc,"Sign-off",y)-1;
-    const box=(x,title,name,sub)=>{doc.setDrawColor(...RULE);doc.setLineWidth(0.3);doc.rect(x,y,88,30);
-      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);doc.text(title,x+3,y+4.5);doc.line(x+3,y+22,x+85,y+22);
-      doc.setFont("helvetica","bold");doc.setFontSize(9.5);doc.setTextColor(...INK);if(name)doc.text(String(name),x+3,y+26.5);
-      if(sub){doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);doc.text(sub,x+85,y+26.5,{align:"right"})}};
-    box(14,"Technician",techName(c.techId),fmtDate(c.date));
-    box(108,"Customer",c.signName||"",c.signedAt?"Signed "+new Date(c.signedAt).toLocaleDateString("en-GB"):"");
-    if(c.signId){try{const im=await imgData(await blobUrl(c.signId));const sh=Math.min(15,60*im.h/im.w),sw=sh*im.w/im.h;doc.addImage(im.data,"JPEG",108+3,y+21.5-sh,sw,sh)}catch(_){}}
-    pdfFooter(doc,brands,"Job card "+c.jobNo);
+        rowH=Math.max(rowH,hh+7);col++;if(col===2){col=0;y+=rowH;rowH=0}}}
+    pdfFooter(doc,[],"Job card "+c.jobNo);
     await saveFile(`${c.jobNo}.pdf`,doc.output("blob"),btn);
   }catch(err){console.error(err);toast("Couldn't build the PDF. Try again")}
   btn.disabled=false;btn.textContent="PDF report";
