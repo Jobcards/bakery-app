@@ -16,7 +16,7 @@ async def newcard(pg,cust,photo=True,parts=0,km=""):
     await pg.fill("#f_timeIn","08:00"); await pg.fill("#f_timeOut","10:30")
     if km: await pg.fill("#f_km",km)
     if parts:
-        await pg.click("[data-tog='jobType:breakdown']"); await pg.click("[data-tog='dept:bakery']"); await pg.click("[data-tog='dept:deli']")
+        await pg.click("[data-tog='jobType:breakdown']"); await pg.click("[data-tog='dept:bakery']"); await pg.click("[data-tog='dept:deli']"); await pg.click("[data-tog='dept:maintenance']")
         await pg.fill("#f_custRef","PO 55120"); await pg.fill("#f_model","Rotomax 68"); await pg.fill("#f_fault","Oven not reaching temperature, burner cutting out after 10 minutes."); await pg.fill("#f_work","Cleaned flame sensor and replaced the door seal. Tested for 45 minutes at 220 C, holding temperature.")
         await pg.fill("#f_parts","1 Door seal 600mm"); await pg.fill("#f_partsNeeded","1 Steam solenoid valve\n2 Oven light globes")
         await pg.fill("#f_signName","Zanele Mthembu"); cv=pg.locator("#signPad"); await cv.scroll_into_view_if_needed(); bx=await cv.bounding_box()
@@ -68,7 +68,7 @@ async def main():
     await sipho.click("#tabVan"); await sipho.click("#addPart"); await sipho.fill("#p_partNo","EL-1"); await sipho.fill("#p_desc","Element"); await sipho.fill("#p_qty","5"); await sipho.fill("#p_price","450"); await sipho.click("#partForm button[type=submit]"); await sipho.wait_for_selector(".part:has-text('Element')")
     await newcard(sipho,"Bakery A",parts=2,km="40"); await newcard(sipho,"Bakery B",photo=False); await synced(sipho)
     nos=await sipho.eval_on_selector_all(".card .jn","e=>e.map(x=>x.textContent)"); ok("running job numbers from Sipho's own block",sorted(nos)==["010001","010002"],str(nos))
-    await sipho.click(".card:has-text('Bakery A')"); await sipho.wait_for_selector("text=Breakdown"); ok("job type and department show on the job card",await sipho.locator("text=Bakery, Deli").count()==1)
+    await sipho.click(".card:has-text('Bakery A')"); await sipho.wait_for_selector("text=Breakdown"); ok("job type and department show on the job card",await sipho.locator("text=Bakery, Deli, Maintenance").count()==1)
     async with sipho.expect_download() as dl: await sipho.click("#pdfOne")
     d=await dl.value
     if SHOTS: await d.save_as(os.path.join(SHOTS,"job.pdf"))

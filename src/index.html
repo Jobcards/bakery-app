@@ -1098,7 +1098,7 @@ async function saveFile(name,blob,btn){
 }
 /* Job card PDF laid out like the printed Macadams job card book */
 const JOBTYPES=[["breakdown","Breakdown"],["service","Service"],["delivery","Delivery"],["collection","Collection"]];
-const DEPTS=[["bakery","Bakery"],["deli","Deli"],["butchery","Butchery"]];
+const DEPTS=[["bakery","Bakery"],["deli","Deli"],["butchery","Butchery"],["maintenance","Maintenance"]];
 const listOf=v=>String(v||"").split(",").map(x=>x.trim()).filter(Boolean);
 const labelsOf=(v,opts)=>listOf(v).map(k=>(opts.find(o=>o[0]===k)||[k,k])[1]);
 function drawLogos(doc,L,x,y,h){ // Macadams logo, then the company's own logo, side by side
