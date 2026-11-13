@@ -65,6 +65,7 @@ async def main():
     await login(sipho,"sipho","oven-1234"); await sipho.wait_for_selector("text=No job cards yet",timeout=30000); ok("Sipho signed in on his own phone with just username and password",await sipho.eval_on_selector("#tabTeam","e=>e.hidden"))
     await sipho.click("#tabVan"); await sipho.click("#addPart"); await sipho.fill("#p_partNo","EL-1"); await sipho.fill("#p_desc","Element"); await sipho.fill("#p_qty","5"); await sipho.fill("#p_price","450"); await sipho.click("#partForm button[type=submit]"); await sipho.wait_for_selector(".part:has-text('Element')")
     await newcard(sipho,"Bakery A",parts=2,km="40"); await newcard(sipho,"Bakery B",photo=False); await synced(sipho)
+    nos=await sipho.eval_on_selector_all(".card .jn","e=>e.map(x=>x.textContent)"); ok("running job numbers from Sipho's own block",sorted(nos)==["010001","010002"],str(nos))
     await sipho.click(".card:has-text('Bakery A')"); await sipho.wait_for_selector("text=Breakdown"); ok("job type and department show on the job card",await sipho.locator("text=Bakery, Deli").count()==1)
     async with sipho.expect_download() as dl: await sipho.click("#pdfOne")
     d=await dl.value
@@ -99,6 +100,7 @@ async def main():
     ok("Thabo's phone doesn't show Sipho's job cards",await thabo.locator(".card").count()==0)
     await thabo.click("#tabCust"); await thabo.wait_for_selector(".card.cust:has-text('Bakery A')",timeout=20000); ok("Thabo does get the shared customer list",True)
     await tctx.set_offline(True); await newcard(thabo,"Bakery C (no signal)",photo=False)
+    ok("Thabo's numbers come from his own block, so offline cards never clash",await thabo.eval_on_selector(".card .jn","e=>e.textContent")=="020001")
     await thabo.wait_for_function("document.querySelector('#syncState').textContent.startsWith('Offline')",timeout=40000); ok("offline: saved on the phone and waiting",True,await thabo.inner_text("#syncState"))
     await tctx.set_offline(False); await thabo.click("#settingsBtn"); await thabo.click("#syncBtn"); await synced(thabo); await thabo.click("[data-go=list]")
     await admin.click("#tabList"); await cards(admin,3); ok("back online: the card reached the admin",True)

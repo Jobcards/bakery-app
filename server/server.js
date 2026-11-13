@@ -22,11 +22,11 @@ for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { if (saveTimer) 
 // ---------- logins ----------
 const normUser = v => String(v || "").trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
 const hashPw = (pw, salt) => crypto.scryptSync(String(pw), salt, 32).toString("hex");
-const pub = u => ({ id: u.id, name: u.name, username: u.username, role: u.role, active: u.active !== false });
+const pub = u => ({ id: u.id, name: u.name, username: u.username, role: u.role, active: u.active !== false, blk: u.blk || 0 });
 const hasAdmin = () => st.users.some(u => u.role === "admin");
 function addUser(name, username, password, role) {
   const salt = crypto.randomBytes(16).toString("hex");
-  const u = { id: "u" + crypto.randomBytes(8).toString("hex"), name, username, role, active: true, salt, hash: hashPw(password, salt), createdAt: Date.now() };
+  const u = { id: "u" + crypto.randomBytes(8).toString("hex"), name, username, role, active: true, blk: st.users.length, salt, hash: hashPw(password, salt), createdAt: Date.now() };
   st.users.push(u); save(); return u;
 }
 function newSession(u) { const token = crypto.randomBytes(32).toString("hex"); st.sessions[token] = { uid: u.id, at: Date.now() }; save(); return token; }

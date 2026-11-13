@@ -278,7 +278,12 @@ const fmtDate=d=>{if(!d)return"";const [y,m,dd]=d.split("-");return `${dd}/${m}/
 function hours(a,b){if(!a||!b)return null;const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number);let m=(h2*60+m2)-(h1*60+m1);if(m<0)m+=1440;return Math.round(m/6)/10}
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
 function techName(id){return (id&&S.names[id])||"Technician"}
-function newJobNo(){const d=new Date();const p=n=>String(n).padStart(2,"0");return `JC-${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`}
+/* Running job card numbers. Each person has their own block of 10 000 numbers (like their own job card book),
+   so phones working offline never hand out the same number: block 0 is 000001-009999, block 1 is 010001-019999, and so on. */
+const myBlock=()=>Math.max(0,+profile?.blk||0);
+function newJobNo(){const b=myBlock();let last=+LS("lastNo:"+meId)||0;
+  for(const c of S.cards){if(c.techId!==meId||!/^\d{6}$/.test(c.jobNo||""))continue;const n=+c.jobNo;if(Math.floor(n/10000)===b)last=Math.max(last,n%10000)}
+  return String(b*10000+Math.min(9999,last+1)).padStart(6,"0")}
 
 /* ---------- rendering ---------- */
 const ICONS={machine:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M8 13h8v4H8z"/>',person:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.5 4-5 7-5s6 1.5 7 5"/>',camera:'<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',share:'<path d="M4 13v7h16v-7M12 15V3M7 8l5-5 5 5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',back:'<path d="M15 5l-7 7 7 7"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
@@ -585,6 +590,7 @@ async function saveCard(){
   data.photos=f.photos.filter(p=>p.id).map(p=>({id:p.id,url:p.url||"",caption:p.caption||""}));
   data.partsUsed=(f.partsUsed||[]).map(u=>({partId:u.partId,partNo:u.partNo||"",desc:u.desc||"",qty:+u.qty||0,price:+u.price||0}));
   data.updatedAt=Date.now();if(data.serviceCo)LS("serviceCo",data.serviceCo);
+  if(/^\d{6}$/.test(data.jobNo)&&Math.floor(+data.jobNo/10000)===myBlock())LS("lastNo:"+meId,String(Math.max(+LS("lastNo:"+meId)||0,+data.jobNo%10000)));
   let sign={id:f.signId||"",at:f.signedAt||0};if(f._signCleared)sign={id:"",at:0};
   if(f._signed){try{const blob=await new Promise(r=>$("#signPad").toBlob(r,"image/png"));const r=await assets.upload(blob);sign={id:r.id,at:Date.now()}}catch(_){toast("Couldn't save the signature. Try again");return}}
   data.signId=sign.id;data.signedAt=sign.at;
@@ -899,7 +905,7 @@ async function saveCompany(){
   try{
     const now=Date.now();
     if(add){
-      const sk=NT.bytesToHex(NT.generateSecretKey()),club=clubOf(sk),admin={id:"u"+newId(),name:adminName,username:adminUser,role:"admin",active:true,pv:1};
+      const sk=NT.bytesToHex(NT.generateSecretKey()),club=clubOf(sk),admin={id:"u"+newId(),name:adminName,username:adminUser,role:"admin",active:true,pv:1,blk:0};
       await publishTicket(adminUser,pw,club);
       await sendDoc("settings/users",{list:[admin],updatedAt:now},now,club);
       const logoId=await sendLogo(club,now);
@@ -1096,7 +1102,7 @@ async function pdfJob(c,btn){
     // header: logos left, job number box and company details right
     drawLogos(doc,L,14,9,26);
     doc.setDrawColor(...NAVY);doc.setLineWidth(0.5);doc.rect(146,8,50,13);
-    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);doc.text("No.",149,16.3);
+    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...GREY);doc.text("N\u00BA",149,16.3);
     doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(178,34,34);doc.text(c.jobNo||"",193,16.6,{align:"right"});
     doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(...NAVY);doc.text((S.company.name||"").toUpperCase(),196,27.5,{align:"right"});
     doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...INK);
@@ -1127,14 +1133,11 @@ async function pdfJob(c,btn){
     const used=[...(c.partsUsed||[]).map(u=>[String(u.qty),[u.partNo,u.desc].filter(Boolean).join("  ")]),
       ...String(c.parts||"").split("\n").map(x=>x.trim()).filter(Boolean).map(t=>{const m=/^(\d+(?:[.,]\d+)?)\s*[x×]?\s+(.+)$/i.exec(t);return m?[m[1],m[2]]:["",t]})];
     const need=String(c.partsNeeded||"").split("\n").map(x=>x.trim()).filter(Boolean).map(t=>{const m=/^(\d+(?:[.,]\d+)?)\s*[x×]?\s+(.+)$/i.exec(t);return m?[m[1],m[2]]:["",t]});
-    const per=Math.max(4,Math.ceil(used.length/2)),left=used.slice(0,per),right=used.slice(per);
-    while(left.length<per)left.push(["",""]);while(right.length<Math.max(2,per-3))right.push(["",""]);
-    const nd=need.slice();while(nd.length<Math.max(2,per-right.length-1))nd.push(["",""]);
-    while(left.length<right.length+1+nd.length)left.push(["",""]);
-    const pcol={0:{cellWidth:13,halign:"center"}};
-    doc.autoTable({...grid,startY:y,margin:{left:14,right:107,bottom:18},head:[["QTY","PARTS USED"]],body:left,bodyStyles:{minCellHeight:6.6},columnStyles:pcol});
+    const n=Math.max(5,used.length,need.length),pad=a=>{const r=a.slice();while(r.length<n)r.push(["",""]);return r};
+    const pcol={0:{cellWidth:13,halign:"center"}},pt={...grid,startY:y,bodyStyles:{minCellHeight:7.8},columnStyles:pcol};
+    doc.autoTable({...pt,margin:{left:14,right:107,bottom:18},head:[["QTY","PARTS USED"]],body:pad(used)});
     const yl=doc.lastAutoTable.finalY;
-    doc.autoTable({...grid,startY:y,margin:{left:107,right:14,bottom:18},head:[["QTY","PARTS USED"]],body:[...right,[{content:"PARTS NEEDED",colSpan:2,styles:{...CAP,halign:"center"}}],...nd],bodyStyles:{minCellHeight:6.6},columnStyles:pcol});
+    doc.autoTable({...pt,margin:{left:107,right:14,bottom:18},head:[["QTY","PARTS NEEDED"]],body:pad(need)});
     y=Math.max(yl,doc.lastAutoTable.finalY)+4;
     // times and sign-off
     let sig=null;if(c.signId){try{sig=await imgData(await blobUrl(c.signId))}catch(_){}}
@@ -1443,7 +1446,7 @@ async function relayApi(path,body){
   if(path.startsWith("/api/blob/"))return net(()=>relayBlob(decodeURIComponent(path.slice(10))));
   if(path==="/api/setup")return net(async()=>{
     setClub(NT.bytesToHex(NT.generateSecretKey()));
-    const u={id:"u"+newId(),name:body.name,username:body.username,role:"admin",active:true,pv:1};
+    const u={id:"u"+newId(),name:body.name,username:body.username,role:"admin",active:true,pv:1,blk:0};
     await publishTicket(u.username,body.password);
     RL.afterEnter=()=>setUsers([u]);return {token:"relay",user:u}});
   if(path==="/api/login")return net(async()=>{
@@ -1456,14 +1459,14 @@ async function relayApi(path,body){
     const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#d":[dTag("r|settings/users")]},{maxWait:8000});
     evs.sort((a,b)=>b.created_at-a.created_at);let list=null;
     for(const e of evs){try{const r=await readEv(e);if(r?.d?.list){list=r.d.list;break}}catch(_){}}
-    let u=(list||[]).find(x=>x.username===body.username);
+    let u=(list||[]).find(x=>x.username===body.username);if(u&&u.blk==null)u={...u,blk:list.indexOf(u)};
     if(!u&&base){const {password,...a}=BASE;u=a;RL.afterEnter=()=>{const cur=getUsers();if(!cur.some(x=>x.id===a.id))setUsers([a,...cur])}} // first sign-in anywhere: the admin starts the list
     if(!u)throw {msg:"This login isn't ready yet. Open the admin's phone so it can sync, then try again"};
     if(u.active===false)throw {msg:"This login is switched off. Speak to the admin"};
     return {token:"relay",user:u}});
   if(path==="/api/users")return net(async()=>{
     const list=getUsers();if(list.some(x=>x.username===body.username))throw {msg:"That username is taken. Choose another"};
-    const u={id:"u"+newId(),name:body.name,username:body.username,role:"tech",active:true,pv:1};
+    const u={id:"u"+newId(),name:body.name,username:body.username,role:"tech",active:true,pv:1,blk:Math.max(list.length,...list.map(x=>(+x.blk||0)+1))};
     await publishTicket(u.username,body.password);await setUsers([...list,u]);return {user:u}});
   if(path.startsWith("/api/users/"))return net(async()=>{
     const list=getUsers(),u=list.find(x=>x.id===decodeURIComponent(path.slice(11)));if(!u)throw {msg:"No such login"};
