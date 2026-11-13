@@ -215,6 +215,7 @@ textarea{resize:vertical;min-height:88px}
 .member{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:start}
 .member.off{background:#F7F9FC}
 .member .who{display:flex;flex-direction:column;min-width:0}
+.member .who .cothumb{max-height:44px;max-width:140px;width:auto;align-self:flex-start;margin-bottom:6px}
 .member .who b{font-size:1.05rem;overflow-wrap:anywhere}
 .member .who span{color:var(--muted);font-size:.88rem}
 .member .row{grid-column:1/-1}
@@ -443,10 +444,10 @@ function settingsView(){
     <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>
     ${accountSection()}
     <div class="section"><fieldset><legend>Company on reports</legend>
-      <div class="stack" style="gap:8px"><span class="hint"><b>Your company logo</b> (shown next to the Macadams logo)</span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<span class="hint">No company logo yet. Only the Macadams logo shows.</span>`}</div><div class="row"><label class="btn filebtn">${logoDraftId()?"Replace logo":"Add logo"}<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
+      <div class="stack" style="gap:8px"><span class="hint"><b>Your company logo</b> (shown next to the Macadams logo)</span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<span class="hint">No company logo yet. Only the Macadams logo shows.</span>`}</div><div class="row"><label class="btn filebtn">${logoDraftId()?"Replace logo":"Add logo"}<input id="logoIn" type="file" accept="image/*" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
       <div class="stack" style="gap:8px"><span class="hint"><b>Brand logos</b> (printed along the bottom of the first PDF page)</span>
         ${brandDraft().length?`<div class="brands">${brandDraft().map((b,i)=>`<div class="bl"><img ${imgSrc(b.id)} alt="Brand logo"><button class="x" type="button" data-brm="${i}" aria-label="Remove logo">×</button></div>`).join("")}</div>`:`<p class="hint">No brand logos yet.</p>`}
-        <div class="row"><label class="btn filebtn">Add brand logos<input id="brandIn" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label></div></div>
+        <div class="row"><label class="btn filebtn">Add brand logos<input id="brandIn" type="file" accept="image/*" multiple hidden></label></div></div>
       <label>Company name<input id="s_name" value="${esc(S.setDraft?.name??S.company.name)}"></label>
       <label>Company details<textarea id="s_footer" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(S.setDraft?.footer??S.company.footer)}</textarea></label>
       <p class="hint">Printed next to the logo at the top of every job card and summary, one line each (up to 5). Changes apply for the whole team.</p>
@@ -875,7 +876,7 @@ function devView(){
     <div class="section"><fieldset><legend>Company</legend>
       <label>Company name<input id="c_name" value="${esc(c.name||"")}" placeholder="e.g. Zululand Service Providers"></label>
       <label>Company details<textarea id="c_details" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(c.details||"")}</textarea></label>
-      <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></div>
+      <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoThumb?`<img src="${esc(c.logoThumb)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/*" hidden></label></div></div>
       <p class="hint">The name, details and logo show at the top of this company's job cards, summaries and invoices.</p>
       <label class="check"><input type="checkbox" id="c_mac" ${c.showMac===false?"":"checked"}><span>Show the Macadams logo next to this company's logo</span></label>
       <label class="check"><input type="checkbox" id="c_inv" ${c.invoicing?"checked":""}><span>This company makes invoices in the app</span></label>
@@ -889,7 +890,7 @@ function devView(){
     ${add?"":`<div><button class="btn${c.active===false?"":" danger"}" id="coToggle" type="button">${c.active===false?"Switch this company back on":"Switch this company off"}</button></div>`}</form>`}
   const list=[...S.companies].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${list.length} compan${list.length===1?"y":"ies"}</span><button class="btn primary" id="addCo" type="button">${ic("plus")}Add company</button></div>
-    ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who"><b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.invoicing?"invoicing on":"invoicing off"}</span></div>
+    ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who">${c.logoThumb?`<img class="cothumb" src="${esc(c.logoThumb)}" alt="">`:""}<b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.invoicing?"invoicing on":"invoicing off"}</span></div>
       ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button>${S.coOff===c.id?`<span class="hint" style="align-self:center">Switch ${esc(c.name)} off?</span><button class="btn icon-btn danger" type="button" data-cooffyes="${esc(c.id)}">Switch off</button><button class="btn icon-btn" type="button" data-cooffno="1">Keep on</button>`:c.active===false?`<button class="btn icon-btn" type="button" data-coon="${esc(c.id)}">Switch on</button>`:`<button class="btn icon-btn danger" type="button" data-cooff="${esc(c.id)}">Switch off</button>`}</div></div>`).join("")
     :`<div class="empty"><h2>No companies yet</h2><p>Add each company with its details and an admin login. Each company only ever sees its own job cards.</p></div>`}</div>`;
 }
@@ -907,7 +908,7 @@ async function saveCompany(){
     if(adminUser===BASE.username||S.companies.some(c=>c.adminUser===adminUser)){toast("That username is taken. Choose another");return}}
   if((add||pw)&&pw.length<minPw()){toast(`Use a password of ${minPw()} or more characters`);return}
   if(navigator.onLine===false){toast("Connect to the internet to save a company");return}
-  const b=$("#coSave");b.disabled=true;b.textContent="Saving…";
+  const b=$("#coSave");b.disabled=true;b.textContent=S.coForm.logo?"Saving logo…":"Saving…";S.logoFailed=false;
   try{
     const now=Date.now();
     if(add){
@@ -918,8 +919,8 @@ async function saveCompany(){
       await sendDoc("settings/company",{name,footer:details,logoId,logoUrl:"",brandLogos:[],showMac},now,club);
       await sendDoc("settings/invoicing",{...INV0,enabled:invoicing},now,club);
       await sendDoc("settings/account",{active:true},now,club);
-      await db.collection("companies").add({name,details,invoicing,showMac,adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
-      toast(name+" added. The admin can sign in now");
+      await db.collection("companies").add({name,details,invoicing,showMac,logoThumb:logoId?(S.coForm.thumb||""):"",adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
+      toast(S.logoFailed?name+" added, but the logo didn't upload. Open Edit and choose it again":name+" added. The admin can sign in now");
     }else{
       const club=clubOf(old.sk);
       const newLogo=await sendLogo(club,now);
@@ -927,14 +928,20 @@ async function saveCompany(){
       if(invoicing!==!!old.invoicing){const cur=await readDocC(club,"settings/invoicing")||INV0;await sendDoc("settings/invoicing",{...cur,enabled:invoicing},now,club)}
       if(pw){await publishTicket(adminUser,pw,club);const cur=await readDocC(club,"settings/users");
         if(cur?.list){const list=cur.list.map(x=>x.id===old.adminId?{...x,pv:(x.pv||1)+1}:x);await sendDoc("settings/users",{list,updatedAt:now},now,club)}}
-      await db.doc("companies/"+old.id).update({name,details,invoicing,showMac,...(newLogo?{logoId:newLogo}:{}),updatedAt:now});
-      toast("Company saved");
+      await db.doc("companies/"+old.id).update({name,details,invoicing,showMac,...(newLogo?{logoId:newLogo,logoThumb:S.coForm.thumb||""}:{}),updatedAt:now});
+      toast(S.logoFailed?"Company saved, but the logo didn't upload. Check the signal and choose it again":"Company saved");
     }
     S.coForm=null;render();
   }catch(err){console.error(err);toast("Couldn't save. Check the connection and try again");const x=$("#coSave");if(x){x.disabled=false;x.textContent="Save"}}
 }
-async function sendLogo(club,now){const url=S.coForm?.logo;if(!url)return "";const id=newId();await sendDoc("blobs/"+id,{data:url,createdAt:now},now,club);return id}
-async function pickCoLogo(file){try{const url=await toDataUrl(await shrinkLogo(file));if(url.length>900000){toast("That logo file is too big");return}S.coForm.logo=url;$("#c_logoBox").innerHTML=`<img src="${esc(url)}" alt="Company logo">`}catch(_){toast("Use a PNG or JPG file")}}
+async function sendLogo(club,now){const url=S.coForm?.logo;if(!url)return "";const id=newId();
+  try{await sendDoc("blobs/"+id,{data:url,createdAt:now},now,club);return id}catch(err){console.warn(err);S.logoFailed=true;return ""}}
+async function pickCoLogo(file){
+  const box=$("#c_logoBox");if(box)box.innerHTML=`<span class="hint">Getting the logo ready…</span>`;
+  try{const url=await toDataUrl(await shrinkLogo(file));const thumb=await toDataUrl(await shrinkLogo(file,160));
+    S.coForm.logo=url;S.coForm.thumb=thumb;const b2=$("#c_logoBox");if(b2)b2.innerHTML=`<img src="${esc(url)}" alt="Company logo">`;toast("Logo ready. Tap Save")}
+  catch(err){console.error(err);const b2=$("#c_logoBox");if(b2)b2.innerHTML=`<span class="hint">No logo chosen.</span>`;toast(err?.message&&!/^[A-Z]+Error/.test(err.message)?err.message:"Couldn't open that picture. Try another file")}
+}
 async function toggleCompany(c){
   if(!c)return;const on=c.active===false;
   if(navigator.onLine===false){toast("Connect to the internet to change this");return}
@@ -1301,13 +1308,16 @@ async function blobUrl(id){
   const u=d?.data||"";if(u)blobCache[id]=u;return u;
 }
 function hydrate(){document.querySelectorAll("img[data-blob]:not([src])").forEach(im=>{const id=im.dataset.blob;if(!id)return;blobUrl(id).then(u=>{if(u)im.src=u}).catch(()=>{})})}
-async function shrinkLogo(file){
-  let b;try{b=await createImageBitmap(file)}catch(_){b=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)})}
-  const s=Math.min(1,600/Math.max(b.width,b.height));const cv=document.createElement("canvas");cv.width=Math.round(b.width*s);cv.height=Math.round(b.height*s);
-  cv.getContext("2d").drawImage(b,0,0,cv.width,cv.height);
-  const png=await new Promise(r=>cv.toBlob(r,"image/png"));if(png.size<600000)return png;
-  const c2=document.createElement("canvas");c2.width=cv.width;c2.height=cv.height;const x=c2.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c2.width,c2.height);x.drawImage(cv,0,0);
-  return await new Promise(r=>c2.toBlob(r,"image/jpeg",0.9));
+async function shrinkLogo(file,max){
+  let b;try{b=await createImageBitmap(file)}catch(_){b=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("This file isn't a picture the phone can open"));i.src=URL.createObjectURL(file)})}
+  for(const side of [max||600,450,320]){
+    const s=Math.min(1,side/Math.max(b.width,b.height));const cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(b.width*s));cv.height=Math.max(1,Math.round(b.height*s));
+    cv.getContext("2d").drawImage(b,0,0,cv.width,cv.height);
+    const png=await new Promise(r=>cv.toBlob(r,"image/png"));if(png&&png.size<220000)return png;
+    const c2=document.createElement("canvas");c2.width=cv.width;c2.height=cv.height;const x=c2.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c2.width,c2.height);x.drawImage(cv,0,0);
+    const jpg=await new Promise(r=>c2.toBlob(r,"image/jpeg",0.88));if(jpg&&jpg.size<220000)return jpg;
+  }
+  throw new Error("That logo is too detailed to use. Try a simpler or smaller picture");
 }
 
 /* Android back button */
@@ -1352,7 +1362,7 @@ const dec=(x,c)=>JSON.parse(NT.nip44.decrypt(x,ck(c)));
 function relayOff(){try{RL.sub&&RL.sub.close()}catch(_){}RL.sub=null;RL.eose=false;RL.buf=[]}
 function setClub(sk){relayOff();CLUB=sk?{sk,pk:NT.getPublicKey(NT.hexToBytes(sk))}:null;CK=null;LS("club",CLUB?JSON.stringify(CLUB):null)}
 function rpool(){return RL.pool||(RL.pool=new NT.SimplePool({enableReconnect:true,enablePing:true}))}
-async function publish(ev){return await Promise.any(rpool().publish(RELAYS,ev))}
+async function publish(ev){let last;for(let a=0;a<3;a++){try{return await Promise.any(rpool().publish(RELAYS,ev))}catch(e){last=e;await new Promise(r=>setTimeout(r,800*(a+1)))}}throw last}
 const sendTime=path=>Math.max(Math.floor(Date.now()/1000),((RM[path]||[])[1]||0)+1);
 /* send one record; big ones (photos) are split into parts */
 async function sendDoc(path,data,ts,club){ // club: another company's space (developer only); otherwise this phone's company
