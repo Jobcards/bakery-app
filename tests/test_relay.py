@@ -33,6 +33,7 @@ async def newcard(pg,cust,photo=True,parts=0,km=""):
 async def addco(pg,name,details,aname,auser,apw,inv):
     await pg.click("#addCo"); await pg.fill("#c_name",name); await pg.fill("#c_details",details); await pg.fill("#c_adminName",aname); await pg.fill("#c_adminUser",auser); await pg.fill("#c_adminPass",apw)
     if inv: await pg.check("#c_inv")
+    if not inv: await pg.uncheck("#c_mac")
     if inv: await pg.set_input_files("#c_logo",os.path.join(HERE,"logo.png")); await pg.wait_for_selector("#c_logoBox img")
     await shot(pg,"c1_addcompany.png"); await pg.click("#coSave"); await pg.wait_for_selector(f".member:has-text('{name}')",timeout=30000)
 async def synced(pg): await pg.wait_for_function("document.querySelector('#syncState').textContent==='Synced'",timeout=30000)
@@ -54,7 +55,7 @@ async def main():
     await login(admin,"zspadmin","zsp-1234"); await admin.wait_for_selector("#tabTeam:not([hidden])",timeout=30000); await admin.wait_for_function("document.querySelector('#coName').textContent==='Zululand Service Providers'",timeout=20000)
     ok("company admin signs in and sees their own company name",True)
     ok("invoicing is on for this company (set by the developer)",await admin.eval_on_selector("#tabInv","e=>!e.hidden"))
-    await admin.wait_for_function("!document.querySelector('#coBadge').hidden&&document.querySelector('#coLogo2').getAttribute('src').startsWith('data:')",timeout=30000); ok("the company's own logo shows next to the Macadams one",await admin.eval_on_selector('#coLogo','e=>e.getAttribute("src")')=='macadams-logo.png')
+    await admin.wait_for_function("!document.querySelector('#coBadge').hidden&&document.querySelector('#coLogo2').getAttribute('src').startsWith('data:')",timeout=30000); ok("the company's own logo shows next to the Macadams one",not await admin.eval_on_selector("#macBadge","e=>e.hidden") and await admin.eval_on_selector('#coLogo','e=>e.getAttribute("src")')=='macadams-logo.png')
     await admin.click("#tabTeam")
     for n,u,pw in [("Sipho Dlamini","sipho","oven-1234"),("Thabo Nkosi","thabo","mixer-4567")]:
         await admin.click("#addTech"); await admin.fill("#t_name",n); await admin.fill("#t_user",u); await admin.fill("#t_pass",pw); await admin.click("#teamSave"); await admin.wait_for_selector(f".member:has-text('{n}')",timeout=20000)
@@ -94,7 +95,8 @@ async def main():
     cctx,cbs=await page(b); await login(cbs,"cbsadmin","cbs-1234"); await cbs.wait_for_selector("#tabTeam:not([hidden])",timeout=30000); await cbs.wait_for_function("document.querySelector('#coName').textContent==='Coastal Bakery Services'",timeout=20000); await synced(cbs); await cbs.wait_for_timeout(1500)
     ok("the other company's admin sees none of the first company's job cards",await cbs.locator(".card").count()==0)
     await cbs.click("#tabCust"); await cbs.wait_for_timeout(500); ok("nor its customers",await cbs.locator(".card.cust").count()==0)
-    ok("invoicing is off for the company that didn't want it",await cbs.eval_on_selector("#tabInv","e=>e.hidden")); await cctx.close()
+    ok("invoicing is off for the company that didn't want it",await cbs.eval_on_selector("#tabInv","e=>e.hidden"))
+    ok("the company set without the Macadams logo doesn't show it",await cbs.eval_on_selector("#macBadge","e=>e.hidden")); await cctx.close()
 
     tctx,thabo=await page(b); await login(thabo,"thabo","mixer-4567"); await thabo.wait_for_selector("#fab",timeout=30000); await synced(thabo); await thabo.wait_for_timeout(1500)
     ok("Thabo's phone doesn't show Sipho's job cards",await thabo.locator(".card").count()==0)

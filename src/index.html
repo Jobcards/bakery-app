@@ -245,7 +245,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 
 <header class="appbar">
   <div class="wrap bar">
-    <span class="logos"><span class="badge"><img id="coLogo" src="macadams-logo.png" alt="Macadams"></span><span class="badge co" id="coBadge" hidden><img id="coLogo2" alt=""></span></span>
+    <span class="logos"><span class="badge" id="macBadge"><img id="coLogo" src="macadams-logo.png" alt="Macadams"></span><span class="badge co" id="coBadge" hidden><img id="coLogo2" alt=""></span></span>
     <div class="titles"><span id="coName">Macadams International</span><h1 id="viewTitle">Job cards</h1><span id="syncState" class="sync"></span></div>
     <button class="iconbtn" id="settingsBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg></button>
   </div>
@@ -613,13 +613,14 @@ async function saveSettings(){
   const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim();
   const lg=S.logoDraft||{id:S.company.logoId,url:S.company.logoUrl};
   const iv=readInvSettings();
-  try{if(iv)await db.doc("settings/invoicing").set({...invCfg(),...iv});await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;S.setDraft=null;toast("Settings saved");S.view="list";render()}
+  try{if(iv)await db.doc("settings/invoicing").set({...invCfg(),...iv});await db.doc("settings/company").set({name,footer,showMac:S.company.showMac!==false,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;S.setDraft=null;toast("Settings saved");S.view="list";render()}
   catch(_){toast("Couldn't save settings. You may need edit access")}
 }
 
 function logoDraftId(){return S.logoDraft?S.logoDraft.id:S.company.logoId}
 const DEFAULT_LOGO="macadams-logo.png";
 function setLogo(){const im=$("#coLogo2"),b=$("#coBadge");if(!im)return;const id=S.company.logoId;
+  $("#macBadge").hidden=!signedOut()&&!isDev&&S.company.showMac===false; // the sign-in screen always shows it
   if(!id||isDev||signedOut()){b.hidden=true;return}
   const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;b.hidden=false}
   else{b.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
@@ -630,7 +631,7 @@ async function uploadLogo(file){
   try{const res=await assets.upload(await shrinkLogo(file));S.logoDraft={id:res.id,url:res.url};render();toast("Logo ready. Tap Save settings")}
   catch(err){toast(err?.code==="unsupported_type"?"Use a PNG or JPG file":"Logo didn't upload. Try again")}
 }
-async function logoData(){const out={mac:null,co:null};try{out.mac=await imgData(DEFAULT_LOGO)}catch(_){}
+async function logoData(){const out={mac:null,co:null};if(S.company.showMac!==false){try{out.mac=await imgData(DEFAULT_LOGO)}catch(_){}}
   const id=S.company.logoId;if(id){try{out.co=await imgData(await blobUrl(id))}catch(_){}}return out}
 /* ---------- van stock ---------- */
 const vanSubs={};
@@ -873,6 +874,7 @@ function devView(){
       <label>Company details<textarea id="c_details" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(c.details||"")}</textarea></label>
       <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet. The Macadams logo always shows; this one goes next to it.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></div>
       <p class="hint">The name, details and logo show at the top of this company's job cards, summaries and invoices.</p>
+      <label class="check"><input type="checkbox" id="c_mac" ${c.showMac===false?"":"checked"}><span>Show the Macadams logo next to this company's logo</span></label>
       <label class="check"><input type="checkbox" id="c_inv" ${c.invoicing?"checked":""}><span>This company makes invoices in the app</span></label>
     </fieldset></div>
     <div class="section"><fieldset><legend>Company admin login</legend>
@@ -884,7 +886,7 @@ function devView(){
     ${add?"":`<div><button class="btn${c.active===false?"":" danger"}" id="coToggle" type="button">${c.active===false?"Switch this company back on":"Switch this company off"}</button></div>`}</form>`}
   const list=[...S.companies].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${list.length} compan${list.length===1?"y":"ies"}</span><button class="btn primary" id="addCo" type="button">${ic("plus")}Add company</button></div>
-    ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who"><b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.invoicing?"Invoicing on":"Invoicing off"}</span></div>
+    ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who"><b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.invoicing?"invoicing on":"invoicing off"}</span></div>
       ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button></div></div>`).join("")
     :`<div class="empty"><h2>No companies yet</h2><p>Add each company with its details and an admin login. Each company only ever sees its own job cards.</p></div>`}</div>`;
 }
@@ -894,7 +896,7 @@ async function readDocC(club,path){
 }
 async function saveCompany(){
   const f=S.coForm,add=f.mode==="add",old=f.co||{};
-  const name=$("#c_name").value.trim(),details=$("#c_details").value.trim(),invoicing=$("#c_inv").checked,pw=$("#c_adminPass").value.trim();
+  const name=$("#c_name").value.trim(),details=$("#c_details").value.trim(),invoicing=$("#c_inv").checked,showMac=$("#c_mac").checked,pw=$("#c_adminPass").value.trim();
   if(!name){toast("Type the company name");return}
   let adminName=old.adminName,adminUser=old.adminUser;
   if(add){adminName=$("#c_adminName").value.trim();adminUser=normUser($("#c_adminUser").value);
@@ -910,19 +912,19 @@ async function saveCompany(){
       await publishTicket(adminUser,pw,club);
       await sendDoc("settings/users",{list:[admin],updatedAt:now},now,club);
       const logoId=await sendLogo(club,now);
-      await sendDoc("settings/company",{name,footer:details,logoId,logoUrl:"",brandLogos:[]},now,club);
+      await sendDoc("settings/company",{name,footer:details,logoId,logoUrl:"",brandLogos:[],showMac},now,club);
       await sendDoc("settings/invoicing",{...INV0,enabled:invoicing},now,club);
       await sendDoc("settings/account",{active:true},now,club);
-      await db.collection("companies").add({name,details,invoicing,adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
+      await db.collection("companies").add({name,details,invoicing,showMac,adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
       toast(name+" added. The admin can sign in now");
     }else{
       const club=clubOf(old.sk);
       const newLogo=await sendLogo(club,now);
-      if(newLogo||name!==old.name||details!==(old.details||"")){const cur=await readDocC(club,"settings/company")||{};await sendDoc("settings/company",{logoId:"",logoUrl:"",brandLogos:[],...cur,name,footer:details,...(newLogo?{logoId:newLogo}:{})},now,club)}
+      if(newLogo||name!==old.name||details!==(old.details||"")||showMac!==(old.showMac!==false)){const cur=await readDocC(club,"settings/company")||{};await sendDoc("settings/company",{logoId:"",logoUrl:"",brandLogos:[],...cur,name,footer:details,showMac,...(newLogo?{logoId:newLogo}:{})},now,club)}
       if(invoicing!==!!old.invoicing){const cur=await readDocC(club,"settings/invoicing")||INV0;await sendDoc("settings/invoicing",{...cur,enabled:invoicing},now,club)}
       if(pw){await publishTicket(adminUser,pw,club);const cur=await readDocC(club,"settings/users");
         if(cur?.list){const list=cur.list.map(x=>x.id===old.adminId?{...x,pv:(x.pv||1)+1}:x);await sendDoc("settings/users",{list,updatedAt:now},now,club)}}
-      await db.doc("companies/"+old.id).update({name,details,invoicing,...(newLogo?{logoId:newLogo}:{}),updatedAt:now});
+      await db.doc("companies/"+old.id).update({name,details,invoicing,showMac,...(newLogo?{logoId:newLogo}:{}),updatedAt:now});
       toast("Company saved");
     }
     S.coForm=null;render();
@@ -1646,7 +1648,7 @@ function startData(){
     softRender();
   }));
   unsubs.push(db.collection("customers").onSnapshot(snap=>{S.customers=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.name).sort((a,b)=>(a.name+a.site).localeCompare(b.name+b.site));softRender()}));
-  unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
+  unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,showMac:d.showMac!==false,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
     $("#coName").textContent=coTitle();setLogo();softRender()}));
 }
 async function boot(){
