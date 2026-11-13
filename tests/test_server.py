@@ -28,7 +28,7 @@ async def newcard(pg,cust,photo=True,full=False):
         await pg.fill("#f_site","Empangeni"); await pg.fill("#f_contact","Zanele 082 555 0101"); await pg.fill("#f_model","Rotomax 68"); await pg.fill("#f_serial","RM-4471"); await pg.fill("#f_timeIn","08:00"); await pg.fill("#f_timeOut","10:30")
         await pg.fill("#f_fault","Oven not reaching temperature.\nBurner cutting out after 10 minutes."); await pg.fill("#f_work","Cleaned flame sensor and replaced the door seal.\nTested for 45 minutes at 220 C, holding temperature."); await pg.fill("#f_notes","Recommend replacing the steam solenoid at next service.")
         await pg.click("[data-status=follow]")
-        await pg.select_option("#usedPick",index=1); await pg.fill("#usedQty","1"); await pg.click("#addUsed")
+        await pg.click("#pickOpen"); await pg.click("#picker button[data-d='1']"); await pg.click("#pickDone")
         await pg.fill("#f_signName","Zanele Mthembu"); await sign(pg); await shot(pg,"6_form_sign.png")
     if photo:
         await pg.set_input_files("#galIn",os.path.join(HERE,"photo.jpg")); await pg.wait_for_function("!document.querySelector('.ph .up')",timeout=15000)

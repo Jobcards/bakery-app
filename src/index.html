@@ -183,6 +183,31 @@ textarea{resize:vertical;min-height:88px}
 
 .linkbtn{background:none;border:0;color:var(--navy);font-weight:600;text-decoration:underline;padding:10px;cursor:pointer;align-self:center}
 
+/* van stock picker, invoices */
+.sheet{position:fixed;inset:0;z-index:30;background:var(--bg);overflow-y:auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.sheet-bar{position:sticky;top:0;z-index:2;background:var(--navy)}
+.sheet-bar .formbar{position:static;margin:0;background:none;border:0;color:#fff;padding-block:12px}
+.sheet-bar .btn:not(.primary){background:rgba(255,255,255,.12);color:#fff;border-color:transparent}
+.sheet-bar .btn.primary{background:var(--yellow);border-color:var(--yellow);color:var(--navy)}
+.sheet-body{padding-top:14px}
+.sheet .search{flex:none}
+.sheet .part .pd span{display:block}
+.part.picked{border-color:var(--navy);box-shadow:inset 4px 0 0 var(--yellow)}
+.used .sub,.iline .sub{color:var(--muted);font-size:.86rem}
+.line{border:1px solid var(--line);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px;background:#F7F9FC}
+.line label input{background:#fff}
+.line3{display:grid;grid-template-columns:1fr 1.3fr auto;gap:8px;align-items:end}
+.totals{display:flex;flex-direction:column;gap:4px;border-top:1.5px solid var(--line);padding-top:10px}
+.totals div{display:flex;justify-content:space-between;gap:12px}
+.totals .grand{font-size:1.15rem;color:var(--navy);font-weight:800}
+.iline{display:grid;grid-template-columns:1fr auto;gap:0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.iline .sub{grid-column:1}
+.iline b{grid-column:2;grid-row:1/3;align-self:center}
+.check{flex-direction:row;align-items:center;gap:10px;font-size:.95rem;font-weight:500}
+.check input{width:22px;height:22px;min-height:0;flex:none;accent-color:var(--navy)}
+.tab{font-size:.68rem}
+.tab .ic{width:44px}
+
 /* technicians */
 .member{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:start}
 .member.off{background:#F7F9FC}
@@ -230,15 +255,17 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
   <button class="tab" role="tab" id="tabCust" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6M4 20h16"/></svg></span>Customers</button>
   <button class="tab" role="tab" id="tabVan" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Van stock</button>
   <button class="tab" role="tab" id="tabReports" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg></span>Reports</button>
-  <button class="tab" role="tab" id="tabTeam" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.2 3.2-4.8 6-4.8s5.200 1.600 6 4.800"/><circle cx="17" cy="9" r="2.500"/><path d="M17 14.500c2 .200 3.500 1.500 4 4"/></svg></span>Technicians</button>
+  <button class="tab" role="tab" id="tabInv" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span>Invoices</button>
+  <button class="tab" role="tab" id="tabTeam" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.2 3.2-4.8 6-4.8s5.200 1.600 6 4.800"/><circle cx="17" cy="9" r="2.500"/><path d="M17 14.500c2 .200 3.500 1.500 4 4"/></svg></span>Team</button>
 </div></nav>
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const MACADAMS={name:"Macadams International",footer:"Unit 3, 2 Corobrik Road, Riverhorse Valley, Durban 4017\nTel +27 (0)31 569 6290\n24/7 technical call centre 087 015 0123\nMacadamsHelpdesk@macadams.co.za"};
+const MACADAMS={name:"",footer:""}; // each company's own name and details are set when the developer adds it
+const coTitle=()=>isDev?"Developer":(S.company.name||"Job cards");
 const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
 const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
-const S={view:"list",customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
+const S={view:"list",invoices:[],invCfg:null,companies:[],customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
   rep:{from:"",to:"",tech:"all"}};
 let db=null,assets=null,meId=null,canWrite=true;
 const $=s=>document.querySelector(s);
@@ -253,14 +280,14 @@ function newJobNo(){const d=new Date();const p=n=>String(n).padStart(2,"0");retu
 /* ---------- rendering ---------- */
 const ICONS={machine:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M8 13h8v4H8z"/>',person:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.5 4-5 7-5s6 1.5 7 5"/>',camera:'<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',share:'<path d="M4 13v7h16v-7M12 15V3M7 8l5-5 5 5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',back:'<path d="M15 5l-7 7 7 7"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
-const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome",login:"Sign in",wait:"Job cards",team:"Technicians",cust:"Customers",customer:"Customer"};
+const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome",login:"Sign in",wait:"Job cards",team:"Technicians",cust:"Customers",customer:"Customer",inv:"Invoices",invform:"Invoice",invview:"Invoice",dev:"Companies"};
 function dayLabel(d){if(!d)return "No date";if(d===today())return "Today";const y=new Date();y.setDate(y.getDate()-1);if(d===y.toLocaleDateString("en-CA"))return "Yesterday";return new Date(d+"T00:00").toLocaleDateString("en-ZA",{weekday:"short",day:"numeric",month:"short"})}
-function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail"||v==="form");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabCust").setAttribute("aria-selected",v==="cust"||v==="customer");$("#tabReports").setAttribute("aria-selected",v==="reports");$("#tabTeam").setAttribute("aria-selected",v==="team");
-  const bare=["login","who","wait"].includes(v);document.querySelector(".tabbar").hidden=bare;$("#settingsBtn").hidden=bare;$("#tabTeam").hidden=!isAdmin}
+function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail"||v==="form");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabCust").setAttribute("aria-selected",v==="cust"||v==="customer");$("#tabReports").setAttribute("aria-selected",v==="reports");$("#tabTeam").setAttribute("aria-selected",v==="team");$("#tabInv").setAttribute("aria-selected",v==="inv"||v==="invform"||v==="invview");$("#tabInv").hidden=!invOn();
+  const bare=["login","who","wait"].includes(v);document.querySelector(".tabbar").hidden=bare||isDev;$("#settingsBtn").hidden=bare;$("#tabTeam").hidden=!isAdmin}
 function render(){
   setTab(S.view);
   $("#fab").hidden=S.view!=="list"||!canWrite;
-  $("#coName").textContent=S.company.name||"Service department";setLogo();
+  $("#coName").textContent=coTitle();setLogo();
   $("#viewTitle").textContent=S.view==="form"?(S.form?.id?"Edit job card":"New job card"):(TITLES[S.view]||"Job cards");
   const app=$("#app");
   if(S.view==="list")app.innerHTML=listView();
@@ -273,6 +300,10 @@ function render(){
   else if(S.view==="team")app.innerHTML=teamView();
   else if(S.view==="cust")app.innerHTML=custListView();
   else if(S.view==="customer")app.innerHTML=customerView();
+  else if(S.view==="inv")app.innerHTML=invListView();
+  else if(S.view==="invform"){app.innerHTML=invFormView();renderInvLines()}
+  else if(S.view==="invview")app.innerHTML=invView();
+  else if(S.view==="dev")app.innerHTML=devView();
   else if(S.view==="wait")app.innerHTML=`<div class="empty"><p>Opening…</p></div>`;
   hydrate();window.scrollTo(0,0);
 }
@@ -312,12 +343,13 @@ function detailView(){
       <span class="jn">${esc(c.jobNo)}</span>
       <h2>${esc(c.customer||"No customer")}</h2>${c.site?`<span class="site">${esc(c.site)}</span>`:""}
     </div>
-    <div class="actions"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">${ic("share")}WhatsApp text</button>${canWrite?`<button class="btn" id="editOne" type="button">${ic("edit")}Edit</button>`:""}</div>
+    <div class="actions"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">${ic("share")}WhatsApp text</button>${canWrite?`<button class="btn" id="editOne" type="button">${ic("edit")}Edit</button>`:""}${invOn()&&c.status==="done"?(invFor(c.id)?`<button class="btn" type="button" data-inv="${esc(invFor(c.id).id)}">${ic("doc")}Invoice ${esc(invFor(c.id).no)}</button>`:`<button class="btn" type="button" data-newinv="${esc(c.id)}">${ic("doc")}Create invoice</button>`):""}</div>
     <div class="section"><dl class="kv">
       <dt>Date</dt><dd>${fmtDate(c.date)}</dd>
       <dt>Technician</dt><dd>${esc(techName(c.techId))}</dd>
       ${c.serviceCo?`<dt>Service company</dt><dd>${esc(c.serviceCo)}</dd>`:""}
       <dt>Time on site</dt><dd>${esc(c.timeIn||"–")} to ${esc(c.timeOut||"–")}${h!=null?` <span class="mono">(${h} h)</span>`:""}</dd>
+      ${+c.km?`<dt>Travel</dt><dd>${esc(c.km)} km</dd>`:""}
       ${c.contact?`<dt>Site contact</dt><dd>${esc(c.contact)}</dd>`:""}
       <dt>Equipment</dt><dd>${esc(c.equipment||"–")}${c.model?` · ${esc(c.model)}`:""}</dd>
       ${c.serial?`<dt>Serial no.</dt><dd class="mono">${esc(c.serial)}</dd>`:""}
@@ -336,6 +368,7 @@ function formView(){
     <div class="section"><fieldset><legend>Job</legend>
       <div class="grid2"><label>Job no.<input id="f_jobNo" value="${esc(f.jobNo)}" required></label><label>Date<input id="f_date" type="date" value="${esc(f.date)}"></label></div>
       <div class="grid2"><label>Time in<input id="f_timeIn" type="time" value="${esc(f.timeIn)}"></label><label>Time out<input id="f_timeOut" type="time" value="${esc(f.timeOut)}"></label></div>
+      <label>Travel (km)<input id="f_km" type="number" inputmode="decimal" step="any" min="0" value="${esc(f.km||"")}" placeholder="Leave empty if travel is not charged"></label>
       <label>Service company<input id="f_serviceCo" value="${esc(f.serviceCo)}" placeholder="Company doing the work"></label>
       <div class="stack" style="gap:6px"><span class="lbl">Status</span><input type="hidden" id="f_status" value="${esc(f.status)}"><div class="chips wrap">${Object.entries(STATUSES).map(([k,v])=>`<button type="button" class="chip" data-status="${k}" aria-pressed="${f.status===k}">${v.label}</button>`).join("")}</div></div>
     </fieldset></div>
@@ -391,9 +424,9 @@ function reportsView(){
   </div>`;
 }
 function settingsView(){
-  if(!isAdmin)return `<div class="stack"><div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>${accountSection()}</div>`;
+  if(!isAdmin)return `<div class="stack"><div class="formbar"><button class="btn icon-btn" data-go="${isDev?"dev":"list"}" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>${accountSection()}</div>`;
   return `<form id="setForm" class="stack" novalidate>
-    <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Report settings</b><span></span></div>
+    <div class="formbar"><button class="btn icon-btn" data-go="list" type="button">${ic("back")}Back</button><b>Settings</b><span></span></div>
     ${accountSection()}
     <div class="section"><fieldset><legend>Company on reports</legend>
       <div class="stack" style="gap:8px"><span class="hint"><b>Company logo</b></span><div class="logo-box" id="logoBox">${logoDraftId()?`<img ${imgSrc(logoDraftId())} alt="Company logo">`:`<img src="${DEFAULT_LOGO}" alt="Macadams logo">`}</div><div class="row"><label class="btn filebtn">Replace logo<input id="logoIn" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>${logoDraftId()?`<button class="btn" id="logoRm" type="button">Remove logo</button>`:""}</div></div>
@@ -404,6 +437,7 @@ function settingsView(){
       <label>Company details<textarea id="s_footer" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(S.setDraft?.footer??S.company.footer)}</textarea></label>
       <p class="hint">Printed next to the logo at the top of every job card and summary, one line each (up to 5). Changes apply for the whole team.</p>
     </fieldset></div>
+    ${invSettings()}
     <button class="btn primary" type="submit" ${canWrite?"":"disabled"}>Save settings</button>
   </form>`;
 }
@@ -418,6 +452,26 @@ function setRange(k){const d=new Date();const iso=x=>x.toLocaleDateString("en-CA
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,[data-open]");if(!t)return;
   if(t.id==="tabTeam"){S.view="team";S.teamForm=null;render();loadTeam();return}
+  if(t.id==="pickOpen"){openPicker();return}
+  if(t.id==="pickCancel"){closePicker();return}
+  if(t.id==="pickDone"){pickDone();return}
+  if(t.dataset.pk){pickBump(t.dataset.pk,+t.dataset.d);return}
+  if(t.id==="tabInv"){S.view="inv";S.confirmDel=false;render();return}
+  if(t.dataset.newinv){const c=S.cards.find(x=>x.id===t.dataset.newinv);if(c){S.invForm=draftInvoice(c);S.view="invform";render()}return}
+  if(t.dataset.inv){S.invId=t.dataset.inv;S.confirmDel=false;S.view="invview";render();return}
+  if(t.id==="cancelInv"){S.view=S.invForm?.id?"invview":"inv";S.invForm=null;render();return}
+  if(t.id==="invAdd"){S.invForm.lines.push({desc:"",qty:1,price:0});renderInvLines();return}
+  if(t.dataset.ilrm!=null){S.invForm.lines.splice(+t.dataset.ilrm,1);renderInvLines();return}
+  if(t.id==="invPdf"){pdfInvoice(S.invoices.find(x=>x.id===S.invId),t);return}
+  if(t.id==="invPaid"){const v=S.invoices.find(x=>x.id===S.invId);if(v)db.doc("invoices/"+v.id).update({status:v.status==="paid"?"unpaid":"paid",updatedAt:Date.now()}).then(()=>toast(v.status==="paid"?"Marked unpaid":"Marked paid"));return}
+  if(t.id==="invEdit"){const v=S.invoices.find(x=>x.id===S.invId);if(v){S.invForm=JSON.parse(JSON.stringify(v));S.view="invform";render()}return}
+  if(t.id==="invDelAsk"){S.confirmDel=true;render();return}
+  if(t.id==="invDelNo"){S.confirmDel=false;render();return}
+  if(t.id==="invDelYes"){db.doc("invoices/"+S.invId).delete().then(()=>{S.confirmDel=false;S.view="inv";toast("Invoice deleted");render()});return}
+  if(t.id==="addCo"){S.coForm={mode:"add"};render();return}
+  if(t.id==="cancelCo"){S.coForm=null;render();return}
+  if(t.dataset.editco){const c=S.companies.find(x=>x.id===t.dataset.editco);if(c){S.coForm={mode:"edit",co:c};render()}return}
+  if(t.id==="coToggle"){toggleCompany();return}
   if(t.id==="tabCust"){S.view="cust";render();return}
   if(t.dataset.cust){S.custId=t.dataset.cust;S.view="customer";render();return}
   if(t.id==="newHere"||t.dataset.machjob!=null){const c=S.customers.find(x=>x.id===S.custId);if(c){const m=t.dataset.machjob!=null?(c.machines||[])[+t.dataset.machjob]:null;startForm(null,{customer:c.name,site:c.site||"",contact:c.contact||"",...(m?{equipment:m.equipment||"",model:m.model||"",serial:m.serial||""}:{})})}return}
@@ -443,7 +497,6 @@ document.addEventListener("click",e=>{
   else if(t.id==="cancelPart"){S.partForm=null;render()}
   else if(t.id==="delPart")deletePart();
   else if(t.dataset.inc)bumpQty(t.dataset.inc,+t.dataset.d);
-  else if(t.id==="addUsed")addUsed();
   else if(t.dataset.unused!=null){S.form.partsUsed.splice(+t.dataset.unused,1);renderUsed()}
   else if(t.dataset.brm!=null){keepSettingsInputs();const a=brandDraft().slice();a.splice(+t.dataset.brm,1);S.brandDraft=a;render()}
   else if(t.id==="settingsBtn"){S.logoDraft=null;S.setDraft=null;S.brandDraft=null;S.view="settings";render()}
@@ -465,6 +518,8 @@ document.addEventListener("click",e=>{
   else if(t.id==="copySum")copyText(summaryText());
 });
 document.addEventListener("input",e=>{
+  if(e.target.id==="pq"){S.pick.q=e.target.value;const pos=e.target.selectionStart;renderPicker();const q=$("#pq");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}return}
+  if(e.target.dataset.il){const [i,k]=e.target.dataset.il.split(":");const l=S.invForm?.lines[+i];if(l){l[k]=k==="desc"?e.target.value:(parseFloat(e.target.value)||0);renderInvTot()}return}
   if(e.target.id==="cq"){S.custQ=e.target.value;const pos=e.target.selectionStart;render();const q=$("#cq");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
   else if(e.target.id==="q"){S.q=e.target.value;const pos=e.target.selectionStart;render();const q=$("#q");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
   else if(e.target.id==="vq"){S.vanQ=e.target.value;const pos=e.target.selectionStart;render();const q=$("#vq");q.focus();try{q.setSelectionRange(pos,pos)}catch(_){}}
@@ -472,16 +527,17 @@ document.addEventListener("input",e=>{
 });
 document.addEventListener("change",e=>{
   const id=e.target.id;
+  if(id==="c_logo"&&e.target.files[0]){pickCoLogo(e.target.files[0]);e.target.value="";return}
   if(id==="f_customer"||id==="f_site"){custAssist(true);return}
   if(id==="brandIn"&&e.target.files.length){uploadBrands([...e.target.files]);e.target.value="";return}
   if(id==="vanTechSel"){S.vanTech=e.target.value;S.partForm=null;subVan(S.vanTech);render();return}
   if(id==="logoIn"&&e.target.files[0]){uploadLogo(e.target.files[0]);e.target.value="";return}
   if(id==="r_from"||id==="r_to"||id==="r_tech"){S.rep[id.slice(2)]=e.target.value;render()}
 });
-document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam()});
+document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam();else if(e.target.id==="invForm")saveInvoice();else if(e.target.id==="coForm")saveCompany()});
 
 /* ---------- form ---------- */
-const FIELDS=["signName","serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
+const FIELDS=["km","signName","serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
 function startForm(c,pre){
   S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",serviceCo:LS("serviceCo")||"",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",signName:"",photos:[],...(pre||{})};
   S.view="form";subVan(S.form.techId||meId);render();
@@ -517,7 +573,7 @@ async function saveCard(){
   if(!db){toast("Can't reach the job card store. Reopen the app and try again");return}
   const data={};for(const k of FIELDS)data[k]=f[k]||"";
   data.photos=f.photos.filter(p=>p.id).map(p=>({id:p.id,url:p.url||"",caption:p.caption||""}));
-  data.partsUsed=(f.partsUsed||[]).map(u=>({partId:u.partId,partNo:u.partNo||"",desc:u.desc||"",qty:+u.qty||0}));
+  data.partsUsed=(f.partsUsed||[]).map(u=>({partId:u.partId,partNo:u.partNo||"",desc:u.desc||"",qty:+u.qty||0,price:+u.price||0}));
   data.updatedAt=Date.now();if(data.serviceCo)LS("serviceCo",data.serviceCo);
   let sign={id:f.signId||"",at:f.signedAt||0};if(f._signCleared)sign={id:"",at:0};
   if(f._signed){try{const blob=await new Promise(r=>$("#signPad").toBlob(r,"image/png"));const r=await assets.upload(blob);sign={id:r.id,at:Date.now()}}catch(_){toast("Couldn't save the signature. Try again");return}}
@@ -539,7 +595,8 @@ async function deleteCard(){
 async function saveSettings(){
   const name=$("#s_name").value.trim(),footer=$("#s_footer").value.trim();
   const lg=S.logoDraft||{id:S.company.logoId,url:S.company.logoUrl};
-  try{await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;S.setDraft=null;toast("Settings saved");S.view="list";render()}
+  const iv=readInvSettings();
+  try{if(iv)await db.doc("settings/invoicing").set({...invCfg(),...iv});await db.doc("settings/company").set({name,footer,logoId:lg.id||"",logoUrl:lg.url||"",brandLogos:brandDraft().map(b=>({id:b.id,url:b.url||""}))});S.logoDraft=null;S.brandDraft=null;S.setDraft=null;toast("Settings saved");S.view="list";render()}
   catch(_){toast("Couldn't save settings. You may need edit access")}
 }
 
@@ -548,7 +605,7 @@ const DEFAULT_LOGO="macadams-logo.png";
 function setLogo(){const im=$("#coLogo");const id=S.company.logoId;if(!id){if(im.getAttribute("src")!==DEFAULT_LOGO)im.src=DEFAULT_LOGO;im.hidden=false;return}
   const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;im.hidden=false}
   else{im.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
-function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value,me:$("#s_me")?.value}}
+function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value,inv:readInvSettings()||undefined}}
 async function uploadLogo(file){
   if(!assets){toast("Only people with edit access can upload the logo");return}
   keepSettingsInputs();toast("Uploading logo…");
@@ -577,6 +634,7 @@ function vanView(){
       <label>Part no.<input id="p_partNo" value="${esc(p.partNo)}" required></label>
       <label>Description<input id="p_desc" value="${esc(p.desc)}" placeholder="e.g. Oven door seal"></label>
       <div class="grid2"><label>Qty on van<input id="p_qty" type="number" inputmode="numeric" min="0" value="${esc(p.qty)}"></label><label>Re-order at<input id="p_min" type="number" inputmode="numeric" min="0" value="${esc(p.min)}"></label></div>
+      <label>Selling price each, excl. VAT<input id="p_price" type="number" inputmode="decimal" step="any" min="0" value="${esc(p.price||"")}" placeholder="0.00"></label>
     </fieldset></div>
     ${p.id?`<div><button class="btn danger" id="delPart" type="button">Remove part from van</button></div>`:""}
   </form>`}
@@ -595,7 +653,7 @@ function vanView(){
 async function savePart(){
   const v=id=>$("#"+id).value.trim();const partNo=v("p_partNo");
   if(!partNo){toast("Add a part number");return}
-  const data={partNo,desc:v("p_desc"),qty:Math.max(0,parseInt(v("p_qty"))||0),min:Math.max(0,parseInt(v("p_min"))||0),updatedAt:Date.now()};
+  const data={partNo,desc:v("p_desc"),qty:Math.max(0,parseInt(v("p_qty"))||0),min:Math.max(0,parseInt(v("p_min"))||0),price:Math.max(0,parseFloat(v("p_price"))||0),updatedAt:Date.now()};
   const col=db.collection(`vanstock/${S.vanTech}/parts`);
   try{if(S.partForm.id)await col.doc(S.partForm.id).set(data);else await col.add(data);S.partForm=null;toast("Part saved");render()}
   catch(_){toast("Couldn't save the part. Check your signal")}
@@ -607,19 +665,6 @@ async function bumpQty(id,d){
   const p=(S.vans[S.vanTech]||[]).find(x=>x.id===id);if(!p)return;
   const q=Math.max(0,(+p.qty||0)+d);if(q===(+p.qty||0))return;p.qty=q;render();
   try{await db.collection(`vanstock/${S.vanTech}/parts`).doc(id).update({qty:q,updatedAt:Date.now()})}catch(_){toast("Couldn't update the quantity")}
-}
-function renderUsed(){
-  const box=$("#usedBox");if(!box||!S.form)return;
-  const tid=S.form.techId||meId;const van=S.vans[tid]||[];const used=S.form.partsUsed;
-  const pick=$("#usedPick")?.value||"";const qv=$("#usedQty")?.value||"1";
-  box.innerHTML=`${used.length?`<ul class="used">${used.map((u,i)=>`<li><span><b>${u.qty} ×</b> <span class="mono">${esc(u.partNo)}</span> ${esc(u.desc)}</span><button class="btn icon-btn" type="button" data-unused="${i}">Remove</button></li>`).join("")}</ul>`:""}
-    ${van.length?`<div class="row" style="align-items:flex-end"><label style="flex:1 1 180px">Part<select id="usedPick"><option value="">Choose a part…</option>${van.map(p=>`<option value="${esc(p.id)}" ${p.id===pick?"selected":""}>${esc(p.partNo)} · ${esc(p.desc)} (${+p.qty||0} on van)</option>`).join("")}</select></label><label style="flex:0 0 80px">Qty<input id="usedQty" type="number" inputmode="numeric" min="1" value="${esc(qv)}"></label><button class="btn" id="addUsed" type="button">Add</button></div>`:`<p class="hint">No parts on the van yet. Add them under Van stock.</p>`}`;
-}
-function addUsed(){
-  const id=$("#usedPick").value,qty=Math.max(1,parseInt($("#usedQty").value)||1);if(!id){toast("Choose a part");return}
-  const p=(S.vans[S.form.techId||meId]||[]).find(x=>x.id===id);if(!p)return;
-  const ex=S.form.partsUsed.find(u=>u.partId===id);if(ex)ex.qty=(+ex.qty||0)+qty;else S.form.partsUsed.push({partId:id,partNo:p.partNo,desc:p.desc,qty});
-  renderUsed();$("#usedPick").value="";$("#usedQty").value="1";
 }
 async function applyStock(tid,before,after){
   if(!tid)return false;const delta={};
@@ -637,6 +682,241 @@ async function uploadBrands(files){
   for(const f of files){try{const r=await assets.upload(await shrinkLogo(f));a.push({id:r.id,url:r.url})}catch(err){toast(err?.code==="unsupported_type"?"Use PNG or JPG files":"A logo didn't upload. Try again")}}
   S.brandDraft=a;render();toast("Logos ready. Tap Save settings");
 }
+/* ---------- materials: pick from the whole van stock ---------- */
+const money=n=>"R "+(Math.round((+n||0)*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g," ");
+function renderUsed(){
+  const box=$("#usedBox");if(!box||!S.form)return;const used=S.form.partsUsed;
+  box.innerHTML=`${used.length?`<ul class="used">${used.map((u,i)=>`<li><span><b>${u.qty} ×</b> <span class="mono">${esc(u.partNo)}</span> ${esc(u.desc)}${+u.price?` <span class="sub">${money(u.price)} each</span>`:""}</span><button class="btn icon-btn" type="button" data-unused="${i}">Remove</button></li>`).join("")}</ul>`:""}
+    <div><button class="btn" id="pickOpen" type="button">${ic("plus")}${used.length?"Change parts from van":"Choose parts from van"}</button></div>`;
+}
+function openPicker(){
+  readForm();const sel={},orig={};
+  for(const u of S.form.partsUsed)sel[u.partId]=+u.qty||0;
+  for(const u of S.form._orig||[])orig[u.partId]=+u.qty||0; // already taken off the van by this job card
+  S.pick={sel,orig,q:""};
+  let el=$("#picker");if(!el){el=document.createElement("div");el.id="picker";el.className="sheet";document.body.appendChild(el)}
+  el.hidden=false;document.body.style.overflow="hidden";renderPicker();
+}
+function closePicker(){const el=$("#picker");if(el)el.hidden=true;document.body.style.overflow="";S.pick=null}
+function renderPicker(){
+  const el=$("#picker"),P=S.pick;if(!el||!P)return;const van=S.vans[S.form.techId||meId]||[],q=P.q.trim().toLowerCase();
+  const rows=van.filter(p=>!q||[p.partNo,p.desc].join(" ").toLowerCase().includes(q));
+  const n=Object.values(P.sel).reduce((a,b)=>a+b,0);
+  el.innerHTML=`<div class="sheet-bar"><div class="wrap formbar"><button class="btn icon-btn" id="pickCancel" type="button">Cancel</button><b>Van stock</b><button class="btn primary icon-btn" id="pickDone" type="button">Use${n?` ${n} item${n===1?"":"s"}`:""}</button></div></div>
+    <div class="wrap stack sheet-body"><input class="search" id="pq" type="search" placeholder="Search part no. or description" value="${esc(P.q)}" aria-label="Search van stock">
+    ${!van.length?`<div class="empty"><h2>No parts on the van yet</h2><p>Add the parts you carry under Van stock, then pick them here.</p></div>`
+      :!rows.length?`<div class="empty"><p>No parts match this search.</p></div>`
+      :rows.map(p=>{const have=(+p.qty||0)+(P.orig[p.id]||0),s=P.sel[p.id]||0;return `<div class="part${s?" picked":""}"><div class="pd"><b>${esc(p.desc||p.partNo)}</b><span class="mono">${esc(p.partNo)}</span><span>${have-s} left on van${+p.price?`, ${money(p.price)} each`:""}</span></div><div class="qty"><button type="button" data-pk="${esc(p.id)}" data-d="-1" aria-label="One less">−</button><output>${s}</output><button type="button" data-pk="${esc(p.id)}" data-d="1" aria-label="One more">+</button></div></div>`}).join("")}</div>`;
+}
+function pickBump(id,d){
+  const P=S.pick,p=(S.vans[S.form.techId||meId]||[]).find(x=>x.id===id);if(!P||!p)return;
+  const have=(+p.qty||0)+(P.orig[id]||0),cur=P.sel[id]||0,nx=Math.max(0,cur+d);
+  if(nx>have){toast(`Only ${have} on the van`);return}
+  if(nx)P.sel[id]=nx;else delete P.sel[id];renderPicker();
+}
+function pickDone(){
+  const P=S.pick,van=S.vans[S.form.techId||meId]||[],out=[];
+  for(const [id,qty] of Object.entries(P.sel)){if(!qty)continue;const p=van.find(x=>x.id===id),old=S.form.partsUsed.find(u=>u.partId===id);
+    if(p)out.push({partId:id,partNo:p.partNo||"",desc:p.desc||"",qty,price:+p.price||0});else if(old)out.push({...old,qty})}
+  S.form.partsUsed=out;closePicker();renderUsed();
+}
+
+/* ---------- invoices (optional, per company, admin only) ---------- */
+const INV0={enabled:false,labourRate:0,kmRate:0,callout:0,vat:true,vatNo:"",vatRate:15,prefix:"INV-",nextNo:1,bank:"",terms:"Payment due within 30 days."};
+const invCfg=()=>({...INV0,...(S.invCfg||{})});
+const invOn=()=>isAdmin&&!!invCfg().enabled;
+const invTotals=v=>{const sub=(v.lines||[]).reduce((a,l)=>a+(+l.qty||0)*(+l.price||0),0),vat=v.vat?sub*(+v.vatRate||0)/100:0;return {sub,vat,total:sub+vat}};
+const invFor=jobId=>S.invoices.find(v=>v.jobId===jobId);
+function draftInvoice(c){
+  const cfg=invCfg(),h=hours(c.timeIn,c.timeOut)||0,lines=[];
+  if(+cfg.callout>0)lines.push({desc:"Call-out fee",qty:1,price:+cfg.callout});
+  if(h>0)lines.push({desc:`Labour on ${fmtDate(c.date)}, ${c.timeIn} to ${c.timeOut} (hours)`,qty:h,price:+cfg.labourRate||0});
+  if(+c.km>0)lines.push({desc:"Travel (km)",qty:+c.km,price:+cfg.kmRate||0});
+  for(const u of c.partsUsed||[])lines.push({desc:[u.partNo,u.desc].filter(Boolean).join(" "),qty:+u.qty||0,price:+u.price||0});
+  for(const t of String(c.parts||"").split("\n").map(x=>x.trim()).filter(Boolean))lines.push({desc:t,qty:1,price:0});
+  return {jobId:c.id,jobNo:c.jobNo||"",customer:c.customer||"",site:c.site||"",custRef:c.custRef||"",equipment:[c.equipment,c.model,c.serial&&("S/N "+c.serial)].filter(Boolean).join(", "),date:today(),lines,vat:!!cfg.vat,vatRate:+cfg.vatRate||0,notes:"",status:"unpaid"};
+}
+function invListView(){
+  if(!invCfg().enabled)return `<div class="empty"><h2>Invoicing is off</h2><p>Switch it on under Settings if this company wants to invoice from the app.</p></div>`;
+  const ready=S.cards.filter(c=>c.status==="done"&&!invFor(c.id)),list=[...S.invoices].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const owed=list.filter(v=>v.status!=="paid").reduce((a,v)=>a+invTotals(v).total,0);
+  return `<div class="stack">
+    <div class="stats hero"><div class="stat"><b>${ready.length}</b><span>Ready to invoice</span></div><div class="stat"><b>${list.filter(v=>v.status!=="paid").length}</b><span>Unpaid</span></div><div class="stat"><b style="font-size:1.15rem;line-height:1.5">${money(owed)}</b><span>Owed</span></div></div>
+    ${ready.length?`<div class="day">Completed job cards, not invoiced yet<span>${ready.length}</span></div>`+ready.map(c=>`<div class="mach"><div class="pd"><b>${esc(c.customer||"No customer")}${c.site?", "+esc(c.site):""}</b><span>${esc(c.jobNo)}, ${fmtDate(c.date)}, ${esc(techName(c.techId))}</span></div><div class="row"><button class="btn primary icon-btn" type="button" data-newinv="${esc(c.id)}">Create invoice</button><button class="btn icon-btn" type="button" data-open="${esc(c.id)}">View job card</button></div></div>`).join(""):""}
+    <div class="day">Invoices<span>${list.length}</span></div>
+    ${list.length?list.map(v=>`<button type="button" class="card ${v.status==="paid"?"st-done":"st-follow"}" data-inv="${esc(v.id)}">
+      <span class="t">${esc(v.customer||"No customer")}</span><span class="jn">${esc(v.no)}</span>
+      <span class="s">${esc(v.site||"")}</span><span class="pill ${v.status==="paid"?"s-done":"s-follow"}">${v.status==="paid"?"Paid":"Unpaid"}</span>
+      <span class="m"><span><b>${money(invTotals(v).total)}</b></span><span>${fmtDate(v.date)}</span><span>${esc(v.jobNo||"")}</span></span></button>`).join(""):`<div class="empty"><p>No invoices yet. Completed job cards show above, ready to invoice.</p></div>`}
+  </div>`;
+}
+function invFormView(){
+  const v=S.invForm;
+  return `<form id="invForm" class="stack" novalidate>
+    <div class="formbar"><button class="btn icon-btn" id="cancelInv" type="button">Cancel</button><b>${v.id?"Edit "+esc(v.no):"New invoice"}</b><button class="btn primary icon-btn" type="submit" id="invSave">Save</button></div>
+    <div class="section"><fieldset><legend>Bill to</legend>
+      <label>Customer<input id="i_customer" value="${esc(v.customer)}"></label>
+      <div class="grid2 stack-sm"><label>Branch / site<input id="i_site" value="${esc(v.site)}"></label><label>Order / ref no.<input id="i_custRef" value="${esc(v.custRef)}"></label></div>
+      <div class="grid2"><label>Invoice date<input id="i_date" type="date" value="${esc(v.date)}"></label><label>Job card<input value="${esc(v.jobNo)}" disabled></label></div>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Lines</legend><div id="invLines" class="stack"></div>
+      <div><button class="btn icon-btn" id="invAdd" type="button">${ic("plus")}Add a line</button></div>
+      <div id="invTot" class="totals"></div>
+      <p class="hint">Prices exclude VAT. ${v.vat?`VAT at ${v.vatRate}% is added.`:"No VAT is added (company is not set as VAT registered in Settings)."}</p>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Note on the invoice</legend><label>Note<textarea id="i_notes" placeholder="Optional">${esc(v.notes||"")}</textarea></label></fieldset></div>
+    <button class="btn primary" type="submit">Save invoice</button></form>`;
+}
+function renderInvLines(){
+  const box=$("#invLines"),v=S.invForm;if(!box||!v)return;
+  box.innerHTML=v.lines.map((l,i)=>`<div class="line"><label>Description<input data-il="${i}:desc" value="${esc(l.desc)}"></label>
+    <div class="line3"><label>Qty<input data-il="${i}:qty" type="number" inputmode="decimal" step="any" min="0" value="${esc(l.qty)}"></label><label>Price each<input data-il="${i}:price" type="number" inputmode="decimal" step="any" min="0" value="${esc(l.price)}"></label><button class="btn icon-btn danger" type="button" data-ilrm="${i}">Remove</button></div></div>`).join("")||`<p class="hint">No lines yet.</p>`;
+  renderInvTot();
+}
+function totalsHtml(v){const t=invTotals(v);return `<div><span>Subtotal</span><b>${money(t.sub)}</b></div>${v.vat?`<div><span>VAT ${v.vatRate}%</span><b>${money(t.vat)}</b></div>`:""}<div class="grand"><span>Total</span><b>${money(t.total)}</b></div>`}
+function renderInvTot(){const el=$("#invTot");if(el)el.innerHTML=totalsHtml(S.invForm)}
+function readInvForm(){const v=S.invForm;for(const k of ["customer","site","custRef","date","notes"]){const el=$("#i_"+k);if(el)v[k]=el.value.trim()}}
+async function saveInvoice(){
+  readInvForm();const v=S.invForm;
+  v.lines=v.lines.map(l=>({desc:String(l.desc||"").trim(),qty:+l.qty||0,price:+l.price||0})).filter(l=>l.desc||l.qty||l.price);
+  if(!v.lines.length){toast("Add at least one line");renderInvLines();return}
+  const b=$("#invSave");b.disabled=true;
+  try{const {id,...data}=v;data.updatedAt=Date.now();
+    if(id){await db.collection("invoices").doc(id).set(data);S.invId=id}
+    else{const cfg=invCfg();data.no=cfg.prefix+String(cfg.nextNo||1).padStart(4,"0");data.createdAt=Date.now();
+      const ref=await db.collection("invoices").add(data);S.invId=ref.id;await db.doc("settings/invoicing").set({...cfg,nextNo:(+cfg.nextNo||1)+1})}
+    S.invForm=null;S.view="invview";toast("Invoice saved");render();
+  }catch(err){console.error(err);toast("Didn't save. Tap Save again");b.disabled=false}
+}
+function invView(){
+  const v=S.invoices.find(x=>x.id===S.invId);
+  if(!v)return `<div class="empty"><p>This invoice was removed.</p><button class="btn" data-go="inv" type="button">Back to invoices</button></div>`;
+  const paid=v.status==="paid";
+  const del=S.confirmDel?`<div class="confirm"><b>Delete invoice ${esc(v.no)}?</b><span class="hint">The job card stays and can be invoiced again.</span><div class="row"><button class="btn danger" id="invDelYes" type="button">Delete</button><button class="btn" id="invDelNo" type="button">Keep it</button></div></div>`:"";
+  return `<div class="stack detail">
+    <div class="jobhead"><div class="top"><button class="btn icon-btn back" data-go="inv" type="button">${ic("back")}Invoices</button><span class="pill ${paid?"s-done":"s-follow"}">${paid?"Paid":"Unpaid"}</span></div>
+      <span class="jn">${esc(v.no)}, ${fmtDate(v.date)}</span><h2>${esc(v.customer||"No customer")}</h2>${v.site?`<span class="site">${esc(v.site)}</span>`:""}</div>
+    <div class="actions"><button class="btn primary" id="invPdf" type="button">PDF invoice</button><button class="btn" id="invPaid" type="button">${paid?"Mark unpaid":"Mark paid"}</button><button class="btn" id="invEdit" type="button">${ic("edit")}Edit</button></div>
+    <div class="section stack"><dl class="kv"><dt>Job card</dt><dd>${v.jobId&&S.cards.some(c=>c.id===v.jobId)?`<button class="linkbtn" style="padding:0" type="button" data-open="${esc(v.jobId)}">${esc(v.jobNo)}</button>`:esc(v.jobNo||"–")}</dd>${v.custRef?`<dt>Order / ref no.</dt><dd>${esc(v.custRef)}</dd>`:""}${v.equipment?`<dt>Machine</dt><dd>${esc(v.equipment)}</dd>`:""}</dl></div>
+    <div class="section stack">${v.lines.map(l=>`<div class="iline"><span>${esc(l.desc)}</span><span class="sub">${l.qty} × ${money(l.price)}</span><b>${money((+l.qty||0)*(+l.price||0))}</b></div>`).join("")}<div class="totals">${totalsHtml(v)}</div>${v.notes?`<p class="hint">${esc(v.notes)}</p>`:""}</div>
+    ${del||`<div><button class="btn danger" id="invDelAsk" type="button">Delete invoice</button></div>`}</div>`;
+}
+async function pdfInvoice(v,btn){
+  if(!window.jspdf){toast("PDF tool didn't load. Close the app and open it again");return}
+  btn.disabled=true;btn.textContent="Building PDF…";
+  try{
+    const cfg=invCfg(),t=invTotals(v);
+    const doc=pdfBase(v.vat?"TAX INVOICE":"INVOICE",v.no,await logoData());let y=doc._top;
+    const lab={fontSize:8,textColor:GREY,cellWidth:29,fillColor:TINT},val={fontStyle:"bold"};
+    doc.autoTable({startY:y-4,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:{top:2,bottom:2,left:2.4,right:2.4},textColor:INK,lineColor:RULE,lineWidth:0.2,valign:"middle"},columnStyles:{0:lab,1:val,2:lab,3:val},
+      body:[["Bill to",v.customer||"","Invoice no.",v.no],["Branch / site",v.site||"","Invoice date",fmtDate(v.date)],["Order / ref no.",v.custRef||"","Job card",v.jobNo||""],...(v.equipment||(v.vat&&cfg.vatNo)?[["Machine",v.equipment||"",v.vat&&cfg.vatNo?"Our VAT no.":"",v.vat&&cfg.vatNo?cfg.vatNo:""]]:[])]});
+    y=doc.lastAutoTable.finalY+8;
+    doc.autoTable({startY:y,theme:"grid",margin:{left:14,right:14,bottom:22},styles:{fontSize:9.5,cellPadding:2.2,textColor:INK,lineColor:RULE,lineWidth:0.2},headStyles:{fillColor:NAVY,textColor:255,fontSize:8.5},columnStyles:{1:{cellWidth:20,halign:"right"},2:{cellWidth:32,halign:"right"},3:{cellWidth:34,halign:"right"}},
+      head:[["Description","Qty",{content:"Price each",styles:{halign:"right"}},{content:"Amount",styles:{halign:"right"}}]],body:v.lines.map(l=>[l.desc,String(l.qty),money(l.price),money((+l.qty||0)*(+l.price||0))])});
+    y=doc.lastAutoTable.finalY+4;if(y+34>278){doc.addPage();y=20}
+    const row=(l,a,bold)=>{doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(bold?11.5:10);doc.setTextColor(...(bold?NAVY:INK));doc.text(l,150,y,{align:"right"});doc.text(a,196,y,{align:"right"});y+=bold?0:6};
+    y+=4;row("Subtotal (excl. VAT)",money(t.sub));if(v.vat)row(`VAT ${v.vatRate}%`,money(t.vat));
+    doc.setFillColor(...TINT);doc.rect(110,y-5,86,9,"F");row("Total due",money(t.total),true);y+=12;
+    const block=(title,txt)=>{if(!txt)return;const lines=doc.splitTextToSize(txt,180);if(y+9+lines.length*4.6>278){doc.addPage();y=20}
+      y=pdfHead(doc,title,y);doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.setTextColor(...INK);doc.text(lines,14,y);y+=lines.length*4.6+5};
+    block("Banking details",cfg.bank);block("Terms",cfg.terms);block("Note",v.notes);
+    pdfFooter(doc,[],"Invoice "+v.no);
+    await saveFile(`${v.no}.pdf`,doc.output("blob"),btn);
+  }catch(err){console.error(err);toast("Couldn't build the PDF. Try again")}
+  btn.disabled=false;btn.textContent="PDF invoice";
+}
+function invSettings(){const c={...invCfg(),...(S.setDraft?.inv||{})};const n=(id,l,v,ph)=>`<label>${l}<input id="${id}" type="number" inputmode="decimal" step="any" min="0" value="${esc(v||"")}" placeholder="${ph||"0.00"}"></label>`;
+  return `<div class="section"><fieldset><legend>Invoicing</legend>
+      <label class="check"><input type="checkbox" id="v_enabled" ${c.enabled?"checked":""}><span>Make invoices from completed job cards</span></label>
+      <p class="hint">Leave this off if the company invoices from its own accounting software.</p>
+      <div class="grid2">${n("v_labourRate","Labour rate per hour",c.labourRate)}${n("v_kmRate","Travel rate per km",c.kmRate)}</div>
+      <div class="grid2">${n("v_callout","Call-out fee",c.callout)}<label>Invoice no. starts with<input id="v_prefix" value="${esc(c.prefix)}"></label></div>
+      <label class="check"><input type="checkbox" id="v_vat" ${c.vat?"checked":""}><span>VAT registered (adds ${c.vatRate}% VAT)</span></label>
+      <label>VAT number<input id="v_vatNo" value="${esc(c.vatNo)}"></label>
+      <label>Banking details<textarea id="v_bank" rows="4" placeholder="Bank, account name, account number, branch code">${esc(c.bank)}</textarea></label>
+      <label>Terms<input id="v_terms" value="${esc(c.terms)}"></label>
+      <p class="hint">All rates and prices exclude VAT.</p>
+    </fieldset></div>`}
+function readInvSettings(){const g=id=>$("#"+id);if(!g("v_enabled"))return null;const num=id=>Math.max(0,parseFloat(g(id).value)||0);
+  return {enabled:g("v_enabled").checked,labourRate:num("v_labourRate"),kmRate:num("v_kmRate"),callout:num("v_callout"),prefix:g("v_prefix").value.trim()||"INV-",vat:g("v_vat").checked,vatNo:g("v_vatNo").value.trim(),bank:g("v_bank").value.trim(),terms:g("v_terms").value.trim()}}
+
+/* ---------- companies (developer only, phone-to-phone mode) ----------
+   Each company has its own key, so its job cards, stock, customers and invoices are separate from every other company's.
+   The developer's list of companies lives in the developer's own space and is never sent to the companies. */
+let isDev=false;
+const clubOf=sk=>({sk,pk:NT.getPublicKey(NT.hexToBytes(sk))});
+function devView(){
+  const f=S.coForm;
+  if(f){const add=f.mode==="add",c=f.co||{};return `<form id="coForm" class="stack" novalidate>
+    <div class="formbar"><button class="btn icon-btn" id="cancelCo" type="button">Cancel</button><b>${add?"Add company":"Edit company"}</b><button class="btn primary icon-btn" type="submit" id="coSave">Save</button></div>
+    <div class="section"><fieldset><legend>Company</legend>
+      <label>Company name<input id="c_name" value="${esc(c.name||"")}" placeholder="e.g. Zululand Service Providers"></label>
+      <label>Company details<textarea id="c_details" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(c.details||"")}</textarea></label>
+      <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet. The Macadams logo is used until one is added.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/png,image/jpeg,image/webp" hidden></label></div></div>
+      <p class="hint">The name, details and logo show at the top of this company's job cards, summaries and invoices.</p>
+      <label class="check"><input type="checkbox" id="c_inv" ${c.invoicing?"checked":""}><span>This company makes invoices in the app</span></label>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Company admin login</legend>
+      ${add?`<label>Admin's name<input id="c_adminName" placeholder="Name and surname"></label>
+      <label>Username<input id="c_adminUser" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. zsp-admin"></label>`:`<p class="hint">Username: <b>${esc(c.adminUser)}</b> (${esc(c.adminName)})</p>`}
+      <label>${add?"Password":"New password"}<input id="c_adminPass" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="${add?"":"Leave empty to keep the current one. "}${minPw()} or more characters"></label>
+      <p class="hint">The company admin signs in with this, then adds the company's own technicians.</p>
+    </fieldset></div>
+    ${add?"":`<div><button class="btn${c.active===false?"":" danger"}" id="coToggle" type="button">${c.active===false?"Switch this company back on":"Switch this company off"}</button></div>`}</form>`}
+  const list=[...S.companies].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${list.length} compan${list.length===1?"y":"ies"}</span><button class="btn primary" id="addCo" type="button">${ic("plus")}Add company</button></div>
+    ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who"><b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.invoicing?"Invoicing on":"Invoicing off"}</span></div>
+      ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button></div></div>`).join("")
+    :`<div class="empty"><h2>No companies yet</h2><p>Add each company with its details and an admin login. Each company only ever sees its own job cards.</p></div>`}</div>`;
+}
+async function readDocC(club,path){
+  const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[club.pk],"#d":[dTag("r|"+path,club)]},{maxWait:8000});
+  evs.sort((a,b)=>b.created_at-a.created_at);for(const e of evs){try{const r=await readEv(e,club);if(r)return r.d}catch(_){}}return null;
+}
+async function saveCompany(){
+  const f=S.coForm,add=f.mode==="add",old=f.co||{};
+  const name=$("#c_name").value.trim(),details=$("#c_details").value.trim(),invoicing=$("#c_inv").checked,pw=$("#c_adminPass").value.trim();
+  if(!name){toast("Type the company name");return}
+  let adminName=old.adminName,adminUser=old.adminUser;
+  if(add){adminName=$("#c_adminName").value.trim();adminUser=normUser($("#c_adminUser").value);
+    if(!adminName||!adminUser){toast("Type the admin's name and a username");return}
+    if(adminUser===BASE.username||S.companies.some(c=>c.adminUser===adminUser)){toast("That username is taken. Choose another");return}}
+  if((add||pw)&&pw.length<minPw()){toast(`Use a password of ${minPw()} or more characters`);return}
+  if(navigator.onLine===false){toast("Connect to the internet to save a company");return}
+  const b=$("#coSave");b.disabled=true;b.textContent="Saving…";
+  try{
+    const now=Date.now();
+    if(add){
+      const sk=NT.bytesToHex(NT.generateSecretKey()),club=clubOf(sk),admin={id:"u"+newId(),name:adminName,username:adminUser,role:"admin",active:true,pv:1};
+      await publishTicket(adminUser,pw,club);
+      await sendDoc("settings/users",{list:[admin],updatedAt:now},now,club);
+      const logoId=await sendLogo(club,now);
+      await sendDoc("settings/company",{name,footer:details,logoId,logoUrl:"",brandLogos:[]},now,club);
+      await sendDoc("settings/invoicing",{...INV0,enabled:invoicing},now,club);
+      await sendDoc("settings/account",{active:true},now,club);
+      await db.collection("companies").add({name,details,invoicing,adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
+      toast(name+" added. The admin can sign in now");
+    }else{
+      const club=clubOf(old.sk);
+      const newLogo=await sendLogo(club,now);
+      if(newLogo||name!==old.name||details!==(old.details||"")){const cur=await readDocC(club,"settings/company")||{};await sendDoc("settings/company",{logoId:"",logoUrl:"",brandLogos:[],...cur,name,footer:details,...(newLogo?{logoId:newLogo}:{})},now,club)}
+      if(invoicing!==!!old.invoicing){const cur=await readDocC(club,"settings/invoicing")||INV0;await sendDoc("settings/invoicing",{...cur,enabled:invoicing},now,club)}
+      if(pw){await publishTicket(adminUser,pw,club);const cur=await readDocC(club,"settings/users");
+        if(cur?.list){const list=cur.list.map(x=>x.id===old.adminId?{...x,pv:(x.pv||1)+1}:x);await sendDoc("settings/users",{list,updatedAt:now},now,club)}}
+      await db.doc("companies/"+old.id).update({name,details,invoicing,...(newLogo?{logoId:newLogo}:{}),updatedAt:now});
+      toast("Company saved");
+    }
+    S.coForm=null;render();
+  }catch(err){console.error(err);toast("Couldn't save. Check the connection and try again");const x=$("#coSave");if(x){x.disabled=false;x.textContent="Save"}}
+}
+async function sendLogo(club,now){const url=S.coForm?.logo;if(!url)return "";const id=newId();await sendDoc("blobs/"+id,{data:url,createdAt:now},now,club);return id}
+async function pickCoLogo(file){try{const url=await toDataUrl(await shrinkLogo(file));if(url.length>900000){toast("That logo file is too big");return}S.coForm.logo=url;$("#c_logoBox").innerHTML=`<img src="${esc(url)}" alt="Company logo">`}catch(_){toast("Use a PNG or JPG file")}}
+async function toggleCompany(){
+  const c=S.coForm?.co;if(!c)return;const on=c.active===false;
+  try{await sendDoc("settings/account",{active:on},Date.now(),clubOf(c.sk));await db.doc("companies/"+c.id).update({active:on,updatedAt:Date.now()});S.coForm=null;render();toast(on?c.name+" is switched back on":c.name+" is switched off. Its phones are signed out when they next sync")}
+  catch(_){toast("Couldn't change it. Check the connection and try again")}
+}
+
 /* ---------- customers and their machines ----------
    A profile per customer + site. Each machine a tech logs on a job card is added to the profile,
    so the next job at that site can pick it instead of retyping. Profiles are shared by all technicians. */
@@ -758,7 +1038,7 @@ function coLines(){return String(S.company.footer||"").split(/\n|\s·\s/).map(x=
 function pdfBase(title,sub,logo){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4"});
   if(logo){const lh=25,lw=Math.min(lh*logo.w/logo.h,62);const lh2=lw*logo.h/logo.w;doc.addImage(logo.data,"JPEG",14,10+(lh-lh2)/2,lw,lh2)}
-  doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text(S.company.name||"Service department",196,15,{align:"right"});
+  doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text(S.company.name||"",196,15,{align:"right"});
   doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...GREY);
   const cl=coLines().slice(0,5);cl.forEach((l,i)=>doc.text(l,196,20+i*4,{align:"right"}));
   const by=Math.max(39,20+cl.length*4+1);
@@ -793,7 +1073,7 @@ async function pdfJob(c,btn){
     const h=hours(c.timeIn,c.timeOut);
     const lab={fontSize:8,textColor:GREY,cellWidth:29,fillColor:TINT},val={fontStyle:"bold"};
     doc.autoTable({startY:y-4,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:{top:2,bottom:2,left:2.4,right:2.4},textColor:INK,lineColor:RULE,lineWidth:0.2,valign:"middle"},columnStyles:{0:lab,1:val,2:lab,3:val},
-      body:[["Customer",c.customer||"","Date",fmtDate(c.date)],["Branch / site",c.site||"","Technician",techName(c.techId)],["Site contact",c.contact||"","Service company",c.serviceCo||""],["Order / ref no.",c.custRef||"","Time on site",`${c.timeIn||"–"} to ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`],["Status",(STATUSES[c.status]||STATUSES.open).label,"",""]]});
+      body:[["Customer",c.customer||"","Date",fmtDate(c.date)],["Branch / site",c.site||"","Technician",techName(c.techId)],["Site contact",c.contact||"","Service company",c.serviceCo||""],["Order / ref no.",c.custRef||"","Time on site",`${c.timeIn||"–"} to ${c.timeOut||"–"}${h!=null?`  (${h} h)`:""}`],["Status",(STATUSES[c.status]||STATUSES.open).label,"Travel",+c.km?c.km+" km":""]]});
     y=doc.lastAutoTable.finalY+8;
     y=pdfHead(doc,"Equipment",y);
     doc.autoTable({startY:y-3,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:2,textColor:INK,lineColor:RULE,lineWidth:0.2},headStyles:{fillColor:TINT,textColor:GREY,fontSize:8,fontStyle:"normal"},
@@ -980,12 +1260,16 @@ async function shrinkLogo(file){
 
 /* Android back button */
 window.onBack=()=>{
+  if(S.pick){closePicker();return true}
   if(S.view==="form"){S.view=S.form?.id?"detail":"list";S.form=null;render();return true}
+  if(S.view==="invform"){S.view=S.invForm?.id?"invview":"inv";S.invForm=null;render();return true}
+  if(S.view==="invview"){S.view="inv";render();return true}
+  if(S.view==="dev"){if(S.coForm){S.coForm=null;render();return true}return false}
   if(S.view==="van"&&S.partForm){S.partForm=null;render();return true}
   if(S.view==="customer"){S.view="cust";render();return true}
   if(S.view==="team"&&S.teamForm){S.teamForm=null;render();return true}
   if(S.view==="login"){if(S.loginMode){S.loginMode=null;render();return true}return false}
-  if(S.view!=="list"&&S.view!=="wait"){S.view="list";render();return true}
+  if(S.view!=="list"&&S.view!=="wait"){S.view=isDev?"dev":"list";render();return true}
   return false;
 };
 
@@ -1006,40 +1290,40 @@ const minPw=()=>relayMode()?4:6;
 /* Test setup: one built-in company with a base admin login, so nothing has to be created first.
    Anyone with the app and this login can read the company's data. Replace before a real rollout. */
 const BASE={id:"u-admin",name:"Admin",username:"admin",password:"1234",role:"admin",active:true,pv:1};
-const baseSk=()=>NT.bytesToHex(NT.sha256(new TextEncoder().encode("mjc-base-company|macadams-jobcards|v1")));
+const baseSk=()=>NT.bytesToHex(NT.sha256(new TextEncoder().encode("mjc-developer|macadams-jobcards|v2")));
 const hasNT=()=>!!(window.NT&&NT.SimplePool);
-const skB=()=>NT.hexToBytes(CLUB.sk);
-let CK=null;const ck=()=>CK||(CK=NT.nip44.getConversationKey(skB(),CLUB.pk));
-const dTag=s=>NT.bytesToHex(NT.sha256(new TextEncoder().encode(CLUB.pk+"|"+s))).slice(0,40);
-const enc=o=>NT.nip44.encrypt(JSON.stringify(o),ck());
-const dec=c=>JSON.parse(NT.nip44.decrypt(c,ck()));
+const skB=c=>NT.hexToBytes((c||CLUB).sk);
+let CK=null;const ck=c=>c?(c.ck||(c.ck=NT.nip44.getConversationKey(skB(c),c.pk))):(CK||(CK=NT.nip44.getConversationKey(skB(),CLUB.pk)));
+const dTag=(s,c)=>NT.bytesToHex(NT.sha256(new TextEncoder().encode((c||CLUB).pk+"|"+s))).slice(0,40);
+const enc=(o,c)=>NT.nip44.encrypt(JSON.stringify(o),ck(c));
+const dec=(x,c)=>JSON.parse(NT.nip44.decrypt(x,ck(c)));
 function relayOff(){try{RL.sub&&RL.sub.close()}catch(_){}RL.sub=null;RL.eose=false;RL.buf=[]}
 function setClub(sk){relayOff();CLUB=sk?{sk,pk:NT.getPublicKey(NT.hexToBytes(sk))}:null;CK=null;LS("club",CLUB?JSON.stringify(CLUB):null)}
 function rpool(){return RL.pool||(RL.pool=new NT.SimplePool({enableReconnect:true,enablePing:true}))}
 async function publish(ev){return await Promise.any(rpool().publish(RELAYS,ev))}
 const sendTime=path=>Math.max(Math.floor(Date.now()/1000),((RM[path]||[])[1]||0)+1);
 /* send one record; big ones (photos) are split into parts */
-async function sendDoc(path,data,ts){
-  const json=JSON.stringify({p:path,d:data===undefined?null:data,ts}),d=dTag("r|"+path),t=sendTime(path);let content;
-  if(json.length<=PART)content=enc({b:json});
+async function sendDoc(path,data,ts,club){ // club: another company's space (developer only); otherwise this phone's company
+  const json=JSON.stringify({p:path,d:data===undefined?null:data,ts}),d=dTag("r|"+path,club),t=club?Math.floor(Date.now()/1000):sendTime(path);let content;
+  if(json.length<=PART)content=enc({b:json},club);
   else{const cid=newId(),n=Math.ceil(json.length/PART);
-    for(let i=0;i<n;i++)await publish(NT.finalizeEvent({kind:REC_KIND,created_at:t,tags:[["d",d+"."+i],["t",FILE_T]],content:enc({cid,i,part:json.slice(i*PART,(i+1)*PART)})},skB()));
-    content=enc({cid,n})}
+    for(let i=0;i<n;i++)await publish(NT.finalizeEvent({kind:REC_KIND,created_at:t,tags:[["d",d+"."+i],["t",FILE_T]],content:enc({cid,i,part:json.slice(i*PART,(i+1)*PART)},club)},skB(club)));
+    content=enc({cid,n},club)}
   // photos are tagged apart so phones only download the ones they open
-  await publish(NT.finalizeEvent({kind:REC_KIND,created_at:t,tags:[["d",d],["t",path.startsWith("blobs/")?FILE_T:APP_T]],content},skB()));
-  RM[path]=[ts,t];saveRM();
+  await publish(NT.finalizeEvent({kind:REC_KIND,created_at:t,tags:[["d",d],["t",path.startsWith("blobs/")?FILE_T:APP_T]],content},skB(club)));
+  if(!club){RM[path]=[ts,t];saveRM()}
 }
-async function readEv(ev){
-  const o=dec(ev.content);let json=o.b;
+async function readEv(ev,club){
+  const o=dec(ev.content,club);let json=o.b;
   if(o.n){const d=(ev.tags.find(t=>t[0]==="d")||[])[1];
-    const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#d":Array.from({length:o.n},(_,i)=>d+"."+i)},{maxWait:10000});
-    const parts=[];for(const e of evs){try{const c=dec(e.content);if(c.cid===o.cid)parts[c.i]=c.part}catch(_){}}
+    const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[(club||CLUB).pk],"#d":Array.from({length:o.n},(_,i)=>d+"."+i)},{maxWait:10000});
+    const parts=[];for(const e of evs){try{const c=dec(e.content,club);if(c.cid===o.cid)parts[c.i]=c.part}catch(_){}}
     for(let i=0;i<o.n;i++)if(parts[i]===undefined)throw new Error("part missing");
     json=parts.join("")}
   return JSON.parse(json);
 }
 /* a technician's phone only keeps their own job cards and van stock; the admin's keeps everything */
-function mine(path,data){if(isAdmin)return true;const a=path.split("/");
+function mine(path,data){if(isAdmin||isDev)return true;const a=path.split("/");
   if(a[0]==="jobcards")return !data||data.techId===meId;
   if(a[0]==="vanstock")return a[1]===meId;
   return a[0]==="customers"||a[0]==="settings"}
@@ -1089,14 +1373,14 @@ const TIX_ITER=310000;
 const tixD=u=>"mjl-"+NT.bytesToHex(NT.sha256(new TextEncoder().encode("mjc-login|"+String(u).toLowerCase()))).slice(0,40);
 async function tixKey(u,pw){const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
   return crypto.subtle.deriveKey({name:"PBKDF2",salt:new TextEncoder().encode("mjc-ticket|"+String(u).toLowerCase()),iterations:TIX_ITER,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
-async function makeTicket(u,pw){const k=await tixKey(u,pw),iv=crypto.getRandomValues(new Uint8Array(12));
-  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify({sk:CLUB.sk}))));
+async function makeTicket(u,pw,club){const k=await tixKey(u,pw),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify({sk:(club||CLUB).sk}))));
   const all=new Uint8Array(12+ct.length);all.set(iv);all.set(ct,12);let s="";all.forEach(b=>s+=String.fromCharCode(b));return btoa(s)}
 async function openTicket(content,key){const b=Uint8Array.from(atob(content),c=>c.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b.slice(0,12)},key,b.slice(12))))}
-async function publishTicket(u,pw){const content=await makeTicket(u,pw);
-  await publish(NT.finalizeEvent({kind:REC_KIND,created_at:sendTime("tix|"+u),tags:[["d",tixD(u)],["t",LOGIN_T]],content},skB()));
-  RM["tix|"+u]=[Date.now(),Math.floor(Date.now()/1000)];saveRM()}
+async function publishTicket(u,pw,club){const content=await makeTicket(u,pw,club);
+  await publish(NT.finalizeEvent({kind:REC_KIND,created_at:club?Math.floor(Date.now()/1000):sendTime("tix|"+u),tags:[["d",tixD(u)],["t",LOGIN_T]],content},skB(club)));
+  if(!club){RM["tix|"+u]=[Date.now(),Math.floor(Date.now()/1000)];saveRM()}}
 /* the company key if the password opens a ticket, false if tickets exist but none open, null if none found */
 async function ticketLogin(u,pw){
   const evs=(await rpool().querySync(RELAYS,{kinds:[REC_KIND],"#d":[tixD(u)]},{maxWait:7000})||[]).filter(e=>e.content&&NT.verifyEvent(e)).sort((a,b)=>b.created_at-a.created_at);
@@ -1121,9 +1405,10 @@ async function relayApi(path,body){
     await publishTicket(u.username,body.password);
     RL.afterEnter=()=>setUsers([u]);return {token:"relay",user:u}});
   if(path==="/api/login")return net(async()=>{
-    const base=body.username===BASE.username;
-    if(base&&body.password!==BASE.password)throw {msg:"Wrong username or password"};
-    const sk=base?baseSk():await ticketLogin(body.username,body.password);
+    if(body.username===BASE.username){ // the developer: adds companies, sees none of their job cards
+      if(body.password!==BASE.password)throw {msg:"Wrong username or password"};
+      setClub(baseSk());return {token:"relay",user:{id:"dev",name:"Developer",username:BASE.username,role:"dev",active:true,pv:1}}}
+    const base=false,sk=await ticketLogin(body.username,body.password);
     if(!sk)throw {msg:"Wrong username or password"};
     setClub(sk);
     const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#d":[dTag("r|settings/users")]},{maxWait:8000});
@@ -1159,7 +1444,7 @@ function watchLogin(){
 let profile=null,isAdmin=false;const unsubs=[];
 const normUser=v=>String(v||"").trim().toLowerCase().replace(/[^a-z0-9._-]/g,"");
 const errMsg=(err,fallback)=>err?.offline?"Can't reach the server. Check the connection and try again":(err?.msg||fallback);
-function softRender(){if(!["form","settings","login","wait"].includes(S.view)&&!(S.view==="team"&&S.teamForm)&&!(S.view==="van"&&S.partForm))render()}
+function softRender(){if(!["form","settings","login","wait","invform"].includes(S.view)&&!(S.view==="team"&&S.teamForm)&&!(S.view==="van"&&S.partForm)&&!(S.view==="dev"&&S.coForm))render()}
 
 function loginView(){
   const useSrv=!SY.sameOrigin&&(S.useServer??!!SY.url);
@@ -1191,7 +1476,7 @@ async function checkSetup(){
   try{const s=await api("/api/status");S.needSetup=!!s.needSetup}catch(_){S.needSetup=false}
   if(S.needSetup&&S.view==="login"&&!S.loginMode&&!$("#l_user")?.value)render();
 }
-function clearSession(){SY.token="";LS("token",null);LS("profile",null);profile=null;isAdmin=false;meId=null;S.myName=""}
+function clearSession(){isDev=false;SY.token="";LS("token",null);LS("profile",null);profile=null;isAdmin=false;meId=null;S.myName=""}
 function forceSignOut(msg){stopData();relayOff();clearSession();S.view="login";S.loginMode=null;render();showSync();if(msg)toast(msg);checkSetup()}
 async function doLogin(){
   const un=normUser($("#l_user").value),pw=$("#l_pass").value;
@@ -1214,7 +1499,8 @@ async function doSetup(){
 }
 /* a successful sign-in: make sure the job cards on this phone belong to this person, then open the app */
 async function enter(token,user){
-  const prev=LS("lastUser");
+  let prev=LS("lastUser");
+  if(prev==="u-admin"){dirty={};saveDirty();await db.wipe();prev=null;LS("lastUser",null);LS("techId",null)} // data from the old single-company test setup
   if(prev&&prev!==user.id){
     if(pendingCount()){const t=SY.token;SY.token=token;api("/api/logout",{}).catch(()=>{});SY.token=t;
       throw {msg:`This phone still has job cards from ${LS("lastName")||"another technician"} that haven't synced. They must sign in and sync first`}}
@@ -1237,9 +1523,9 @@ async function enter(token,user){
 }
 function openApp(user){
   stopData();
-  profile=user;isAdmin=user.role==="admin";meId=user.id;S.myName=user.name||"";S.names[meId]=S.myName;
+  profile=user;isAdmin=user.role==="admin";isDev=user.role==="dev";meId=user.id;S.myName=user.name||"";S.names[meId]=S.myName;
   if(isAdmin){try{setTeam(JSON.parse(LS("team")||"[]"))}catch(_){}}
-  S.view="list";S.loginDraft=null;render();startData();if(RL.afterEnter){const f=RL.afterEnter;RL.afterEnter=null;f()}showSync();syncNow();if(isAdmin)loadTeam();
+  S.view=isDev?"dev":"list";S.loginDraft=null;render();startData();if(RL.afterEnter){const f=RL.afterEnter;RL.afterEnter=null;f()}showSync();syncNow();if(isAdmin)loadTeam();
 }
 async function trySignOut(){
   if(pendingCount()){await syncNow();if(pendingCount()){toast("Job cards on this phone haven't synced yet. Get online and let it sync before signing out");return}}
@@ -1288,8 +1574,8 @@ async function toggleTech(id){
 function accountSection(){
   const n=pendingCount();
   return `<div class="section"><fieldset><legend>Signed in</legend>
-      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isAdmin?"Admin":"Technician"}</dd><dt>Syncs</dt><dd>${relayMode()?"Phone to phone, no server":"To "+esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
-      <p class="hint">${isAdmin?"You see every technician's job cards.":"Your job cards are saved on this phone and go to the admin when the phone is online."}</p>
+      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isDev?"Developer":isAdmin?"Company admin":"Technician"}</dd><dt>Syncs</dt><dd>${relayMode()?"Phone to phone, no server":"To "+esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
+      <p class="hint">${isDev?"You add companies and their admin logins. Each company only sees its own job cards.":isAdmin?"You see every technician's job cards in your company.":"Your job cards are saved on this phone and go to the admin when the phone is online."}</p>
       <div class="row"><button class="btn" id="syncBtn" type="button">Sync now</button><button class="btn" id="signOut" type="button">Sign out</button></div>
     </fieldset></div>`;
 }
@@ -1298,10 +1584,14 @@ function accountSection(){
 function stopData(){
   while(unsubs.length){try{unsubs.pop()()}catch(_){}}
   for(const k of Object.keys(vanSubs)){try{vanSubs[k]()}catch(_){}delete vanSubs[k]}
-  S.cards=[];S.customers=[];S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
+  S.cards=[];S.customers=[];S.invoices=[];S.invCfg=null;S.companies=[];S.coForm=null;S.invForm=null;S.pick=null;S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
 }
 function startData(){
+  if(isDev){unsubs.push(db.collection("companies").onSnapshot(snap=>{S.companies=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.sk);softRender()}));return}
   watchLogin();
+  unsubs.push(db.doc("settings/account").onSnapshot(s=>{if(profile&&s.exists&&s.data().active===false)forceSignOut("This company's access is switched off. Speak to Macadams")}));
+  unsubs.push(db.doc("settings/invoicing").onSnapshot(s=>{S.invCfg=s.exists?s.data():null;setTab(S.view);softRender()}));
+  if(isAdmin)unsubs.push(db.collection("invoices").onSnapshot(snap=>{S.invoices=snap.docs.map(d=>({id:d.id,...d.data()}));softRender()}));
   S.vanTech=meId;subVan(meId);if(!isAdmin)S.techs=[meId];
   unsubs.push(db.collection("jobcards").onSnapshot(snap=>{
     S.loaded=true;S.error=null;
@@ -1311,7 +1601,7 @@ function startData(){
   }));
   unsubs.push(db.collection("customers").onSnapshot(snap=>{S.customers=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.name).sort((a,b)=>(a.name+a.site).localeCompare(b.name+b.site));softRender()}));
   unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
-    if(["form","settings","login","wait"].includes(S.view)||(S.view==="team"&&S.teamForm)){$("#coName").textContent=S.company.name||"Service department";setLogo()}else softRender()}));
+    $("#coName").textContent=coTitle();setLogo();softRender()}));
 }
 async function boot(){
   S.view="wait";render();
