@@ -265,7 +265,8 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 
 <script>
 const MACADAMS={name:"",footer:""}; // each company's own name and details are set when the developer adds it
-const coTitle=()=>isDev?"Developer":(S.company.name||"Job cards");
+const signedOut=()=>["login","wait"].includes(S.view);
+const coTitle=()=>signedOut()?"Macadams International":isDev?"Developer":(S.company.name||"Job cards");
 const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
 const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
 const S={view:"list",invoices:[],invCfg:null,companies:[],customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
@@ -619,7 +620,7 @@ async function saveSettings(){
 function logoDraftId(){return S.logoDraft?S.logoDraft.id:S.company.logoId}
 const DEFAULT_LOGO="macadams-logo.png";
 function setLogo(){const im=$("#coLogo2"),b=$("#coBadge");if(!im)return;const id=S.company.logoId;
-  if(!id||isDev){b.hidden=true;return}
+  if(!id||isDev||signedOut()){b.hidden=true;return}
   const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;b.hidden=false}
   else{b.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
 function keepSettingsInputs(){S.setDraft={name:$("#s_name")?.value,footer:$("#s_footer")?.value,inv:readInvSettings()||undefined}}
@@ -1629,7 +1630,7 @@ function accountSection(){
 function stopData(){
   while(unsubs.length){try{unsubs.pop()()}catch(_){}}
   for(const k of Object.keys(vanSubs)){try{vanSubs[k]()}catch(_){}delete vanSubs[k]}
-  S.cards=[];S.customers=[];S.invoices=[];S.invCfg=null;S.companies=[];S.coForm=null;S.invForm=null;S.pick=null;S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
+  S.company={name:"",footer:"",logoId:"",logoUrl:"",brandLogos:[]};S.cards=[];S.customers=[];S.invoices=[];S.invCfg=null;S.companies=[];S.coForm=null;S.invForm=null;S.pick=null;S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
 }
 function startData(){
   if(isDev){unsubs.push(db.collection("companies").onSnapshot(snap=>{S.companies=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.sk);softRender()}));return}

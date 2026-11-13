@@ -117,7 +117,10 @@ async def main():
     await thabo.wait_for_selector("#l_user",timeout=30000); await login(thabo,"thabo","mixer-4567"); await thabo.wait_for_selector("text=switched off",timeout=20000); ok("switched-off login is signed out and can't get back in",True)
     # developer gives a company admin a new password, and switches the other company off
     await dev.click(".member:has-text('Zululand') [data-editco]"); await dev.fill("#c_adminPass","zsp-9999"); await dev.click("#coSave"); await dev.wait_for_selector("text=Company saved",timeout=30000)
-    await admin.wait_for_selector("#l_user",timeout=40000); await login(admin,"zspadmin","zsp-1234"); await admin.wait_for_selector("text=Wrong username or password",timeout=20000)
+    await admin.wait_for_selector("#l_user",timeout=40000)
+    ok("sign-in screen shows only the Macadams logo and name",await admin.eval_on_selector("#coBadge","e=>e.hidden") and await admin.inner_text("#coName")=="Macadams International" and await admin.eval_on_selector("#coLogo","e=>e.getAttribute('src')")=="macadams-logo.png")
+    await shot(admin,"s_signin.png")
+    await login(admin,"zspadmin","zsp-1234"); await admin.wait_for_selector("text=Wrong username or password",timeout=20000)
     await login(admin,"zspadmin","zsp-9999"); await cards(admin,3); ok("developer's new admin password works; the old one doesn't",True)
     # the admin signs in on a second phone and gets everything
     a2ctx,admin2=await page(b); await login(admin2,"zspadmin","zsp-9999"); await cards(admin2,3); ok("admin signing in on another phone gets all the job cards",True)
