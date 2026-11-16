@@ -1443,6 +1443,26 @@ const minPw=()=>relayMode()?8:6; // with no server, the password is what protect
 /* The developer login (username "admin"). Its key comes from the password itself, so nothing secret is in the app's code.
    A different password opens a different, empty developer space. */
 const BASE={username:"admin"},DEV_MIN=10;
+/* Companies made under the old built-in developer login (before 1.0.12) are moved into the new developer space
+   the first time the developer signs in, and removed from the old one, whose key was in the app's code. */
+async function carryOverCompanies(){
+  try{
+    const mine=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[CLUB.pk],"#t":[APP_T]},{maxWait:8000});
+    if(mine.length)return; // this developer space is already in use
+    const old=clubOf(NT.bytesToHex(NT.sha256(new TextEncoder().encode("mjc-developer|macadams-jobcards|v2"))));
+    const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[old.pk],"#t":[APP_T]},{maxWait:8000});
+    const latest={};
+    for(const e of evs){try{const r=await readEv(e,old);if(r&&typeof r.p==="string"&&r.p.startsWith("companies/")&&(!latest[r.p]||latest[r.p].ts<r.ts))latest[r.p]=r}catch(_){}}
+    const list=Object.values(latest).filter(r=>r.d&&r.d.sk);
+    if(!list.length)return;
+    RL.afterEnter=async()=>{ // once signed in: saved here, synced into the new developer space, then cleared from the old one
+      for(const r of list)await db.doc(r.p).set(r.d);
+      toast(`${list.length} compan${list.length===1?"y":"ies"} brought over from the old developer login`);
+      for(let i=0;i<60&&(pendingCount()||SY.busy);i++){if(!SY.busy)syncNow();await new Promise(r=>setTimeout(r,1000))}
+      if(!pendingCount())for(const r of Object.values(latest))await sendDoc(r.p,null,Date.now(),old).catch(()=>{}); // only once they're safely in the new space
+    };
+  }catch(err){console.warn("carry over",err)}
+}
 async function devKey(pw){
   const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);
   for(let i=0;i<5;i++){const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode("mjc-developer|v3|"+i),iterations:TIX_ITER,hash:"SHA-256"},base,256);
@@ -1567,7 +1587,7 @@ async function relayApi(path,body){
   if(path==="/api/login")return net(async()=>{
     if(body.username===BASE.username){ // the developer: adds companies, sees none of their job cards
       if(String(body.password||"").length<DEV_MIN)throw {msg:`The developer password must be ${DEV_MIN} or more characters`};
-      const sk=await devKey(body.password);setClub(sk);
+      const sk=await devKey(body.password);setClub(sk);await carryOverCompanies();
       const before=LS("devPk");LS("devPk",CLUB.pk);
       if(before&&before!==CLUB.pk)RL.afterEnter=()=>toast("This isn't the developer password used on this phone before. If your companies are missing, sign out and check the password");
       return {token:"relay",user:{id:"dev",name:"Developer",username:BASE.username,role:"dev",active:true,pv:1}}}

@@ -158,6 +158,22 @@ async def main():
     ok("a switched-off company can't sign in",await admin.locator("#l_user").count()==1 and await admin.locator("text=This company's access is switched off").count()>0)
     await dev.click(".member:has-text('Zululand') [data-coon]"); await dev.wait_for_selector(".member:not(.off):has-text('Zululand')",timeout=30000)
     await login(admin,"zspadmin","zsp-9999"); await cards(admin,3); ok("switched back on: the admin signs in and the job cards are all still there",True)
+    # companies made under the old built-in developer login carry over to a new developer password
+    octx,old=await page(b)
+    await old.wait_for_selector("#l_user")
+    await old.evaluate("""async()=>{const oc=clubOf(NT.bytesToHex(NT.sha256(new TextEncoder().encode('mjc-developer|macadams-jobcards|v2'))));
+      const sk=NT.bytesToHex(NT.generateSecretKey());await sendDoc('companies/oldco1',{name:'Old Test Co',details:'',adminName:'Old Admin',adminUser:'oldadmin',adminId:'u1',active:true,sk,createdAt:Date.now()},Date.now(),oc)}""")
+    await login(old,"admin","brand-new-dev-pass"); await old.wait_for_selector(".member:has-text('Old Test Co')",timeout=40000); ok("old companies carry over to the new developer password",True)
+    left=None
+    for _ in range(20):
+        left=await old.evaluate("""async()=>{const oc=clubOf(NT.bytesToHex(NT.sha256(new TextEncoder().encode('mjc-developer|macadams-jobcards|v2'))));
+          const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[oc.pk],'#t':[APP_T]},{maxWait:4000});let n=0;
+          for(const e of evs){try{const r=await readEv(e,oc);if(r&&r.p.startsWith('companies/')&&r.d)n++}catch(_){}}return n}""")
+        if left==0: break
+        await old.wait_for_timeout(1000)
+    ok("and are cleared from the old developer space",left==0,str(left))
+    await old.click("#settingsBtn"); await old.click("#signOut"); await old.evaluate("localStorage.clear();indexedDB.deleteDatabase('bakery-jobcards')"); await old.reload()
+    await login(old,"admin","brand-new-dev-pass"); await old.wait_for_selector(".member:has-text('Old Test Co')",timeout=40000); ok("after signing in again (even on a wiped phone) the carried-over company is still there",True)
     # the admin signs in on a second phone and gets everything
     a2ctx,admin2=await page(b); await login(admin2,"zspadmin","zsp-9999"); await cards(admin2,3); ok("admin signing in on another phone gets all the job cards",True)
     await b.close()
