@@ -51,7 +51,7 @@ function owner(p, data, old) { // the technician a record belongs to
 function validPath(p) {
   const a = String(p).split("/");
   if (!a.every(x => SAFE_ID.test(x))) return false;
-  return (a[0] === "jobcards" && a.length === 2) || (a[0] === "vanstock" && a.length === 4 && a[2] === "parts") || (a[0] === "settings" && a.length === 2) || (a[0] === "customers" && a.length === 2) || (a[0] === "invoices" && a.length === 2) || (a[0] === "blobs" && a.length === 2);
+  return (a[0] === "jobcards" && a.length === 2) || (a[0] === "vanstock" && a.length === 4 && a[2] === "parts") || (a[0] === "settings" && a.length === 2) || (a[0] === "customers" && a.length === 2) || (a[0] === "invoices" && a.length === 2) || (a[0] === "quotes" && a.length === 2) || (a[0] === "blobs" && a.length === 2);
 }
 function mayWrite(u, p, data, old) {
   const admin = u.role === "admin", top = p.split("/")[0];

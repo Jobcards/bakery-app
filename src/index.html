@@ -259,7 +259,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
   <button class="tab" role="tab" id="tabCust" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6M4 20h16"/></svg></span>Customers</button>
   <button class="tab" role="tab" id="tabVan" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Van stock</button>
   <button class="tab" role="tab" id="tabReports" aria-selected="false" type="button"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg></span>Reports</button>
-  <button class="tab" role="tab" id="tabInv" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span>Invoices</button>
+  <button class="tab" role="tab" id="tabInv" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></span><span id="tabInvLbl">Invoices</span></button>
   <button class="tab" role="tab" id="tabTeam" aria-selected="false" type="button" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.2 3.2-4.8 6-4.8s5.200 1.600 6 4.800"/><circle cx="17" cy="9" r="2.500"/><path d="M17 14.500c2 .200 3.500 1.500 4 4"/></svg></span>Team</button>
 </div></nav>
 <div class="toast" id="toast" hidden></div>
@@ -270,7 +270,7 @@ const signedOut=()=>["login","wait"].includes(S.view);
 const coTitle=()=>signedOut()?"Macadams International":isDev?"Developer":(S.company.name||"Job cards");
 const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
 const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
-const S={view:"list",invoices:[],invCfg:null,companies:[],customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
+const S={view:"list",invoices:[],quotes:[],invKind:"inv",billTab:"quo",invCfg:null,companies:[],customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
   rep:{from:"",to:"",tech:"all"}};
 let db=null,assets=null,meId=null,canWrite=true;
 const $=s=>document.querySelector(s);
@@ -290,15 +290,15 @@ function newJobNo(){const b=myBlock();let last=+LS("lastNo:"+meId)||0;
 /* ---------- rendering ---------- */
 const ICONS={machine:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M8 13h8v4H8z"/>',person:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.5 4-5 7-5s6 1.5 7 5"/>',camera:'<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',doc:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',share:'<path d="M4 13v7h16v-7M12 15V3M7 8l5-5 5 5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',back:'<path d="M15 5l-7 7 7 7"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
 const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
-const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome",login:"Sign in",wait:"Job cards",team:"Technicians",cust:"Customers",customer:"Customer",inv:"Invoices",invform:"Invoice",invview:"Invoice",dev:"Companies"};
+const TITLES={list:"Job cards",detail:"Job card",van:"Van stock",reports:"Reports",settings:"Settings",who:"Welcome",login:"Sign in",wait:"Job cards",team:"Technicians",cust:"Customers",customer:"Customer",inv:"Invoices",invform:"Invoice",invview:"Invoice",quoview:"Quote",dev:"Companies"};
 function dayLabel(d){if(!d)return "No date";if(d===today())return "Today";const y=new Date();y.setDate(y.getDate()-1);if(d===y.toLocaleDateString("en-CA"))return "Yesterday";return new Date(d+"T00:00").toLocaleDateString("en-ZA",{weekday:"short",day:"numeric",month:"short"})}
-function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail"||v==="form");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabCust").setAttribute("aria-selected",v==="cust"||v==="customer");$("#tabReports").setAttribute("aria-selected",v==="reports");$("#tabTeam").setAttribute("aria-selected",v==="team");$("#tabInv").setAttribute("aria-selected",v==="inv"||v==="invform"||v==="invview");$("#tabInv").hidden=!invOn();
+function setTab(v){$("#tabList").setAttribute("aria-selected",v==="list"||v==="detail"||v==="form");$("#tabVan").setAttribute("aria-selected",v==="van");$("#tabCust").setAttribute("aria-selected",v==="cust"||v==="customer");$("#tabReports").setAttribute("aria-selected",v==="reports");$("#tabTeam").setAttribute("aria-selected",v==="team");$("#tabInv").setAttribute("aria-selected",["inv","invform","invview","quoview"].includes(v));$("#tabInv").hidden=!billOn();$("#tabInvLbl").textContent=billLabel();
   const bare=["login","who","wait"].includes(v);document.querySelector(".tabbar").hidden=bare||isDev;$("#settingsBtn").hidden=bare;$("#tabTeam").hidden=!isAdmin}
 function render(){
   setTab(S.view);
   $("#fab").hidden=S.view!=="list"||!canWrite;
   $("#coName").textContent=coTitle();setLogo();
-  $("#viewTitle").textContent=S.view==="form"?(S.form?.id?"Edit job card":"New job card"):(TITLES[S.view]||"Job cards");
+  $("#viewTitle").textContent=S.view==="form"?(S.form?.id?"Edit job card":"New job card"):S.view==="inv"?billLabel():S.view==="invform"?KIND[S.invKind||"inv"].One:(TITLES[S.view]||"Job cards");
   const app=$("#app");
   if(S.view==="list")app.innerHTML=listView();
   else if(S.view==="van")app.innerHTML=vanView();
@@ -313,6 +313,7 @@ function render(){
   else if(S.view==="inv")app.innerHTML=invListView();
   else if(S.view==="invform"){app.innerHTML=invFormView();renderInvLines()}
   else if(S.view==="invview")app.innerHTML=invView();
+  else if(S.view==="quoview")app.innerHTML=quoView();
   else if(S.view==="dev")app.innerHTML=devView();
   else if(S.view==="wait")app.innerHTML=`<div class="empty"><p>Opening…</p></div>`;
   hydrate();window.scrollTo(0,0);
@@ -353,7 +354,7 @@ function detailView(){
       <span class="jn">${esc(c.jobNo)}</span>
       <h2>${esc(c.customer||"No customer")}</h2>${c.site?`<span class="site">${esc(c.site)}</span>`:""}
     </div>
-    <div class="actions"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">${ic("share")}WhatsApp text</button>${canWrite?`<button class="btn" id="editOne" type="button">${ic("edit")}Edit</button>`:""}${invOn()&&c.status==="done"?(invFor(c.id)?`<button class="btn" type="button" data-inv="${esc(invFor(c.id).id)}">${ic("doc")}Invoice ${esc(invFor(c.id).no)}</button>`:`<button class="btn" type="button" data-newinv="${esc(c.id)}">${ic("doc")}Create invoice</button>`):""}</div>
+    <div class="actions"><button class="btn primary" id="pdfOne" type="button">PDF report</button><button class="btn" id="copyOne" type="button">${ic("share")}WhatsApp text</button>${canWrite?`<button class="btn" id="editOne" type="button">${ic("edit")}Edit</button>`:""}${quoOn()?(quoFor(c.id)?`<button class="btn" type="button" data-quo="${esc(quoFor(c.id).id)}">${ic("doc")}Quote ${esc(quoFor(c.id).no)}</button>`:`<button class="btn" type="button" data-newquo="${esc(c.id)}">${ic("doc")}Create quote</button>`):""}${invOn()&&c.status==="done"?(invFor(c.id)?`<button class="btn" type="button" data-inv="${esc(invFor(c.id).id)}">${ic("doc")}Invoice ${esc(invFor(c.id).no)}</button>`:`<button class="btn" type="button" data-newinv="${esc(c.id)}">${ic("doc")}Create invoice</button>`):""}</div>
     <div class="section"><dl class="kv">
       <dt>Date</dt><dd>${fmtDate(c.date)}</dd>
       ${c.jobType?`<dt>Type of job</dt><dd>${esc(labelsOf(c.jobType,JOBTYPES).join(", "))}</dd>`:""}
@@ -472,14 +473,23 @@ document.addEventListener("click",e=>{
   if(t.id==="pickDone"){pickDone();return}
   if(t.dataset.pk){pickBump(t.dataset.pk,+t.dataset.d);return}
   if(t.id==="tabInv"){S.view="inv";S.confirmDel=false;render();return}
-  if(t.dataset.newinv){const c=S.cards.find(x=>x.id===t.dataset.newinv);if(c){S.invForm=draftInvoice(c);S.view="invform";render()}return}
+  if(t.dataset.newinv){const c=S.cards.find(x=>x.id===t.dataset.newinv);if(c){S.invKind="inv";S.fromQuote=null;S.invForm=draftInvoice(c);S.view="invform";render()}return}
+  if(t.dataset.newquo){const c=S.cards.find(x=>x.id===t.dataset.newquo);if(c){S.invKind="quo";S.invForm=draftBill(c,"quo");S.view="invform";render()}return}
+  if(t.dataset.quo){S.quoId=t.dataset.quo;S.confirmDel=false;S.view="quoview";render();return}
+  if(t.dataset.billtab){S.billTab=t.dataset.billtab;render();return}
+  if(t.id==="quoPdf"){pdfInvoice(S.quotes.find(x=>x.id===S.quoId),t,"quo");return}
+  if(t.id==="quoEdit"){const v=S.quotes.find(x=>x.id===S.quoId);if(v){S.invKind="quo";S.invForm=JSON.parse(JSON.stringify(v));S.view="invform";render()}return}
+  if(t.id==="quoAccept"||t.id==="quoDecline"||t.id==="quoReopen"){const st={quoAccept:"accepted",quoDecline:"declined",quoReopen:"open"}[t.id];db.doc("quotes/"+S.quoId).update({status:st,updatedAt:Date.now()}).then(()=>toast(st==="accepted"?"Marked accepted":st==="declined"?"Marked declined":"Marked as waiting"));return}
+  if(t.id==="quoToInv"){const v=S.quotes.find(x=>x.id===S.quoId);if(v)quoteToInvoice(v);return}
+  if(t.id==="quoDelAsk"){S.confirmDel=true;render();return}
+  if(t.id==="quoDelYes"){db.doc("quotes/"+S.quoId).delete().then(()=>{S.confirmDel=false;S.view="inv";toast("Quote deleted");render()});return}
   if(t.dataset.inv){S.invId=t.dataset.inv;S.confirmDel=false;S.view="invview";render();return}
-  if(t.id==="cancelInv"){S.view=S.invForm?.id?"invview":"inv";S.invForm=null;render();return}
+  if(t.id==="cancelInv"){S.view=S.invForm?.id?(S.invKind==="quo"?"quoview":"invview"):(S.fromQuote?"quoview":"inv");S.invForm=null;S.fromQuote=null;render();return}
   if(t.id==="invAdd"){S.invForm.lines.push({desc:"",qty:1,price:0});renderInvLines();return}
   if(t.dataset.ilrm!=null){S.invForm.lines.splice(+t.dataset.ilrm,1);renderInvLines();return}
-  if(t.id==="invPdf"){pdfInvoice(S.invoices.find(x=>x.id===S.invId),t);return}
+  if(t.id==="invPdf"){pdfInvoice(S.invoices.find(x=>x.id===S.invId),t,"inv");return}
   if(t.id==="invPaid"){const v=S.invoices.find(x=>x.id===S.invId);if(v)db.doc("invoices/"+v.id).update({status:v.status==="paid"?"unpaid":"paid",updatedAt:Date.now()}).then(()=>toast(v.status==="paid"?"Marked unpaid":"Marked paid"));return}
-  if(t.id==="invEdit"){const v=S.invoices.find(x=>x.id===S.invId);if(v){S.invForm=JSON.parse(JSON.stringify(v));S.view="invform";render()}return}
+  if(t.id==="invEdit"){const v=S.invoices.find(x=>x.id===S.invId);if(v){S.invKind="inv";S.invForm=JSON.parse(JSON.stringify(v));S.view="invform";render()}return}
   if(t.id==="invDelAsk"){S.confirmDel=true;render();return}
   if(t.id==="invDelNo"){S.confirmDel=false;render();return}
   if(t.id==="invDelYes"){db.doc("invoices/"+S.invId).delete().then(()=>{S.confirmDel=false;S.view="inv";toast("Invoice deleted");render()});return}
@@ -707,7 +717,6 @@ async function uploadBrands(files){
   S.brandDraft=a;render();toast("Logos ready. Tap Save settings");
 }
 /* ---------- materials: pick from the whole van stock ---------- */
-const money=n=>"R "+(Math.round((+n||0)*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g," ");
 function renderUsed(){
   const box=$("#usedBox");if(!box||!S.form)return;const used=S.form.partsUsed;
   box.innerHTML=`${used.length?`<ul class="used">${used.map((u,i)=>`<li><span><b>${u.qty} ×</b> <span class="mono">${esc(u.partNo)}</span> ${esc(u.desc)}${+u.price?` <span class="sub">${money(u.price)} each</span>`:""}</span><button class="btn icon-btn" type="button" data-unused="${i}">Remove</button></li>`).join("")}</ul>`:""}
@@ -745,51 +754,99 @@ function pickDone(){
   S.form.partsUsed=out;closePicker();renderUsed();
 }
 
-/* ---------- invoices (optional, per company, admin only) ---------- */
-const INV0={enabled:false,labourRate:0,kmRate:0,callout:0,vat:true,vatNo:"",vatRate:15,prefix:"INV-",nextNo:1,bank:"",terms:"Payment due within 30 days."};
+/* ---------- quotes and invoices (optional, per company, admin only) ---------- */
+const CURRENCIES={
+  ZAR:{name:"South African rand",sym:"R ",pos:"pre",dec:".",grp:" ",tax:"VAT",rate:15},
+  MZN:{name:"Mozambican metical",sym:" MT",pos:"post",dec:",",grp:".",tax:"IVA",rate:16},
+  USD:{name:"US dollar",sym:"$",pos:"pre",dec:".",grp:",",tax:"VAT",rate:0},
+  EUR:{name:"Euro",sym:"€ ",pos:"pre",dec:",",grp:".",tax:"VAT",rate:0},
+  GBP:{name:"British pound",sym:"£",pos:"pre",dec:".",grp:",",tax:"VAT",rate:20},
+  BWP:{name:"Botswana pula",sym:"P ",pos:"pre",dec:".",grp:",",tax:"VAT",rate:14},
+  NAD:{name:"Namibian dollar",sym:"N$ ",pos:"pre",dec:".",grp:" ",tax:"VAT",rate:15},
+  SZL:{name:"Eswatini lilangeni",sym:"E ",pos:"pre",dec:".",grp:" ",tax:"VAT",rate:15},
+  LSL:{name:"Lesotho loti",sym:"M ",pos:"pre",dec:".",grp:" ",tax:"VAT",rate:15},
+  ZMW:{name:"Zambian kwacha",sym:"K ",pos:"pre",dec:".",grp:",",tax:"VAT",rate:16},
+  MWK:{name:"Malawian kwacha",sym:"MK ",pos:"pre",dec:".",grp:",",tax:"VAT",rate:16.5},
+  ZWG:{name:"Zimbabwe gold",sym:"ZiG ",pos:"pre",dec:".",grp:",",tax:"VAT",rate:15}};
+const curOf=code=>CURRENCIES[code]||CURRENCIES.ZAR;
+const money=(n,code)=>{const c=curOf(code||invCfg().currency),v=Math.round((+n||0)*100)/100,neg=v<0;
+  let [i,f]=Math.abs(v).toFixed(2).split(".");i=i.replace(/\B(?=(\d{3})+(?!\d))/g,c.grp);
+  const s=i+c.dec+f;return (neg?"-":"")+(c.pos==="pre"?c.sym+s:s+c.sym)};
+const INV0={enabled:false,quotes:false,currency:"ZAR",taxName:"VAT",labourRate:0,kmRate:0,callout:0,vat:true,vatNo:"",vatRate:15,prefix:"INV-",nextNo:1,qprefix:"QUO-",qnextNo:1,validDays:30,bank:"",terms:"Payment due within 30 days.",qterms:"Prices are valid until the date shown. Work starts once the quote is accepted."};
 const invCfg=()=>({...INV0,...(S.invCfg||{})});
 const invOn=()=>isAdmin&&!!invCfg().enabled;
+const quoOn=()=>isAdmin&&!!invCfg().quotes;
+const billOn=()=>invOn()||quoOn();
+const billLabel=()=>invOn()&&quoOn()?"Billing":quoOn()?"Quotes":"Invoices";
 const invTotals=v=>{const sub=(v.lines||[]).reduce((a,l)=>a+(+l.qty||0)*(+l.price||0),0),vat=v.vat?sub*(+v.vatRate||0)/100:0;return {sub,vat,total:sub+vat}};
 const invFor=jobId=>S.invoices.find(v=>v.jobId===jobId);
-function draftInvoice(c){
+const quoFor=jobId=>S.quotes.find(v=>v.jobId===jobId);
+const KIND={inv:{col:"invoices",one:"invoice",One:"Invoice",list:()=>S.invoices,cur:()=>S.invId,pdf:"PDF invoice"},
+            quo:{col:"quotes",one:"quote",One:"Quote",list:()=>S.quotes,cur:()=>S.quoId,pdf:"PDF quote"}};
+const addDays=(d,n)=>{const x=new Date((d||today())+"T00:00");x.setDate(x.getDate()+(+n||0));return x.toLocaleDateString("en-CA")};
+function partLine(t){const m=/^(\d+(?:[.,]\d+)?)\s*[x×]?\s+(.+)$/i.exec(t);return m?{desc:m[2],qty:+m[1].replace(",","."),price:0}:{desc:t,qty:1,price:0}}
+function priceFor(desc){ // a part already on a van with a price
+  const d=String(desc||"").toLowerCase();if(!d)return 0;
+  for(const list of Object.values(S.vans))for(const p of list||[]){const k=[p.partNo,p.desc].filter(Boolean).join(" ").toLowerCase();if(+p.price&&(k===d||(p.desc&&d.includes(p.desc.toLowerCase()))))return +p.price}
+  return 0;
+}
+function draftBill(c,kind){
   const cfg=invCfg(),h=hours(c.timeIn,c.timeOut)||0,lines=[];
   if(+cfg.callout>0)lines.push({desc:"Call-out fee",qty:1,price:+cfg.callout});
-  if(h>0)lines.push({desc:`Labour on ${fmtDate(c.date)}, ${c.timeIn} to ${c.timeOut} (hours)`,qty:h,price:+cfg.labourRate||0});
+  if(h>0)lines.push({desc:kind==="quo"?"Labour (hours)":`Labour on ${fmtDate(c.date)}, ${c.timeIn} to ${c.timeOut} (hours)`,qty:h,price:+cfg.labourRate||0});
   if(+c.km>0)lines.push({desc:"Travel (km)",qty:+c.km,price:+cfg.kmRate||0});
   for(const u of c.partsUsed||[])lines.push({desc:[u.partNo,u.desc].filter(Boolean).join(" "),qty:+u.qty||0,price:+u.price||0});
-  for(const t of String(c.parts||"").split("\n").map(x=>x.trim()).filter(Boolean))lines.push({desc:t,qty:1,price:0});
-  return {jobId:c.id,jobNo:c.jobNo||"",customer:c.customer||"",site:c.site||"",custRef:c.custRef||"",equipment:[c.equipment,c.model,c.serial&&("S/N "+c.serial)].filter(Boolean).join(", "),date:today(),lines,vat:!!cfg.vat,vatRate:+cfg.vatRate||0,notes:"",status:"unpaid"};
+  for(const t of String(c.parts||"").split("\n").map(x=>x.trim()).filter(Boolean))lines.push(partLine(t));
+  if(kind==="quo")for(const t of String(c.partsNeeded||"").split("\n").map(x=>x.trim()).filter(Boolean)){const l=partLine(t);l.price=priceFor(l.desc);lines.push(l)}
+  const base={jobId:c.id,jobNo:c.jobNo||"",customer:c.customer||"",site:c.site||"",custRef:c.custRef||"",equipment:[c.equipment,c.model,c.serial&&("S/N "+c.serial)].filter(Boolean).join(", "),date:today(),lines,vat:!!cfg.vat,vatRate:+cfg.vatRate||0,taxName:cfg.taxName||"VAT",currency:cfg.currency||"ZAR",notes:""};
+  return kind==="quo"?{...base,validUntil:addDays(today(),cfg.validDays||30),status:"open"}:{...base,status:"unpaid"};
 }
+const draftInvoice=c=>draftBill(c,"inv");
 function invListView(){
-  if(!invCfg().enabled)return `<div class="empty"><h2>Invoicing is off</h2><p>Switch it on under Settings if this company wants to invoice from the app.</p></div>`;
+  const both=invOn()&&quoOn(),tab=both?(S.billTab||"quo"):(quoOn()?"quo":"inv");
+  if(!billOn())return `<div class="empty"><h2>Quotes and invoices are off</h2><p>Switch them on under Settings if this company wants to quote or invoice from the app.</p></div>`;
+  const chips=both?`<div class="chips"><button type="button" class="chip" data-billtab="quo" aria-pressed="${tab==="quo"}">Quotes</button><button type="button" class="chip" data-billtab="inv" aria-pressed="${tab==="inv"}">Invoices</button></div>`:"";
+  return `<div class="stack">${chips}${tab==="quo"?quoListBody():invListBody()}</div>`;
+}
+function invListBody(){
   const ready=S.cards.filter(c=>c.status==="done"&&!invFor(c.id)),list=[...S.invoices].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  const owed=list.filter(v=>v.status!=="paid").reduce((a,v)=>a+invTotals(v).total,0);
-  return `<div class="stack">
-    <div class="stats hero"><div class="stat"><b>${ready.length}</b><span>Ready to invoice</span></div><div class="stat"><b>${list.filter(v=>v.status!=="paid").length}</b><span>Unpaid</span></div><div class="stat"><b style="font-size:1.15rem;line-height:1.5">${money(owed)}</b><span>Owed</span></div></div>
+  const owed=list.filter(v=>v.status!=="paid"&&(v.currency||"ZAR")===invCfg().currency).reduce((a,v)=>a+invTotals(v).total,0);
+  return `<div class="stats hero"><div class="stat"><b>${ready.length}</b><span>Ready to invoice</span></div><div class="stat"><b>${list.filter(v=>v.status!=="paid").length}</b><span>Unpaid</span></div><div class="stat"><b style="font-size:1.05rem;line-height:1.6;white-space:nowrap">${money(owed)}</b><span>Owed</span></div></div>
     ${ready.length?`<div class="day">Completed job cards, not invoiced yet<span>${ready.length}</span></div>`+ready.map(c=>`<div class="mach"><div class="pd"><b>${esc(c.customer||"No customer")}${c.site?", "+esc(c.site):""}</b><span>${esc(c.jobNo)}, ${fmtDate(c.date)}, ${esc(techName(c.techId))}</span></div><div class="row"><button class="btn primary icon-btn" type="button" data-newinv="${esc(c.id)}">Create invoice</button><button class="btn icon-btn" type="button" data-open="${esc(c.id)}">View job card</button></div></div>`).join(""):""}
     <div class="day">Invoices<span>${list.length}</span></div>
     ${list.length?list.map(v=>`<button type="button" class="card ${v.status==="paid"?"st-done":"st-follow"}" data-inv="${esc(v.id)}">
       <span class="t">${esc(v.customer||"No customer")}</span><span class="jn">${esc(v.no)}</span>
       <span class="s">${esc(v.site||"")}</span><span class="pill ${v.status==="paid"?"s-done":"s-follow"}">${v.status==="paid"?"Paid":"Unpaid"}</span>
-      <span class="m"><span><b>${money(invTotals(v).total)}</b></span><span>${fmtDate(v.date)}</span><span>${esc(v.jobNo||"")}</span></span></button>`).join(""):`<div class="empty"><p>No invoices yet. Completed job cards show above, ready to invoice.</p></div>`}
-  </div>`;
+      <span class="m"><span><b>${money(invTotals(v).total,v.currency)}</b></span><span>${fmtDate(v.date)}</span><span>${esc(v.jobNo||"")}</span></span></button>`).join(""):`<div class="empty"><p>No invoices yet. Completed job cards show above, ready to invoice.</p></div>`}`;
+}
+const QST={open:["Waiting","s-follow"],accepted:["Accepted","s-done"],declined:["Declined","s-open"]};
+function quoListBody(){
+  const ready=S.cards.filter(c=>c.status!=="done"&&!quoFor(c.id)),list=[...S.quotes].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  const waiting=list.filter(v=>v.status==="open"),val=waiting.filter(v=>(v.currency||"ZAR")===invCfg().currency).reduce((a,v)=>a+invTotals(v).total,0);
+  return `<div class="stats hero"><div class="stat"><b>${ready.length}</b><span>Open job cards to quote</span></div><div class="stat"><b>${waiting.length}</b><span>Waiting for answer</span></div><div class="stat"><b style="font-size:1.05rem;line-height:1.6;white-space:nowrap">${money(val)}</b><span>Quoted</span></div></div>
+    ${ready.length?`<div class="day">Job cards not finished, no quote yet<span>${ready.length}</span></div>`+ready.map(c=>`<div class="mach"><div class="pd"><b>${esc(c.customer||"No customer")}${c.site?", "+esc(c.site):""}</b><span>${esc(c.jobNo)}, ${fmtDate(c.date)}, ${esc((STATUSES[c.status]||STATUSES.open).label)}</span></div><div class="row"><button class="btn primary icon-btn" type="button" data-newquo="${esc(c.id)}">Create quote</button><button class="btn icon-btn" type="button" data-open="${esc(c.id)}">View job card</button></div></div>`).join(""):""}
+    <div class="day">Quotes<span>${list.length}</span></div>
+    ${list.length?list.map(v=>{const [l,cls]=QST[v.status]||QST.open,late=v.status==="open"&&v.validUntil&&v.validUntil<today();return `<button type="button" class="card ${v.status==="accepted"?"st-done":v.status==="declined"?"":"st-follow"}" data-quo="${esc(v.id)}">
+      <span class="t">${esc(v.customer||"No customer")}</span><span class="jn">${esc(v.no)}</span>
+      <span class="s">${esc(v.site||"")}</span><span class="pill ${late?"s-open":cls}">${late?"Expired":l}</span>
+      <span class="m"><span><b>${money(invTotals(v).total,v.currency)}</b></span><span>Valid until ${fmtDate(v.validUntil)}</span><span>${esc(v.jobNo||"")}</span></span></button>`}).join(""):`<div class="empty"><p>No quotes yet. Make one from any job card that isn't finished, or from the job card screen.</p></div>`}`;
 }
 function invFormView(){
-  const v=S.invForm;
+  const v=S.invForm,K=KIND[S.invKind||"inv"],q=S.invKind==="quo",cur=curOf(v.currency);
   return `<form id="invForm" class="stack" novalidate>
-    <div class="formbar"><button class="btn icon-btn" id="cancelInv" type="button">Cancel</button><b>${v.id?"Edit "+esc(v.no):"New invoice"}</b><button class="btn primary icon-btn" type="submit" id="invSave">Save</button></div>
-    <div class="section"><fieldset><legend>Bill to</legend>
+    <div class="formbar"><button class="btn icon-btn" id="cancelInv" type="button">Cancel</button><b>${v.id?"Edit "+esc(v.no):"New "+K.one}</b><button class="btn primary icon-btn" type="submit" id="invSave">Save</button></div>
+    <div class="section"><fieldset><legend>${q?"Quote for":"Bill to"}</legend>
       <label>Customer<input id="i_customer" value="${esc(v.customer)}"></label>
       <div class="grid2 stack-sm"><label>Branch / site<input id="i_site" value="${esc(v.site)}"></label><label>Order / ref no.<input id="i_custRef" value="${esc(v.custRef)}"></label></div>
-      <div class="grid2"><label>Invoice date<input id="i_date" type="date" value="${esc(v.date)}"></label><label>Job card<input value="${esc(v.jobNo)}" disabled></label></div>
+      <div class="grid2"><label>${K.One} date<input id="i_date" type="date" value="${esc(v.date)}"></label>${q?`<label>Valid until<input id="i_validUntil" type="date" value="${esc(v.validUntil)}"></label>`:`<label>Job card<input value="${esc(v.jobNo)}" disabled></label>`}</div>
     </fieldset></div>
     <div class="section"><fieldset><legend>Lines</legend><div id="invLines" class="stack"></div>
       <div><button class="btn icon-btn" id="invAdd" type="button">${ic("plus")}Add a line</button></div>
       <div id="invTot" class="totals"></div>
-      <p class="hint">Prices exclude VAT. ${v.vat?`VAT at ${v.vatRate}% is added.`:"No VAT is added (company is not set as VAT registered in Settings)."}</p>
+      <p class="hint">Amounts in ${esc(cur.name)}. Prices exclude ${esc(v.taxName||"VAT")}. ${v.vat?`${esc(v.taxName||"VAT")} at ${v.vatRate}% is added.`:`No ${esc(v.taxName||"VAT")} is added (company isn't set as registered in Settings).`}</p>
     </fieldset></div>
-    <div class="section"><fieldset><legend>Note on the invoice</legend><label>Note<textarea id="i_notes" placeholder="Optional">${esc(v.notes||"")}</textarea></label></fieldset></div>
-    <button class="btn primary" type="submit">Save invoice</button></form>`;
+    <div class="section"><fieldset><legend>Note on the ${K.one}</legend><label>Note<textarea id="i_notes" placeholder="Optional">${esc(v.notes||"")}</textarea></label></fieldset></div>
+    <button class="btn primary" type="submit">Save ${K.one}</button></form>`;
 }
 function renderInvLines(){
   const box=$("#invLines"),v=S.invForm;if(!box||!v)return;
@@ -797,72 +854,95 @@ function renderInvLines(){
     <div class="line3"><label>Qty<input data-il="${i}:qty" type="number" inputmode="decimal" step="any" min="0" value="${esc(l.qty)}"></label><label>Price each<input data-il="${i}:price" type="number" inputmode="decimal" step="any" min="0" value="${esc(l.price)}"></label><button class="btn icon-btn danger" type="button" data-ilrm="${i}">Remove</button></div></div>`).join("")||`<p class="hint">No lines yet.</p>`;
   renderInvTot();
 }
-function totalsHtml(v){const t=invTotals(v);return `<div><span>Subtotal</span><b>${money(t.sub)}</b></div>${v.vat?`<div><span>VAT ${v.vatRate}%</span><b>${money(t.vat)}</b></div>`:""}<div class="grand"><span>Total</span><b>${money(t.total)}</b></div>`}
+function totalsHtml(v){const t=invTotals(v),c=v.currency;return `<div><span>Subtotal</span><b>${money(t.sub,c)}</b></div>${v.vat?`<div><span>${esc(v.taxName||"VAT")} ${v.vatRate}%</span><b>${money(t.vat,c)}</b></div>`:""}<div class="grand"><span>Total</span><b>${money(t.total,c)}</b></div>`}
 function renderInvTot(){const el=$("#invTot");if(el)el.innerHTML=totalsHtml(S.invForm)}
-function readInvForm(){const v=S.invForm;for(const k of ["customer","site","custRef","date","notes"]){const el=$("#i_"+k);if(el)v[k]=el.value.trim()}}
+function readInvForm(){const v=S.invForm;for(const k of ["customer","site","custRef","date","notes","validUntil"]){const el=$("#i_"+k);if(el)v[k]=el.value.trim()}}
 async function saveInvoice(){
-  readInvForm();const v=S.invForm;
+  readInvForm();const v=S.invForm,kind=S.invKind||"inv",K=KIND[kind];
   v.lines=v.lines.map(l=>({desc:String(l.desc||"").trim(),qty:+l.qty||0,price:+l.price||0})).filter(l=>l.desc||l.qty||l.price);
   if(!v.lines.length){toast("Add at least one line");renderInvLines();return}
   const b=$("#invSave");b.disabled=true;
-  try{const {id,...data}=v;data.updatedAt=Date.now();
-    if(id){await db.collection("invoices").doc(id).set(data);S.invId=id}
-    else{const cfg=invCfg();data.no=cfg.prefix+String(cfg.nextNo||1).padStart(4,"0");data.createdAt=Date.now();
-      const ref=await db.collection("invoices").add(data);S.invId=ref.id;await db.doc("settings/invoicing").set({...cfg,nextNo:(+cfg.nextNo||1)+1})}
-    S.invForm=null;S.view="invview";toast("Invoice saved");render();
+  try{const {id,...data}=v;data.updatedAt=Date.now();let newId_;
+    if(id){await db.collection(K.col).doc(id).set(data);newId_=id}
+    else{const cfg=invCfg();
+      if(kind==="quo"){data.no=cfg.qprefix+String(cfg.qnextNo||1).padStart(4,"0");data.createdAt=Date.now();const ref=await db.collection(K.col).add(data);newId_=ref.id;await db.doc("settings/invoicing").set({...cfg,qnextNo:(+cfg.qnextNo||1)+1})}
+      else{data.no=cfg.prefix+String(cfg.nextNo||1).padStart(4,"0");data.createdAt=Date.now();const ref=await db.collection(K.col).add(data);newId_=ref.id;await db.doc("settings/invoicing").set({...cfg,nextNo:(+cfg.nextNo||1)+1});
+        if(S.fromQuote){await db.doc("quotes/"+S.fromQuote).update({status:"accepted",invoiceId:newId_,invoiceNo:data.no,updatedAt:Date.now()});S.fromQuote=null}}}
+    if(kind==="quo")S.quoId=newId_;else S.invId=newId_;
+    S.invForm=null;S.view=kind==="quo"?"quoview":"invview";toast(K.One+" saved");render();
   }catch(err){console.error(err);toast("Didn't save. Tap Save again");b.disabled=false}
 }
-function invView(){
-  const v=S.invoices.find(x=>x.id===S.invId);
-  if(!v)return `<div class="empty"><p>This invoice was removed.</p><button class="btn" data-go="inv" type="button">Back to invoices</button></div>`;
-  const paid=v.status==="paid";
-  const del=S.confirmDel?`<div class="confirm"><b>Delete invoice ${esc(v.no)}?</b><span class="hint">The job card stays and can be invoiced again.</span><div class="row"><button class="btn danger" id="invDelYes" type="button">Delete</button><button class="btn" id="invDelNo" type="button">Keep it</button></div></div>`:"";
+function billView(kind){
+  const K=KIND[kind],v=K.list().find(x=>x.id===K.cur()),q=kind==="quo";
+  if(!v)return `<div class="empty"><p>This ${K.one} was removed.</p><button class="btn" data-go="inv" type="button">Back</button></div>`;
+  const [ql,qc]=QST[v.status]||QST.open,late=q&&v.status==="open"&&v.validUntil&&v.validUntil<today();
+  const pill=q?`<span class="pill ${late?"s-open":qc}">${late?"Expired":ql}</span>`:`<span class="pill ${v.status==="paid"?"s-done":"s-follow"}">${v.status==="paid"?"Paid":"Unpaid"}</span>`;
+  const p=q?"quo":"inv";
+  const del=S.confirmDel?`<div class="confirm"><b>Delete ${K.one} ${esc(v.no)}?</b><span class="hint">The job card stays and can get a new ${K.one}.</span><div class="row"><button class="btn danger" id="${p}DelYes" type="button">Delete</button><button class="btn" id="invDelNo" type="button">Keep it</button></div></div>`:"";
+  const acts=q?`${v.status!=="accepted"?`<button class="btn" id="quoAccept" type="button">Accepted</button>`:""}${v.status==="open"?`<button class="btn" id="quoDecline" type="button">Declined</button>`:""}${v.status==="declined"?`<button class="btn" id="quoReopen" type="button">Still waiting</button>`:""}${invOn()?(v.invoiceId&&S.invoices.some(x=>x.id===v.invoiceId)?`<button class="btn" type="button" data-inv="${esc(v.invoiceId)}">${ic("doc")}Invoice ${esc(v.invoiceNo||"")}</button>`:`<button class="btn" id="quoToInv" type="button">${ic("doc")}Turn into invoice</button>`):""}`
+    :`<button class="btn" id="invPaid" type="button">${v.status==="paid"?"Mark unpaid":"Mark paid"}</button>`;
   return `<div class="stack detail">
-    <div class="jobhead"><div class="top"><button class="btn icon-btn back" data-go="inv" type="button">${ic("back")}Invoices</button><span class="pill ${paid?"s-done":"s-follow"}">${paid?"Paid":"Unpaid"}</span></div>
-      <span class="jn">${esc(v.no)}, ${fmtDate(v.date)}</span><h2>${esc(v.customer||"No customer")}</h2>${v.site?`<span class="site">${esc(v.site)}</span>`:""}</div>
-    <div class="actions"><button class="btn primary" id="invPdf" type="button">PDF invoice</button><button class="btn" id="invPaid" type="button">${paid?"Mark unpaid":"Mark paid"}</button><button class="btn" id="invEdit" type="button">${ic("edit")}Edit</button></div>
+    <div class="jobhead"><div class="top"><button class="btn icon-btn back" data-go="inv" type="button">${ic("back")}${billLabel()}</button>${pill}</div>
+      <span class="jn">${esc(v.no)}, ${fmtDate(v.date)}${q?`, valid until ${fmtDate(v.validUntil)}`:""}</span><h2>${esc(v.customer||"No customer")}</h2>${v.site?`<span class="site">${esc(v.site)}</span>`:""}</div>
+    <div class="actions"><button class="btn primary" id="${p}Pdf" type="button">${K.pdf}</button>${acts}<button class="btn" id="${p}Edit" type="button">${ic("edit")}Edit</button></div>
     <div class="section stack"><dl class="kv"><dt>Job card</dt><dd>${v.jobId&&S.cards.some(c=>c.id===v.jobId)?`<button class="linkbtn" style="padding:0" type="button" data-open="${esc(v.jobId)}">${esc(v.jobNo)}</button>`:esc(v.jobNo||"–")}</dd>${v.custRef?`<dt>Order / ref no.</dt><dd>${esc(v.custRef)}</dd>`:""}${v.equipment?`<dt>Machine</dt><dd>${esc(v.equipment)}</dd>`:""}</dl></div>
-    <div class="section stack">${v.lines.map(l=>`<div class="iline"><span>${esc(l.desc)}</span><span class="sub">${l.qty} × ${money(l.price)}</span><b>${money((+l.qty||0)*(+l.price||0))}</b></div>`).join("")}<div class="totals">${totalsHtml(v)}</div>${v.notes?`<p class="hint">${esc(v.notes)}</p>`:""}</div>
-    ${del||`<div><button class="btn danger" id="invDelAsk" type="button">Delete invoice</button></div>`}</div>`;
+    <div class="section stack">${v.lines.map(l=>`<div class="iline"><span>${esc(l.desc)}</span><span class="sub">${l.qty} × ${money(l.price,v.currency)}</span><b>${money((+l.qty||0)*(+l.price||0),v.currency)}</b></div>`).join("")}<div class="totals">${totalsHtml(v)}</div>${v.notes?`<p class="hint">${esc(v.notes)}</p>`:""}</div>
+    ${del||`<div><button class="btn danger" id="${p}DelAsk" type="button">Delete ${K.one}</button></div>`}</div>`;
 }
-async function pdfInvoice(v,btn){
+const invView=()=>billView("inv"),quoView=()=>billView("quo");
+function quoteToInvoice(v){
+  const cfg=invCfg(),{id,no,status,validUntil,createdAt,updatedAt,invoiceId,invoiceNo,...rest}=v;
+  S.invForm={...rest,date:today(),status:"unpaid",lines:v.lines.map(l=>({...l})),notes:v.notes?v.notes:""};S.invKind="inv";S.fromQuote=v.id;S.view="invform";render();
+}
+async function pdfInvoice(v,btn,kind){
+  kind=kind||"inv";const q=kind==="quo";
   if(!window.jspdf){toast("PDF tool didn't load. Close the app and open it again");return}
   btn.disabled=true;btn.textContent="Building PDF…";
   try{
-    const cfg=invCfg(),t=invTotals(v);
-    const doc=pdfBase(v.vat?"TAX INVOICE":"INVOICE",v.no,await logoData());let y=doc._top;
+    const cfg=invCfg(),t=invTotals(v),c=v.currency,tax=v.taxName||"VAT";
+    const doc=pdfBase(q?"QUOTATION":v.vat?(tax==="VAT"?"TAX INVOICE":"INVOICE"):"INVOICE",v.no,await logoData());let y=doc._top;
     const lab={fontSize:8,textColor:GREY,cellWidth:29,fillColor:TINT},val={fontStyle:"bold"};
     doc.autoTable({startY:y-4,theme:"grid",margin:{left:14,right:14},styles:{fontSize:9.5,cellPadding:{top:2,bottom:2,left:2.4,right:2.4},textColor:INK,lineColor:RULE,lineWidth:0.2,valign:"middle"},columnStyles:{0:lab,1:val,2:lab,3:val},
-      body:[["Bill to",v.customer||"","Invoice no.",v.no],["Branch / site",v.site||"","Invoice date",fmtDate(v.date)],["Order / ref no.",v.custRef||"","Job card",v.jobNo||""],...(v.equipment||(v.vat&&cfg.vatNo)?[["Machine",v.equipment||"",v.vat&&cfg.vatNo?"Our VAT no.":"",v.vat&&cfg.vatNo?cfg.vatNo:""]]:[])]});
+      body:[[q?"Quote for":"Bill to",v.customer||"",q?"Quote no.":"Invoice no.",v.no],["Branch / site",v.site||"",q?"Quote date":"Invoice date",fmtDate(v.date)],["Order / ref no.",v.custRef||"",q?"Valid until":"Job card",q?fmtDate(v.validUntil):(v.jobNo||"")],
+        ...(q?[["Machine",v.equipment||"","Job card",v.jobNo||""]]:v.equipment?[["Machine",v.equipment,"",""]]:[]),...(v.vat&&cfg.vatNo?[["Our "+tax+" no.",cfg.vatNo,"Currency",curOf(c).name]]:[["Currency",curOf(c).name,"",""]])]});
     y=doc.lastAutoTable.finalY+8;
     doc.autoTable({startY:y,theme:"grid",margin:{left:14,right:14,bottom:22},styles:{fontSize:9.5,cellPadding:2.2,textColor:INK,lineColor:RULE,lineWidth:0.2},headStyles:{fillColor:NAVY,textColor:255,fontSize:8.5},columnStyles:{1:{cellWidth:20,halign:"right"},2:{cellWidth:32,halign:"right"},3:{cellWidth:34,halign:"right"}},
-      head:[["Description","Qty",{content:"Price each",styles:{halign:"right"}},{content:"Amount",styles:{halign:"right"}}]],body:v.lines.map(l=>[l.desc,String(l.qty),money(l.price),money((+l.qty||0)*(+l.price||0))])});
+      head:[["Description","Qty",{content:"Price each",styles:{halign:"right"}},{content:"Amount",styles:{halign:"right"}}]],body:v.lines.map(l=>[l.desc,String(l.qty),money(l.price,c),money((+l.qty||0)*(+l.price||0),c)])});
     y=doc.lastAutoTable.finalY+4;if(y+34>278){doc.addPage();y=20}
     const row=(l,a,bold)=>{doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(bold?11.5:10);doc.setTextColor(...(bold?NAVY:INK));doc.text(l,150,y,{align:"right"});doc.text(a,196,y,{align:"right"});y+=bold?0:6};
-    y+=4;row("Subtotal (excl. VAT)",money(t.sub));if(v.vat)row(`VAT ${v.vatRate}%`,money(t.vat));
-    doc.setFillColor(...TINT);doc.rect(110,y-5,86,9,"F");row("Total due",money(t.total),true);y+=12;
+    y+=4;row(`Subtotal (excl. ${tax})`,money(t.sub,c));if(v.vat)row(`${tax} ${v.vatRate}%`,money(t.vat,c));
+    doc.setFillColor(...TINT);doc.rect(110,y-5,86,9,"F");row(q?"Total":"Total due",money(t.total,c),true);y+=12;
     const block=(title,txt)=>{if(!txt)return;const lines=doc.splitTextToSize(txt,180);if(y+9+lines.length*4.6>278){doc.addPage();y=20}
       y=pdfHead(doc,title,y);doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.setTextColor(...INK);doc.text(lines,14,y);y+=lines.length*4.6+5};
-    block("Banking details",cfg.bank);block("Terms",cfg.terms);block("Note",v.notes);
-    pdfFooter(doc,[],"Invoice "+v.no);
+    if(!q)block("Banking details",cfg.bank);block("Terms",q?cfg.qterms:cfg.terms);block("Note",v.notes);
+    if(q){if(y+30>278){doc.addPage();y=20}y=pdfHead(doc,"Acceptance",y)+8;doc.setDrawColor(150,160,170);doc.line(14,y,90,y);doc.line(110,y,196,y);
+      doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...GREY);doc.text("Name and signature",14,y+4);doc.text("Date",110,y+4)}
+    pdfFooter(doc,[],(q?"Quote ":"Invoice ")+v.no);
     await saveFile(`${v.no}.pdf`,doc.output("blob"),btn);
   }catch(err){console.error(err);toast("Couldn't build the PDF. Try again")}
-  btn.disabled=false;btn.textContent="PDF invoice";
+  btn.disabled=false;btn.textContent=KIND[kind].pdf;
 }
+const curOptions=sel=>Object.entries(CURRENCIES).map(([k,c])=>`<option value="${k}" ${k===sel?"selected":""}>${esc(c.name)} (${k})</option>`).join("");
 function invSettings(){const c={...invCfg(),...(S.setDraft?.inv||{})};const n=(id,l,v,ph)=>`<label>${l}<input id="${id}" type="number" inputmode="decimal" step="any" min="0" value="${esc(v||"")}" placeholder="${ph||"0.00"}"></label>`;
-  return `<div class="section"><fieldset><legend>Invoicing</legend>
+  return `<div class="section"><fieldset><legend>Quotes and invoices</legend>
+      <label class="check"><input type="checkbox" id="v_quotes" ${c.quotes?"checked":""}><span>Make quotes from job cards</span></label>
       <label class="check"><input type="checkbox" id="v_enabled" ${c.enabled?"checked":""}><span>Make invoices from completed job cards</span></label>
-      <p class="hint">Leave this off if the company invoices from its own accounting software.</p>
+      <p class="hint">Leave these off if the company quotes and invoices from its own accounting software.</p>
+      <label>Currency<select id="v_currency">${curOptions(c.currency)}</select></label>
       <div class="grid2">${n("v_labourRate","Labour rate per hour",c.labourRate)}${n("v_kmRate","Travel rate per km",c.kmRate)}</div>
-      <div class="grid2">${n("v_callout","Call-out fee",c.callout)}<label>Invoice no. starts with<input id="v_prefix" value="${esc(c.prefix)}"></label></div>
-      <label class="check"><input type="checkbox" id="v_vat" ${c.vat?"checked":""}><span>VAT registered (adds ${c.vatRate}% VAT)</span></label>
-      <label>VAT number<input id="v_vatNo" value="${esc(c.vatNo)}"></label>
+      <div class="grid2">${n("v_callout","Call-out fee",c.callout)}<label>Quotes valid for (days)<input id="v_validDays" type="number" inputmode="numeric" min="1" value="${esc(c.validDays||30)}"></label></div>
+      <div class="grid2"><label>Quote no. starts with<input id="v_qprefix" value="${esc(c.qprefix)}"></label><label>Invoice no. starts with<input id="v_prefix" value="${esc(c.prefix)}"></label></div>
+      <label class="check"><input type="checkbox" id="v_vat" ${c.vat?"checked":""}><span>Registered for tax (VAT, IVA)</span></label>
+      <div class="grid2"><label>Tax name<input id="v_taxName" value="${esc(c.taxName||"VAT")}" placeholder="VAT"></label>${n("v_vatRate","Tax rate (%)",c.vatRate,"15")}</div>
+      <label>Tax number<input id="v_vatNo" value="${esc(c.vatNo)}" placeholder="VAT no. or NUIT"></label>
       <label>Banking details<textarea id="v_bank" rows="4" placeholder="Bank, account name, account number, branch code">${esc(c.bank)}</textarea></label>
-      <label>Terms<input id="v_terms" value="${esc(c.terms)}"></label>
-      <p class="hint">All rates and prices exclude VAT.</p>
+      <label>Invoice terms<input id="v_terms" value="${esc(c.terms)}"></label>
+      <label>Quote terms<input id="v_qterms" value="${esc(c.qterms)}"></label>
+      <p class="hint">All rates and prices exclude tax. Changing the currency doesn't change quotes or invoices already made.</p>
     </fieldset></div>`}
 function readInvSettings(){const g=id=>$("#"+id);if(!g("v_enabled"))return null;const num=id=>Math.max(0,parseFloat(g(id).value)||0);
-  return {enabled:g("v_enabled").checked,labourRate:num("v_labourRate"),kmRate:num("v_kmRate"),callout:num("v_callout"),prefix:g("v_prefix").value.trim()||"INV-",vat:g("v_vat").checked,vatNo:g("v_vatNo").value.trim(),bank:g("v_bank").value.trim(),terms:g("v_terms").value.trim()}}
+  return {enabled:g("v_enabled").checked,quotes:g("v_quotes").checked,currency:g("v_currency").value,labourRate:num("v_labourRate"),kmRate:num("v_kmRate"),callout:num("v_callout"),validDays:Math.max(1,parseInt(g("v_validDays").value)||30),
+    prefix:g("v_prefix").value.trim()||"INV-",qprefix:g("v_qprefix").value.trim()||"QUO-",vat:g("v_vat").checked,taxName:g("v_taxName").value.trim()||"VAT",vatRate:num("v_vatRate"),vatNo:g("v_vatNo").value.trim(),bank:g("v_bank").value.trim(),terms:g("v_terms").value.trim(),qterms:g("v_qterms").value.trim()}}
 
 /* ---------- companies (developer only, phone-to-phone mode) ----------
    Each company has its own key, so its job cards, stock, customers and invoices are separate from every other company's.
@@ -879,6 +959,8 @@ function devView(){
       <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoThumb?`<img src="${esc(c.logoThumb)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/*" hidden></label></div></div>
       <p class="hint">The name, details and logo show at the top of this company's job cards, summaries and invoices.</p>
       <label class="check"><input type="checkbox" id="c_mac" ${c.showMac===false?"":"checked"}><span>Show the Macadams logo next to this company's logo</span></label>
+      <label>Currency<select id="c_cur">${curOptions(c.currency||"ZAR")}</select></label>
+      <label class="check"><input type="checkbox" id="c_quo" ${c.quotes?"checked":""}><span>This company makes quotes in the app</span></label>
       <label class="check"><input type="checkbox" id="c_inv" ${c.invoicing?"checked":""}><span>This company makes invoices in the app</span></label>
     </fieldset></div>
     <div class="section"><fieldset><legend>Company admin login</legend>
@@ -890,7 +972,7 @@ function devView(){
     ${add?"":`<div><button class="btn${c.active===false?"":" danger"}" id="coToggle" type="button">${c.active===false?"Switch this company back on":"Switch this company off"}</button></div>`}</form>`}
   const list=[...S.companies].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${list.length} compan${list.length===1?"y":"ies"}</span><button class="btn primary" id="addCo" type="button">${ic("plus")}Add company</button></div>
-    ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who">${c.logoThumb?`<img class="cothumb" src="${esc(c.logoThumb)}" alt="">`:""}<b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.invoicing?"invoicing on":"invoicing off"}</span></div>
+    ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who">${c.logoThumb?`<img class="cothumb" src="${esc(c.logoThumb)}" alt="">`:""}<b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.currency||"ZAR"}, ${[c.quotes&&"quotes",c.invoicing&&"invoices"].filter(Boolean).join(" and ")||"no quotes or invoices"}</span></div>
       ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button>${S.coOff===c.id?`<span class="hint" style="align-self:center">Switch ${esc(c.name)} off?</span><button class="btn icon-btn danger" type="button" data-cooffyes="${esc(c.id)}">Switch off</button><button class="btn icon-btn" type="button" data-cooffno="1">Keep on</button>`:c.active===false?`<button class="btn icon-btn" type="button" data-coon="${esc(c.id)}">Switch on</button>`:`<button class="btn icon-btn danger" type="button" data-cooff="${esc(c.id)}">Switch off</button>`}</div></div>`).join("")
     :`<div class="empty"><h2>No companies yet</h2><p>Add each company with its details and an admin login. Each company only ever sees its own job cards.</p></div>`}</div>`;
 }
@@ -900,7 +982,7 @@ async function readDocC(club,path){
 }
 async function saveCompany(){
   const f=S.coForm,add=f.mode==="add",old=f.co||{};
-  const name=$("#c_name").value.trim(),details=$("#c_details").value.trim(),invoicing=$("#c_inv").checked,showMac=$("#c_mac").checked,pw=$("#c_adminPass").value.trim();
+  const name=$("#c_name").value.trim(),details=$("#c_details").value.trim(),invoicing=$("#c_inv").checked,quotes=$("#c_quo").checked,currency=$("#c_cur").value,showMac=$("#c_mac").checked,pw=$("#c_adminPass").value.trim();
   if(!name){toast("Type the company name");return}
   let adminName=old.adminName,adminUser=old.adminUser;
   if(add){adminName=$("#c_adminName").value.trim();adminUser=normUser($("#c_adminUser").value);
@@ -917,18 +999,19 @@ async function saveCompany(){
       await sendDoc("settings/users",{list:[admin],updatedAt:now},now,club);
       const logoId=await sendLogo(club,now);
       await sendDoc("settings/company",{name,footer:details,logoId,logoUrl:"",brandLogos:[],showMac},now,club);
-      await sendDoc("settings/invoicing",{...INV0,enabled:invoicing},now,club);
+      const cu=curOf(currency);await sendDoc("settings/invoicing",{...INV0,enabled:invoicing,quotes,currency,taxName:cu.tax,vatRate:cu.rate,vat:cu.rate>0},now,club);
       await sendDoc("settings/account",{active:true},now,club);
-      await db.collection("companies").add({name,details,invoicing,showMac,logoThumb:logoId?(S.coForm.thumb||""):"",adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
+      await db.collection("companies").add({name,details,invoicing,quotes,currency,showMac,logoThumb:logoId?(S.coForm.thumb||""):"",adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
       toast(S.logoFailed?name+" added, but the logo didn't upload. Open Edit and choose it again":name+" added. The admin can sign in now");
     }else{
       const club=clubOf(old.sk);
       const newLogo=await sendLogo(club,now);
       if(newLogo||name!==old.name||details!==(old.details||"")||showMac!==(old.showMac!==false)){const cur=await readDocC(club,"settings/company")||{};await sendDoc("settings/company",{logoId:"",logoUrl:"",brandLogos:[],...cur,name,footer:details,showMac,...(newLogo?{logoId:newLogo}:{})},now,club)}
-      if(invoicing!==!!old.invoicing){const cur=await readDocC(club,"settings/invoicing")||INV0;await sendDoc("settings/invoicing",{...cur,enabled:invoicing},now,club)}
+      if(invoicing!==!!old.invoicing||quotes!==!!old.quotes||currency!==(old.currency||"ZAR")){const cur={...INV0,...(await readDocC(club,"settings/invoicing")||{})};
+        const cu=curOf(currency),chg=currency!==(cur.currency||"ZAR");await sendDoc("settings/invoicing",{...cur,enabled:invoicing,quotes,currency,...(chg?{taxName:cu.tax,vatRate:cu.rate}:{})},now,club)}
       if(pw){await publishTicket(adminUser,pw,club);const cur=await readDocC(club,"settings/users");
         if(cur?.list){const list=cur.list.map(x=>x.id===old.adminId?{...x,pv:(x.pv||1)+1}:x);await sendDoc("settings/users",{list,updatedAt:now},now,club)}}
-      await db.doc("companies/"+old.id).update({name,details,invoicing,showMac,...(newLogo?{logoId:newLogo,logoThumb:S.coForm.thumb||""}:{}),updatedAt:now});
+      await db.doc("companies/"+old.id).update({name,details,invoicing,quotes,currency,showMac,...(newLogo?{logoId:newLogo,logoThumb:S.coForm.thumb||""}:{}),updatedAt:now});
       toast(S.logoFailed?"Company saved, but the logo didn't upload. Check the signal and choose it again":"Company saved");
     }
     S.coForm=null;render();
@@ -1324,8 +1407,8 @@ async function shrinkLogo(file,max){
 window.onBack=()=>{
   if(S.pick){closePicker();return true}
   if(S.view==="form"){S.view=S.form?.id?"detail":"list";S.form=null;render();return true}
-  if(S.view==="invform"){S.view=S.invForm?.id?"invview":"inv";S.invForm=null;render();return true}
-  if(S.view==="invview"){S.view="inv";render();return true}
+  if(S.view==="invform"){S.view=S.invForm?.id?(S.invKind==="quo"?"quoview":"invview"):"inv";S.invForm=null;S.fromQuote=null;render();return true}
+  if(S.view==="invview"||S.view==="quoview"){S.view="inv";render();return true}
   if(S.view==="dev"){if(S.coForm){S.coForm=null;render();return true}return false}
   if(S.view==="van"&&S.partForm){S.partForm=null;render();return true}
   if(S.view==="customer"){S.view="cust";render();return true}
@@ -1651,7 +1734,7 @@ function accountSection(){
 function stopData(){
   while(unsubs.length){try{unsubs.pop()()}catch(_){}}
   for(const k of Object.keys(vanSubs)){try{vanSubs[k]()}catch(_){}delete vanSubs[k]}
-  S.company={name:"",footer:"",logoId:"",logoUrl:"",brandLogos:[]};S.cards=[];S.customers=[];S.invoices=[];S.invCfg=null;S.companies=[];S.coForm=null;S.invForm=null;S.pick=null;S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
+  S.company={name:"",footer:"",logoId:"",logoUrl:"",brandLogos:[]};S.cards=[];S.customers=[];S.invoices=[];S.quotes=[];S.invCfg=null;S.companies=[];S.coForm=null;S.invForm=null;S.pick=null;S.vans={};S.techs=[];S.team=[];S.loaded=false;S.error=null;S.form=null;S.partForm=null;S.teamForm=null;S.detailId=null;
 }
 function startData(){
   if(isDev){unsubs.push(db.collection("companies").onSnapshot(snap=>{S.companies=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.sk);softRender()}));return}
@@ -1659,6 +1742,7 @@ function startData(){
   unsubs.push(db.doc("settings/account").onSnapshot(s=>{if(profile&&s.exists&&s.data().active===false)forceSignOut("This company's access is switched off. Speak to Macadams")}));
   unsubs.push(db.doc("settings/invoicing").onSnapshot(s=>{S.invCfg=s.exists?s.data():null;setTab(S.view);softRender()}));
   if(isAdmin)unsubs.push(db.collection("invoices").onSnapshot(snap=>{S.invoices=snap.docs.map(d=>({id:d.id,...d.data()}));softRender()}));
+  if(isAdmin)unsubs.push(db.collection("quotes").onSnapshot(snap=>{S.quotes=snap.docs.map(d=>({id:d.id,...d.data()}));softRender()}));
   S.vanTech=meId;subVan(meId);if(!isAdmin)S.techs=[meId];
   unsubs.push(db.collection("jobcards").onSnapshot(snap=>{
     S.loaded=true;S.error=null;
