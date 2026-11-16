@@ -22,8 +22,8 @@ Phones of the same company pass changes to each other over Wi-Fi or mobile data,
 through free public Nostr relays (nos.lol, relay.damus.io, relay.primal.net, offchain.pub). The relays keep
 the latest copy of each record so a new phone can catch up, but they cannot read it.
 
-- **Admin:** sign in with the base login, username `Admin`, password `1234`. This is a test setup: the login is built into the app, so anyone with the app and this login can read the data. Replace it before a real rollout.
-- **Technicians tab (admin):** add each technician with a username and password (4 or more characters).
+- **Developer:** sign in with username `admin` and your developer password (10 or more characters). The developer key comes from that password; a different password opens a different, empty developer space. Add each company there with its own admin login.
+- **Technicians tab (admin):** add each technician with a username and password (8 or more characters).
 - **Technician's phone:** sign in with that username and password. Nothing else to set up.
 - A technician's phone keeps only their own job cards and van stock; the admin's phone gets everything. The customer list is shared.
 - Every phone of the company holds the same company key, so the technician/admin split is kept by the app, not by encryption. Fine for testing; use the company server for the real rollout.
@@ -43,6 +43,17 @@ The app syncs straight to the company's own server. No outside service is used.
 
 See `server/README.txt` for the step-by-step test on a Windows PC.
 
+## Automatic updates
+
+Every push to `main` builds the APK and publishes the app's files to the public `updates` branch.
+When the app opens it checks `updates/update.json`:
+
+- **Screens and features** download in the background and switch over by themselves (when the app isn't in the middle of a form, otherwise on the next open).
+- **When the APK itself changed** (plugins, Android settings, icons, signing), the app shows a banner to download the new APK; Android asks to tap Install.
+- A downloaded version only becomes the start-up version after it has opened properly once; if not, the app goes back to the last good one. Installing an APK always resets to the APK's own version.
+
+Settings shows the app version and has **Check for updates**.
+
 ## Project layout
 
 - `src/index.html` - the app (screens, job cards, van stock, PDFs)
@@ -52,6 +63,7 @@ See `server/README.txt` for the step-by-step test on a Windows PC.
 - `.github/workflows/android.yml` - builds the APK on GitHub
 - `tests/test_relay.py` - end-to-end test of phone-to-phone sync against a local test relay
 - `tests/test_server.py` - end-to-end test: real server, an admin browser and two technician phones (needs Playwright and Chrome)
-- `ci/debug.keystore` - signing key, kept fixed so updates install over the old app
+- `ci/signing.keystore.enc` - the APK signing key, encrypted; the build unlocks it with the `KEYSTORE_PASS` secret
+- `scripts/publish-update.mjs` - puts each build on the public `updates` branch, where phones check for updates
 
 To try it in a browser: `npm install && npm run build`, then serve the `www` folder.

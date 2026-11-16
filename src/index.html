@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="fonts.css">
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/jspdf.plugin.autotable.min.js"></script>
+<script src="build.js"></script>
 <script src="vendor.js"></script>
 <style>html,body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
@@ -211,6 +212,9 @@ textarea{resize:vertical;min-height:88px}
 .tab{font-size:.68rem}
 .tab .ic{width:44px}
 
+.updbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;background:var(--yellow);color:var(--navy);border-radius:var(--r);padding:8px 8px 8px 14px;font-weight:600;font-size:.92rem}
+.updbar .btn{background:var(--navy);color:#fff;border-color:var(--navy);flex:none}
+
 /* technicians */
 .member{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:10px 12px;align-items:start}
 .member.off{background:#F7F9FC}
@@ -252,6 +256,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
   </div>
 </header>
 
+<div class="wrap" id="updBar" hidden></div>
 <main class="wrap" id="app"></main>
 <button class="btn fab" id="fab" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New job card</button>
 <nav class="tabbar" role="tablist"><div class="tabbar-in">
@@ -514,6 +519,9 @@ document.addEventListener("click",e=>{
   if(t.id==="goSetup"){S.loginMode="setup";render();return}
   if(t.id==="cancelSetup"){S.loginMode=null;render();return}
   if(t.id==="signOut"){trySignOut();return}
+  if(t.id==="updCheck"){checkUpdatesNow(t);return}
+  if(t.id==="updNow"){updBar("");U()&&Updater.apply();return}
+  if(t.id==="updApk"){if(S.apkUrl)location.href=S.apkUrl;return}
   if(t.id==="syncBtn"){syncNow().then(()=>{toast(pendingCount()||!SY.ok?"Couldn't sync just now. It will try again":"Everything is synced");if(S.view==="settings")render()});return}
   if(t.id==="addTech"){S.teamForm={mode:"add"};render();return}
   if(t.id==="cancelTeam"){S.teamForm=null;render();return}
@@ -1431,11 +1439,16 @@ let RM={};try{RM=JSON.parse(LS("rmeta")||"{}")||{}}catch(_){}   // record -> [it
 const saveRM=()=>LS("rmeta",JSON.stringify(RM));
 const RL={pool:null,sub:null,eose:false,wait:[],q:Promise.resolve(),buf:[],bufT:null,afterEnter:null};
 const relayMode=()=>!SY.url;
-const minPw=()=>relayMode()?4:6;
-/* Test setup: one built-in company with a base admin login, so nothing has to be created first.
-   Anyone with the app and this login can read the company's data. Replace before a real rollout. */
-const BASE={id:"u-admin",name:"Admin",username:"admin",password:"1234",role:"admin",active:true,pv:1};
-const baseSk=()=>NT.bytesToHex(NT.sha256(new TextEncoder().encode("mjc-developer|macadams-jobcards|v2")));
+const minPw=()=>relayMode()?8:6; // with no server, the password is what protects a company's key
+/* The developer login (username "admin"). Its key comes from the password itself, so nothing secret is in the app's code.
+   A different password opens a different, empty developer space. */
+const BASE={username:"admin"},DEV_MIN=10;
+async function devKey(pw){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);
+  for(let i=0;i<5;i++){const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode("mjc-developer|v3|"+i),iterations:TIX_ITER,hash:"SHA-256"},base,256);
+    const hex=NT.bytesToHex(new Uint8Array(bits));try{NT.getPublicKey(NT.hexToBytes(hex));return hex}catch(_){}}
+  throw new Error("key");
+}
 const hasNT=()=>!!(window.NT&&NT.SimplePool);
 const skB=c=>NT.hexToBytes((c||CLUB).sk);
 let CK=null;const ck=c=>c?(c.ck||(c.ck=NT.nip44.getConversationKey(skB(c),c.pk))):(CK||(CK=NT.nip44.getConversationKey(skB(),CLUB.pk)));
@@ -1553,8 +1566,11 @@ async function relayApi(path,body){
     RL.afterEnter=()=>setUsers([u]);return {token:"relay",user:u}});
   if(path==="/api/login")return net(async()=>{
     if(body.username===BASE.username){ // the developer: adds companies, sees none of their job cards
-      if(body.password!==BASE.password)throw {msg:"Wrong username or password"};
-      setClub(baseSk());return {token:"relay",user:{id:"dev",name:"Developer",username:BASE.username,role:"dev",active:true,pv:1}}}
+      if(String(body.password||"").length<DEV_MIN)throw {msg:`The developer password must be ${DEV_MIN} or more characters`};
+      const sk=await devKey(body.password);setClub(sk);
+      const before=LS("devPk");LS("devPk",CLUB.pk);
+      if(before&&before!==CLUB.pk)RL.afterEnter=()=>toast("This isn't the developer password used on this phone before. If your companies are missing, sign out and check the password");
+      return {token:"relay",user:{id:"dev",name:"Developer",username:BASE.username,role:"dev",active:true,pv:1}}}
     const base=false,sk=await ticketLogin(body.username,body.password);
     if(!sk)throw {msg:"Wrong username or password"};
     setClub(sk);
@@ -1724,9 +1740,9 @@ async function toggleTech(id){
 function accountSection(){
   const n=pendingCount();
   return `<div class="section"><fieldset><legend>Signed in</legend>
-      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isDev?"Developer":isAdmin?"Company admin":"Technician"}</dd><dt>Syncs</dt><dd>${relayMode()?"Phone to phone, no server":"To "+esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
+      <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isDev?"Developer":isAdmin?"Company admin":"Technician"}</dd><dt>Syncs</dt><dd>${relayMode()?"Phone to phone, no server":"To "+esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>App version</dt><dd id="appVer">1.0.${esc(String(window.APP_BUILD||0))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
       <p class="hint">${isDev?"You add companies and their admin logins. Each company only sees its own job cards.":isAdmin?"You see every technician's job cards in your company.":"Your job cards are saved on this phone and go to the admin when the phone is online."}</p>
-      <div class="row"><button class="btn" id="syncBtn" type="button">Sync now</button><button class="btn" id="signOut" type="button">Sign out</button></div>
+      <div class="row"><button class="btn" id="updCheck" type="button">Check for updates</button><button class="btn" id="syncBtn" type="button">Sync now</button><button class="btn" id="signOut" type="button">Sign out</button></div>
     </fieldset></div>`;
 }
 
@@ -1754,8 +1770,28 @@ function startData(){
   unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,showMac:d.showMac!==false,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
     $("#coName").textContent=coTitle();setLogo();softRender()}));
 }
+/* ---------- app updates (see vendor.js) ---------- */
+const U=()=>window.Native?.isNative()&&window.Updater;
+const isIdle=()=>["list","login","wait","dev","cust","reports","inv","van"].includes(S.view)&&!S.pick&&!S.partForm&&!S.teamForm&&!S.coForm&&!S.invForm&&!S.form;
+function updBar(html){const b=$("#updBar");if(!b)return;b.innerHTML=html||"";b.hidden=!html}
+window.onUpdate=info=>{
+  if(info.type==="apk"){S.apkUrl=info.url;updBar(`<div class="updbar"><span>A new version of the app (${esc(info.version||"")}) is ready to install.</span><button class="btn icon-btn" id="updApk" type="button">Download</button></div>`);return}
+  if(isIdle()){toast("Updating the app…");setTimeout(()=>U()&&Updater.apply(),900)}
+  else updBar(`<div class="updbar"><span>An app update is ready.</span><button class="btn icon-btn" id="updNow" type="button">Update now</button></div>`);
+};
+let lastCheck=0;
+function checkUpdates(){if(!U()||Date.now()-lastCheck<6*3600e3)return;lastCheck=Date.now();Updater.check().catch(()=>{})}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdates()});
+async function checkUpdatesNow(btn){
+  if(!U()){toast("Updates come through the phone app");return}
+  btn.disabled=true;btn.textContent="Checking…";lastCheck=Date.now();
+  const r=await Updater.check();btn.disabled=false;btn.textContent="Check for updates";
+  if(r==="current")toast("You have the latest version");else if(r==="offline")toast("Couldn't check. Check the internet connection");else if(r==="error")toast("The update didn't download. Try again later");
+}
 async function boot(){
+  if(U()&&Updater.hasPending()){try{if(await Updater.apply())return}catch(_){}} // a downloaded update is switched to before anything else
   S.view="wait";render();
+  if(U())setTimeout(()=>{Updater.markGood().catch(()=>{});checkUpdates()},2500);
   try{db=await makeLocalDb(markDirty)}catch(err){console.error(err);S.view="list";S.error="Couldn't open the job card store on this phone. Close the app and open it again.";S.loaded=true;render();return}
   assets={upload:uploadBlob};
   // Opened from the server's own address (the admin's browser)? Then that is the server.

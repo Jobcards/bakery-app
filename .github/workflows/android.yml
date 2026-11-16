@@ -25,6 +25,8 @@ jobs:
           java-version: 21
 
       - name: Build web app
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           npm ci
           npm run build
@@ -37,10 +39,13 @@ jobs:
           node scripts/patch-android.mjs
           npx cap sync android
 
-      - name: Use the fixed signing key (so updates install over the old app)
+      - name: Unlock the signing key (so updates install over the old app)
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
         run: |
+          if [ -z "$KEYSTORE_PASS" ]; then echo "::error::Add the KEYSTORE_PASS secret (Settings > Secrets and variables > Actions)"; exit 1; fi
           mkdir -p ~/.android
-          cp ci/debug.keystore ~/.android/debug.keystore
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -in ci/signing.keystore.enc -out ~/.android/debug.keystore -pass env:KEYSTORE_PASS
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: Build APK
@@ -63,3 +68,9 @@ jobs:
           body: "Download BakeryJobCards.apk below and open it on the phone to install or update."
           files: BakeryJobCards.apk
           make_latest: true
+
+      - name: Publish the update for phones
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/publish-update.mjs
