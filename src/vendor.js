@@ -43,7 +43,9 @@ if (Capacitor.isNativePlatform()) {
    Safety: a downloaded version only becomes the start-up version after it has opened properly once.
    If it doesn't, the app goes back to the last good version. Installing an APK always resets to the APK's own version. */
 import { WebView } from "@capacitor/core";
-const UPDATE_URL = "https://raw.githubusercontent.com/freddieschallies/bakery-app/updates/";
+// The app lives under the "jobcards" GitHub organisation; the old address is kept as a fallback during the move.
+const UPDATE_URLS = ["https://raw.githubusercontent.com/jobcards/bakery-app/updates/", "https://raw.githubusercontent.com/freddieschallies/bakery-app/updates/"];
+let UPDATE_URL = UPDATE_URLS[0];
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
 const lsSet = (k, v) => { try { if (v == null || v === "") localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (_) {} };
 const bufToB64 = (buf) => { const b = new Uint8Array(buf); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
@@ -76,8 +78,11 @@ window.Updater = {
     if (busy) return "busy"; busy = true;
     try {
       let u;
-      try { const r = await fetchWithTimeout(UPDATE_URL + "update.json?t=" + Date.now(), 15000); if (!r.ok) return "offline"; u = await r.json(); }
-      catch (_) { return "offline"; }
+      for (const base of UPDATE_URLS) {
+        try { const r = await fetchWithTimeout(base + "update.json?t=" + Date.now(), 15000); if (!r.ok) continue; u = await r.json(); UPDATE_URL = base; break; }
+        catch (_) {}
+      }
+      if (!u) return "offline";
       const native = await this.nativeBuild(), web = +u.web || 0;
       if (native && native < (+u.minNative || 0)) { window.onUpdate && window.onUpdate({ type: "apk", version: u.version, url: window.APP_FLAVOR === "general" ? (u.apkGeneral || u.apk) : u.apk }); return "apk"; }
       if (web <= +thisBuild() || String(web) === lsGet("upd.bad")) return "current";

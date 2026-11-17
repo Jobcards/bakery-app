@@ -77,7 +77,7 @@ The same code builds two APKs:
 
 Download links that always give the newest build:
 
-- https://github.com/freddieschallies/bakery-app/releases/latest/download/BakeryJobCards.apk
-- https://github.com/freddieschallies/bakery-app/releases/latest/download/JobCards.apk
+- https://github.com/jobcards/bakery-app/releases/latest/download/BakeryJobCards.apk
+- https://github.com/jobcards/bakery-app/releases/latest/download/JobCards.apk
 
 The developer's company list and the company admin's settings both have a button that shares the right link. Web updates reach both versions; when a new APK is needed each phone is sent its own version.

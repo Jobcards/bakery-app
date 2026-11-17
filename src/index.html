@@ -283,7 +283,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 const MACADAMS={name:"",footer:""}; // each company's own name and details are set when the developer adds it
 const signedOut=()=>["login","wait"].includes(S.view);
 /* Two versions of the app: Macadams (Macadams icon) and Job Cards (for other companies). The Macadams add-on tick on a company decides which one its people install. */
-const APK_LINK={macadams:"https://github.com/freddieschallies/bakery-app/releases/latest/download/BakeryJobCards.apk",general:"https://github.com/freddieschallies/bakery-app/releases/latest/download/JobCards.apk"};
+const APK_LINK={macadams:"https://github.com/jobcards/bakery-app/releases/latest/download/BakeryJobCards.apk",general:"https://github.com/jobcards/bakery-app/releases/latest/download/JobCards.apk"};
 const flavorFor=co=>co&&co.showMac===false?"general":"macadams";
 const appLinkText=co=>`Install the ${flavorFor(co)==="general"?"Job Cards":"Macadams Job Cards"} app for ${co.name||"your company"}:\n${APK_LINK[flavorFor(co)]}\n\nOpen the link on the phone, install, then sign in with the username and password your admin gives you.`;
 const coTitle=()=>signedOut()?(window.APP_FLAVOR==="macadams"?"Macadams International":"Job Cards"):isDev?"Developer":(S.company.name||"Job cards");
