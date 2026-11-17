@@ -30,10 +30,14 @@ async def newcard(pg,cust,photo=True,parts=0,km=""):
     if photo:
         await pg.set_input_files("#galIn",os.path.join(HERE,"photo.jpg")); await pg.wait_for_function("!document.querySelector('.ph .up')",timeout=15000)
     await pg.click("#saveBottom"); await pg.wait_for_selector("#pdfOne"); await pg.click("[data-go=list]")
-async def addco(pg,name,details,aname,auser,apw,inv,cur="ZAR",quo=False):
+async def addco(pg,name,details,aname,auser,apw,inv,cur="ZAR",quo=False,depts=(),own=None,machines=True):
     await pg.click("#addCo"); await pg.fill("#c_name",name); await pg.fill("#c_details",details); await pg.fill("#c_adminName",aname); await pg.fill("#c_adminUser",auser); await pg.fill("#c_adminPass",apw)
     if inv: await pg.check("#c_inv")
-    if not inv: await pg.uncheck("#c_mac")
+    if inv: await pg.check("#c_mac")
+    if own:
+        await pg.fill("#c_deptNew",own); await pg.click("#c_deptAdd")
+    for d in depts: await pg.click(f"[data-codept='{d}']")
+    if not machines: await pg.uncheck("#c_machines")
     await pg.select_option("#c_cur",cur)
     if quo: await pg.check("#c_quo")
     if inv: await pg.set_input_files("#c_logo",os.path.join(HERE,"biglogo.png")); await pg.wait_for_selector("#c_logoBox img",timeout=20000)
@@ -50,8 +54,8 @@ async def main():
     await dev.wait_for_selector("#l_user"); ok("sign-in screen has no setup button or server box",await dev.locator("#l_server").count()==0 and await dev.locator("#goSetup").count()==0)
     await login(dev,"Admin","1234"); await dev.wait_for_selector("text=10 or more characters",timeout=20000); ok("short developer password refused",True)
     await login(dev,"Admin","macadams-dev-2026"); await dev.wait_for_selector("#addCo",timeout=20000); ok("developer login opens the Companies screen",await dev.eval_on_selector(".tabbar","e=>e.hidden"))
-    await addco(dev,"Zululand Service Providers","12 Bullion Boulevard, Alton, Richards Bay 3900\nTel 035 555 0100\nservice@zsp.example\nVAT no. 4123456789","Fred Schallies","zspadmin","zsp-1234",True,quo=True)
-    await addco(dev,"Coastal Bakery Services","5 Harbour Road, Durban 4001\nTel 031 555 0200","Nomsa Zulu","cbsadmin","cbs-1234",False,cur="MZN",quo=True)
+    await addco(dev,"Zululand Service Providers","12 Bullion Boulevard, Alton, Richards Bay 3900\nTel 035 555 0100\nservice@zsp.example\nVAT no. 4123456789","Fred Schallies","zspadmin","zsp-1234",True,quo=True,depts=("Bakery","Deli","Butchery","Maintenance"))
+    await addco(dev,"Coastal Bakery Services","5 Harbour Road, Durban 4001\nTel 031 555 0200","Nomsa Zulu","cbsadmin","cbs-1234",False,cur="MZN",quo=True,depts=("Plumbing",),own="Solar",machines=False)
     ok("developer added two companies with their own admin logins",await dev.locator(".member").count()==2)
     ok("a large logo file is taken and shows on the companies list",await dev.locator(".member:has-text('Zululand') img.cothumb").count()==1); await dev.wait_for_timeout(2500); await shot(dev,"c2_companies.png")
     await dev.click("#settingsBtn"); await dev.click("#signOut"); await login(dev,"admin","macadams-dev-2026"); await dev.wait_for_function("document.querySelectorAll('.member').length===2",timeout=30000)
@@ -118,6 +122,14 @@ async def main():
     await cbs.click("#tabCust"); await cbs.wait_for_timeout(500); ok("nor its customers",await cbs.locator(".card.cust").count()==0)
     ok("company with quotes only gets a Quotes tab",await cbs.inner_text("#tabInvLbl")=="Quotes" and not await cbs.eval_on_selector("#tabInv","e=>e.hidden"))
     m=await cbs.evaluate("money(1234.5)"); ok("its amounts are in meticais",m=="1.234,50 MT",m)
+    await cbs.click("#tabList"); await cbs.click("#fab"); await cbs.wait_for_selector("#f_customer")
+    ok("company without machines: no machine, model or serial on its job card",await cbs.eval_on_selector("#f_equipment","e=>e.closest('.section').hidden"))
+    chips=await cbs.eval_on_selector_all("[data-tog^='dept:']","e=>e.map(x=>x.textContent)"); ok("its own departments, including one it added (Solar)",chips==["Plumbing","Solar"],str(chips))
+    await cbs.click("[data-tog='dept:Solar']"); await cbs.fill("#f_customer","Harbour Flats"); await cbs.fill("#f_work","Replaced geyser valve"); await cbs.click("#saveBottom"); await cbs.wait_for_selector("#pdfOne")
+    ok("department shows on the saved job card",await cbs.locator("dd:has-text('Solar')").count()==1)
+    async with cbs.expect_download() as dl: await cbs.click("#pdfOne")
+    d=await dl.value
+    if SHOTS: await d.save_as(os.path.join(SHOTS,"job_nomachine.pdf"))
     ok("the company set without the Macadams logo doesn't show it",await cbs.eval_on_selector("#macBadge","e=>e.hidden")); await cctx.close()
 
     tctx,thabo=await page(b); await login(thabo,"thabo","mixer-4567"); await thabo.wait_for_selector("#fab",timeout=30000); await synced(thabo); await thabo.wait_for_timeout(1500)
@@ -142,7 +154,7 @@ async def main():
     # developer gives a company admin a new password, and switches the other company off
     await dev.click(".member:has-text('Zululand') [data-editco]"); await dev.fill("#c_adminPass","zsp-9999"); await dev.click("#coSave"); await dev.wait_for_selector("text=Company saved",timeout=30000)
     await admin.wait_for_selector("#l_user",timeout=40000)
-    ok("sign-in screen shows only the Macadams logo and name",await admin.eval_on_selector("#coBadge","e=>e.hidden") and await admin.inner_text("#coName")=="Macadams International" and await admin.eval_on_selector("#coLogo","e=>e.getAttribute('src')")=="macadams-logo.png")
+    ok("sign-in screen is neutral: app name, no company or Macadams logo",await admin.eval_on_selector("#coBadge","e=>e.hidden") and await admin.eval_on_selector("#macBadge","e=>e.hidden") and not await admin.eval_on_selector("#appBadge","e=>e.hidden") and await admin.inner_text("#coName")=="Job Cards")
     await shot(admin,"s_signin.png")
     await login(admin,"zspadmin","zsp-1234"); await admin.wait_for_selector("text=Wrong username or password",timeout=20000)
     await login(admin,"zspadmin","zsp-9999"); await cards(admin,3); ok("developer's new admin password works; the old one doesn't",True)

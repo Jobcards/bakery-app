@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Bakery Tech Job Cards</title>
+<title>Job Cards</title>
 <meta name="theme-color" content="#16254E">
 <link rel="stylesheet" href="fonts.css">
 <script src="lib/jspdf.umd.min.js"></script>
@@ -34,6 +34,8 @@ header.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;backgro
 .badge{flex:none;height:54px;min-width:54px;max-width:96px;padding:5px 8px;border-radius:12px;background:#fff;display:grid;place-items:center;border-bottom:4px solid var(--yellow)}
 #coLogo,#coLogo2{height:40px;width:auto;max-width:80px;object-fit:contain}
 .logos{display:flex;gap:6px;flex:none}
+.badge.app{color:var(--navy)}
+.badge.app svg{width:34px;height:34px}
 .badge.co{max-width:84px}
 @media (max-width:380px){.badge{max-width:70px}#coLogo,#coLogo2{max-width:56px}}
 .titles{min-width:0;flex:1;display:flex;flex-direction:column}
@@ -250,7 +252,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 
 <header class="appbar">
   <div class="wrap bar">
-    <span class="logos"><span class="badge" id="macBadge"><img id="coLogo" src="macadams-logo.png" alt="Macadams"></span><span class="badge co" id="coBadge" hidden><img id="coLogo2" alt=""></span></span>
+    <span class="logos"><span class="badge app" id="appBadge" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6v3H9z"/><path d="M9 5H6v16h12V5h-3"/><path d="M9 12h6M9 16h4"/></svg></span><span class="badge" id="macBadge"><img id="coLogo" src="macadams-logo.png" alt="Macadams"></span><span class="badge co" id="coBadge" hidden><img id="coLogo2" alt=""></span></span>
     <div class="titles"><span id="coName">Macadams International</span><h1 id="viewTitle">Job cards</h1><span id="syncState" class="sync"></span></div>
     <button class="iconbtn" id="settingsBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg></button>
   </div>
@@ -272,7 +274,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 <script>
 const MACADAMS={name:"",footer:""}; // each company's own name and details are set when the developer adds it
 const signedOut=()=>["login","wait"].includes(S.view);
-const coTitle=()=>signedOut()?"Macadams International":isDev?"Developer":(S.company.name||"Job cards");
+const coTitle=()=>signedOut()?"Job Cards":isDev?"Developer":(S.company.name||"Job cards");
 const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
 const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
 const S={view:"list",invoices:[],quotes:[],invKind:"inv",billTab:"quo",invCfg:null,companies:[],customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
@@ -369,7 +371,7 @@ function detailView(){
       <dt>Time on site</dt><dd>${esc(c.timeIn||"–")} to ${esc(c.timeOut||"–")}${h!=null?` <span class="mono">(${h} h)</span>`:""}</dd>
       ${+c.km?`<dt>Travel</dt><dd>${esc(c.km)} km</dd>`:""}
       ${c.contact?`<dt>Site contact</dt><dd>${esc(c.contact)}</dd>`:""}
-      <dt>Equipment</dt><dd>${esc(c.equipment||"–")}${c.model?` · ${esc(c.model)}`:""}</dd>
+      ${usesMachines()||c.equipment?`<dt>Equipment</dt><dd>${esc(c.equipment||"–")}${c.model?` · ${esc(c.model)}`:""}</dd>`:""}
       ${c.serial?`<dt>Serial no.</dt><dd class="mono">${esc(c.serial)}</dd>`:""}
       ${c.custRef?`<dt>Order / ref no.</dt><dd class="mono">${esc(c.custRef)}</dd>`:""}
     </dl></div>
@@ -389,7 +391,7 @@ function formView(){
       <label>Travel (km)<input id="f_km" type="number" inputmode="decimal" step="any" min="0" value="${esc(f.km||"")}" placeholder="Leave empty if travel is not charged"></label>
       <label>Service company<input id="f_serviceCo" value="${esc(f.serviceCo)}" placeholder="Company doing the work"></label>
       <div class="stack" style="gap:6px"><span class="lbl">Type of job</span><input type="hidden" id="f_jobType" value="${esc(f.jobType||"")}"><div class="chips wrap">${JOBTYPES.map(([k,l])=>`<button type="button" class="chip" data-tog="jobType:${k}" aria-pressed="${listOf(f.jobType).includes(k)}">${l}</button>`).join("")}</div></div>
-      <div class="stack" style="gap:6px"><span class="lbl">Department</span><input type="hidden" id="f_dept" value="${esc(f.dept||"")}"><div class="chips wrap">${DEPTS.map(([k,l])=>`<button type="button" class="chip" data-tog="dept:${k}" aria-pressed="${listOf(f.dept).includes(k)}">${l}</button>`).join("")}</div></div>
+      <div class="stack" style="gap:6px" ${deptOptions().length?"":"hidden"}><span class="lbl">Department</span><input type="hidden" id="f_dept" value="${esc(f.dept||"")}"><div class="chips wrap">${deptOptions().map(([k,l])=>`<button type="button" class="chip" data-tog="dept:${esc(encodeURIComponent(k))}" aria-pressed="${listOf(f.dept).includes(k)}">${esc(l)}</button>`).join("")}</div></div>
       <div class="stack" style="gap:6px"><span class="lbl">Status</span><input type="hidden" id="f_status" value="${esc(f.status)}"><div class="chips wrap">${Object.entries(STATUSES).map(([k,v])=>`<button type="button" class="chip" data-status="${k}" aria-pressed="${f.status===k}">${v.label}</button>`).join("")}</div></div>
     </fieldset></div>
     <div class="section"><fieldset><legend>Customer</legend>
@@ -397,9 +399,9 @@ function formView(){
       <div class="grid2 stack-sm"><label>Branch / site<input id="f_site" list="siteList" autocomplete="off" value="${esc(f.site)}"><datalist id="siteList"></datalist></label><label>Site contact<input id="f_contact" value="${esc(f.contact)}" placeholder="Name and number"></label></div>
       <label>Order / ref no.<input id="f_custRef" value="${esc(f.custRef)}"></label>
     </fieldset></div>
-    <div class="section"><fieldset><legend>Equipment</legend>
+    <div class="section" ${usesMachines()?"":"hidden"}><fieldset><legend>Equipment</legend>
       <div id="machBox" class="stack" style="gap:6px"></div>
-      <label>Machine type<input id="f_equipment" list="equipList" value="${esc(f.equipment)}"><datalist id="equipList">${EQUIP.map(e=>`<option value="${e}">`).join("")}</datalist></label>
+      <label>Machine type<input id="f_equipment" list="equipList" value="${esc(f.equipment)}"><datalist id="equipList">${S.company.showMac!==false?EQUIP.map(e=>`<option value="${e}">`).join(""):""}</datalist></label>
       <div class="grid2 stack-sm"><label>Make / model<input id="f_model" value="${esc(f.model)}"></label><label>Serial no.<input id="f_serial" value="${esc(f.serial)}"></label></div>
     </fieldset></div>
     <div class="section"><fieldset><legend>Work</legend>
@@ -441,7 +443,7 @@ function reportsView(){
     </fieldset></div>
     <div class="stats hero"><div class="stat"><b>${rows.length}</b><span>Jobs</span></div><div class="stat"><b>${done}</b><span>Completed</span></div><div class="stat"><b>${Math.round(hrs*10)/10}</b><span>Hours on site</span></div></div>
     <div class="row"><button class="btn primary" id="pdfSum" type="button" ${rows.length?"":"disabled"}>PDF summary</button><button class="btn" id="copySum" type="button" ${rows.length?"":"disabled"}>Copy for WhatsApp</button></div>
-    ${rows.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Job no.</th><th>Customer</th><th>Machine</th><th>Tech</th><th>Status</th><th>Hrs</th></tr></thead><tbody>${rows.map(c=>`<tr><td>${fmtDate(c.date)}</td><td class="mono">${esc(c.jobNo)}</td><td>${esc(c.customer)}${c.site?` · ${esc(c.site)}`:""}</td><td>${esc(c.equipment)}</td><td>${esc(techName(c.techId))}</td><td>${statusPill(c.status)}</td><td class="mono">${hours(c.timeIn,c.timeOut)??"–"}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty"><p>No job cards in this date range.</p></div>`}
+    ${rows.length?`<div class="table-wrap"><table><thead><tr><th>Date</th><th>Job no.</th><th>Customer</th>${usesMachines()?"<th>Machine</th>":""}<th>Tech</th><th>Status</th><th>Hrs</th></tr></thead><tbody>${rows.map(c=>`<tr><td>${fmtDate(c.date)}</td><td class="mono">${esc(c.jobNo)}</td><td>${esc(c.customer)}${c.site?` · ${esc(c.site)}`:""}</td>${usesMachines()?`<td>${esc(c.equipment)}</td>`:""}<td>${esc(techName(c.techId))}</td><td>${statusPill(c.status)}</td><td class="mono">${hours(c.timeIn,c.timeOut)??"–"}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty"><p>No job cards in this date range.</p></div>`}
   </div>`;
 }
 function settingsView(){
@@ -498,9 +500,11 @@ document.addEventListener("click",e=>{
   if(t.id==="invDelAsk"){S.confirmDel=true;render();return}
   if(t.id==="invDelNo"){S.confirmDel=false;render();return}
   if(t.id==="invDelYes"){db.doc("invoices/"+S.invId).delete().then(()=>{S.confirmDel=false;S.view="inv";toast("Invoice deleted");render()});return}
-  if(t.id==="addCo"){S.coForm={mode:"add"};render();return}
+  if(t.id==="addCo"){S.coForm={mode:"add",depts:[]};render();return}
+  if(t.dataset.codept){const l=t.dataset.codept,d=S.coForm.depts||(S.coForm.depts=[]),i=d.indexOf(l);if(i>-1)d.splice(i,1);else d.push(l);t.setAttribute("aria-pressed",i<0);return}
+  if(t.id==="c_deptAdd"){const el=$("#c_deptNew"),l=el.value.replace(/,/g," ").trim();if(!l)return;keepCoInputs();const d=S.coForm.depts||(S.coForm.depts=[]);if(!d.includes(l))d.push(l);S.coForm.co={...(S.coForm.co||{}),depts:[...new Set([...(S.coForm.co?.depts||[]),l])]};render();return}
   if(t.id==="cancelCo"){S.coForm=null;render();return}
-  if(t.dataset.editco){const c=S.companies.find(x=>x.id===t.dataset.editco);if(c){S.coForm={mode:"edit",co:c};render()}return}
+  if(t.dataset.editco){const c=S.companies.find(x=>x.id===t.dataset.editco);if(c){S.coForm={mode:"edit",co:c,depts:Array.isArray(c.depts)?c.depts.slice():DEPTS.map(d=>d[1])};render()}return}
   if(t.id==="coToggle"){toggleCompany(S.coForm?.co);return}
   if(t.dataset.cooff){S.coOff=t.dataset.cooff;render();return}
   if(t.dataset.cooffno){S.coOff=null;render();return}
@@ -510,7 +514,7 @@ document.addEventListener("click",e=>{
   if(t.id==="newHere"||t.dataset.machjob!=null){const c=S.customers.find(x=>x.id===S.custId);if(c){const m=t.dataset.machjob!=null?(c.machines||[])[+t.dataset.machjob]:null;startForm(null,{customer:c.name,site:c.site||"",contact:c.contact||"",...(m?{equipment:m.equipment||"",model:m.model||"",serial:m.serial||""}:{})})}return}
   if(t.dataset.rmmach!=null){removeMachine(+t.dataset.rmmach);return}
   if(t.dataset.mach!=null){pickMachine(+t.dataset.mach);return}
-  if(t.dataset.tog){const [k,v]=t.dataset.tog.split(":"),el=$("#f_"+k),cur=listOf(el.value),on=!cur.includes(v);
+  if(t.dataset.tog){const i=t.dataset.tog.indexOf(":"),k=t.dataset.tog.slice(0,i),v=decodeURIComponent(t.dataset.tog.slice(i+1)),el=$("#f_"+k),cur=listOf(el.value),on=!cur.includes(v);
     el.value=(on?[...cur,v]:cur.filter(x=>x!==v)).join(",");t.setAttribute("aria-pressed",on);return}
   if(t.dataset.status){$("#f_status").value=t.dataset.status;document.querySelectorAll("[data-status]").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
   if(t.id==="signClear"){clearPad();return}
@@ -642,7 +646,7 @@ async function saveSettings(){
 function logoDraftId(){return S.logoDraft?S.logoDraft.id:S.company.logoId}
 const DEFAULT_LOGO="macadams-logo.png";
 function setLogo(){const im=$("#coLogo2"),b=$("#coBadge");if(!im)return;const id=S.company.logoId;
-  $("#macBadge").hidden=!signedOut()&&!isDev&&S.company.showMac===false; // the sign-in screen always shows it
+  $("#appBadge").hidden=!signedOut();$("#macBadge").hidden=signedOut()||(!isDev&&S.company.showMac===false); // Macadams is an add-on per company
   if(!id||isDev||signedOut()){b.hidden=true;return}
   const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;b.hidden=false}
   else{b.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
@@ -966,15 +970,24 @@ function devView(){
       <label>Company details<textarea id="c_details" rows="5" placeholder="One per line: address, phone, email, reg and VAT numbers">${esc(c.details||"")}</textarea></label>
       <div class="stack" style="gap:8px"><span class="lbl">Company logo</span><div class="logo-box" id="c_logoBox">${S.coForm.logo?`<img src="${esc(S.coForm.logo)}" alt="Company logo">`:c.logoThumb?`<img src="${esc(c.logoThumb)}" alt="Company logo">`:c.logoId?`<span class="hint">Logo set. Choose a file to replace it.</span>`:`<span class="hint">No logo yet.</span>`}</div><div class="row"><label class="btn filebtn">Choose logo<input id="c_logo" type="file" accept="image/*" hidden></label></div></div>
       <p class="hint">The name, details and logo show at the top of this company's job cards, summaries and invoices.</p>
-      <label class="check"><input type="checkbox" id="c_mac" ${c.showMac===false?"":"checked"}><span>Show the Macadams logo next to this company's logo</span></label>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>What the company does</legend>
+      <div class="stack" style="gap:6px"><span class="lbl">Departments / trades on its job cards</span><div class="chips wrap">${[...new Set([...TRADES,...(Array.isArray(c.depts)?c.depts:[])])].map(l=>`<button type="button" class="chip" data-codept="${esc(l)}" aria-pressed="${(S.coForm.depts||[]).includes(l)}">${esc(l)}</button>`).join("")}</div>
+        <div class="row"><input class="search" id="c_deptNew" placeholder="Add your own, e.g. Solar" style="flex:1 1 160px;padding-left:14px;background-image:none"><button class="btn icon-btn" id="c_deptAdd" type="button">${ic("plus")}Add</button></div></div>
+      <label class="check"><input type="checkbox" id="c_machines" ${c.machines===false?"":"checked"}><span>Works on machines (job cards ask for machine, model and serial number)</span></label>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Macadams add-on</legend>
+      <label class="check"><input type="checkbox" id="c_mac" ${c.showMac===false||(add&&!S.coForm.macDefault)?"":"checked"}><span>Macadams service provider: Macadams logo, "Authorised service provider for MACADAMS INTERNATIONAL" on job cards, and the Macadams machine list</span></label>
+    </fieldset></div>
+    <div class="section"><fieldset><legend>Quotes, invoices and currency</legend>
       <label>Currency<select id="c_cur">${curOptions(c.currency||"ZAR")}</select></label>
       <label class="check"><input type="checkbox" id="c_quo" ${c.quotes?"checked":""}><span>This company makes quotes in the app</span></label>
       <label class="check"><input type="checkbox" id="c_inv" ${c.invoicing?"checked":""}><span>This company makes invoices in the app</span></label>
     </fieldset></div>
     <div class="section"><fieldset><legend>Company admin login</legend>
-      ${add?`<label>Admin's name<input id="c_adminName" placeholder="Name and surname"></label>
-      <label>Username<input id="c_adminUser" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. zsp-admin"></label>`:`<p class="hint">Username: <b>${esc(c.adminUser)}</b> (${esc(c.adminName)})</p>`}
-      <label>${add?"Password":"New password"}<input id="c_adminPass" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="${add?"":"Leave empty to keep the current one. "}${minPw()} or more characters"></label>
+      ${add?`<label>Admin's name<input id="c_adminName" placeholder="Name and surname" value="${esc(c.adminName||"")}"></label>
+      <label>Username<input id="c_adminUser" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="e.g. zsp-admin" value="${esc(c.adminUser||"")}"></label>`:`<p class="hint">Username: <b>${esc(c.adminUser)}</b> (${esc(c.adminName)})</p>`}
+      <label>${add?"Password":"New password"}<input id="c_adminPass" autocapitalize="none" autocomplete="off" spellcheck="false" value="${esc(S.coForm.pass||"")}" placeholder="${add?"":"Leave empty to keep the current one. "}${minPw()} or more characters"></label>
       <p class="hint">The company admin signs in with this, then adds the company's own technicians.</p>
     </fieldset></div>
     ${add?"":`<div><button class="btn${c.active===false?"":" danger"}" id="coToggle" type="button">${c.active===false?"Switch this company back on":"Switch this company off"}</button></div>`}</form>`}
@@ -988,8 +1001,14 @@ async function readDocC(club,path){
   const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[club.pk],"#d":[dTag("r|"+path,club)]},{maxWait:8000});
   evs.sort((a,b)=>b.created_at-a.created_at);for(const e of evs){try{const r=await readEv(e,club);if(r)return r.d}catch(_){}}return null;
 }
+function keepCoInputs(){const g=id=>$("#"+id);const co=S.coForm.co||(S.coForm.co={});
+  for(const [id,k] of [["c_name","name"],["c_details","details"],["c_adminName","adminName"],["c_adminUser","adminUser"]])if(g(id))co[k]=g(id).value;
+  for(const [id,k] of [["c_inv","invoicing"],["c_quo","quotes"]])if(g(id))co[k]=g(id).checked;
+  if(g("c_mac")){co.showMac=g("c_mac").checked;S.coForm.macDefault=g("c_mac").checked}if(g("c_machines"))co.machines=g("c_machines").checked;if(g("c_cur"))co.currency=g("c_cur").value;
+  S.coForm.pass=g("c_adminPass")?.value||""}
 async function saveCompany(){
   const f=S.coForm,add=f.mode==="add",old=f.co||{};
+  const ord=l=>{const i=TRADES.indexOf(l);return i<0?999:i},depts=(S.coForm.depts||[]).slice().sort((a,b)=>ord(a)-ord(b)),machines=$("#c_machines").checked; // ready-made ones in list order, own ones after
   const name=$("#c_name").value.trim(),details=$("#c_details").value.trim(),invoicing=$("#c_inv").checked,quotes=$("#c_quo").checked,currency=$("#c_cur").value,showMac=$("#c_mac").checked,pw=$("#c_adminPass").value.trim();
   if(!name){toast("Type the company name");return}
   let adminName=old.adminName,adminUser=old.adminUser;
@@ -1006,20 +1025,21 @@ async function saveCompany(){
       await publishTicket(adminUser,pw,club);
       await sendDoc("settings/users",{list:[admin],updatedAt:now},now,club);
       const logoId=await sendLogo(club,now);
-      await sendDoc("settings/company",{name,footer:details,logoId,logoUrl:"",brandLogos:[],showMac},now,club);
+      await sendDoc("settings/company",{name,footer:details,logoId,logoUrl:"",brandLogos:[],showMac,depts,machines},now,club);
       const cu=curOf(currency);await sendDoc("settings/invoicing",{...INV0,enabled:invoicing,quotes,currency,taxName:cu.tax,vatRate:cu.rate,vat:cu.rate>0},now,club);
       await sendDoc("settings/account",{active:true},now,club);
-      await db.collection("companies").add({name,details,invoicing,quotes,currency,showMac,logoThumb:logoId?(S.coForm.thumb||""):"",adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
+      await db.collection("companies").add({name,details,invoicing,quotes,currency,showMac,depts,machines,logoThumb:logoId?(S.coForm.thumb||""):"",adminName,adminUser,adminId:admin.id,active:true,sk,logoId,createdAt:now});
       toast(S.logoFailed?name+" added, but the logo didn't upload. Open Edit and choose it again":name+" added. The admin can sign in now");
     }else{
       const club=clubOf(old.sk);
       const newLogo=await sendLogo(club,now);
-      if(newLogo||name!==old.name||details!==(old.details||"")||showMac!==(old.showMac!==false)){const cur=await readDocC(club,"settings/company")||{};await sendDoc("settings/company",{logoId:"",logoUrl:"",brandLogos:[],...cur,name,footer:details,showMac,...(newLogo?{logoId:newLogo}:{})},now,club)}
+      const oldDepts=Array.isArray(old.depts)?old.depts:DEPTS.map(d=>d[1]);
+      if(newLogo||name!==old.name||details!==(old.details||"")||showMac!==(old.showMac!==false)||machines!==(old.machines!==false)||depts.join("|")!==oldDepts.join("|")){const cur=await readDocC(club,"settings/company")||{};await sendDoc("settings/company",{logoId:"",logoUrl:"",brandLogos:[],...cur,name,footer:details,showMac,depts,machines,...(newLogo?{logoId:newLogo}:{})},now,club)}
       if(invoicing!==!!old.invoicing||quotes!==!!old.quotes||currency!==(old.currency||"ZAR")){const cur={...INV0,...(await readDocC(club,"settings/invoicing")||{})};
         const cu=curOf(currency),chg=currency!==(cur.currency||"ZAR");await sendDoc("settings/invoicing",{...cur,enabled:invoicing,quotes,currency,...(chg?{taxName:cu.tax,vatRate:cu.rate}:{})},now,club)}
       if(pw){await publishTicket(adminUser,pw,club);const cur=await readDocC(club,"settings/users");
         if(cur?.list){const list=cur.list.map(x=>x.id===old.adminId?{...x,pv:(x.pv||1)+1}:x);await sendDoc("settings/users",{list,updatedAt:now},now,club)}}
-      await db.doc("companies/"+old.id).update({name,details,invoicing,quotes,currency,showMac,...(newLogo?{logoId:newLogo,logoThumb:S.coForm.thumb||""}:{}),updatedAt:now});
+      await db.doc("companies/"+old.id).update({name,details,invoicing,quotes,currency,showMac,depts,machines,...(newLogo?{logoId:newLogo,logoThumb:S.coForm.thumb||""}:{}),updatedAt:now});
       toast(S.logoFailed?"Company saved, but the logo didn't upload. Check the signal and choose it again":"Company saved");
     }
     S.coForm=null;render();
@@ -1084,7 +1104,7 @@ function customerView(){
     <div class="jobhead"><div class="top"><button class="btn icon-btn back" data-go="cust" type="button">${ic("back")}Customers</button></div>
       <h2>${esc(c.name)}</h2>${c.site?`<span class="site">${esc(c.site)}</span>`:""}${c.contact?`<span class="jn">${esc(c.contact)}</span>`:""}</div>
     ${canWrite?`<div class="actions"><button class="btn primary" id="newHere" type="button">New job card here</button></div>`:""}
-    <div class="section stack"><div class="block"><h3>Machines at this site</h3></div>
+    <div class="section stack" ${usesMachines()?"":"hidden"}><div class="block"><h3>Machines at this site</h3></div>
       ${ms.length?ms.map((m,i)=>`<div class="mach"><div class="pd"><b>${esc(m.equipment||"Machine")}</b><span>${esc([m.model,m.serial&&("S/N "+m.serial)].filter(Boolean).join(", ")||"No model or serial yet")}</span>${m.lastDate?`<span>Last job ${fmtDate(m.lastDate)}${m.lastJob?", "+esc(m.lastJob):""}</span>`:""}</div>
         ${canWrite?`<div class="row"><button class="btn icon-btn" type="button" data-machjob="${i}">New job</button><button class="btn icon-btn danger" type="button" data-rmmach="${i}">Remove</button></div>`:""}</div>`).join(""):`<p class="hint">No machines logged here yet. They are added when a job card with a machine is saved.</p>`}
     </div>
@@ -1190,6 +1210,13 @@ async function saveFile(name,blob,btn){
 /* Job card PDF laid out like the printed Macadams job card book */
 const JOBTYPES=[["breakdown","Breakdown"],["service","Service"],["delivery","Delivery"],["collection","Collection"]];
 const DEPTS=[["bakery","Bakery"],["deli","Deli"],["butchery","Butchery"],["maintenance","Maintenance"]];
+/* Departments / trades a company can pick from when it's set up, plus its own. The first four keep their old keys
+   so job cards made before this change still show the right names. */
+const TRADES=["Bakery","Deli","Butchery","Maintenance","Plumbing","Electrical","Roofing","Gutters","Refrigeration","Air conditioning","Building","Painting","Carpentry","Cleaning","General"];
+const deptKey=l=>(DEPTS.find(d=>d[1]===l)||[String(l).replace(/,/g," ").trim()])[0];
+const coDepts=()=>Array.isArray(S.company.depts)?S.company.depts:DEPTS.map(d=>d[1]); // companies set up before this change keep the old four
+const usesMachines=()=>S.company.machines!==false;
+const deptOptions=()=>coDepts().map(l=>[deptKey(l),l]);
 const listOf=v=>String(v||"").split(",").map(x=>x.trim()).filter(Boolean);
 const labelsOf=(v,opts)=>listOf(v).map(k=>(opts.find(o=>o[0]===k)||[k,k])[1]);
 function drawLogos(doc,L,x,y,h){ // Macadams logo, then the company's own logo, side by side
@@ -1213,7 +1240,7 @@ async function pdfJob(c,btn){
     doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(...INK);
     const cl=coLines().slice(0,5);cl.forEach((l,i)=>doc.text(l,196,32+i*3.9,{align:"right"}));
     let y=Math.max(40,32+cl.length*3.9+2);
-    doc.setFontSize(10);doc.setTextColor(...INK);doc.text("Authorised service provider for MACADAMS INTERNATIONAL",105,y,{align:"center"});y+=3;
+    if(S.company.showMac!==false){doc.setFontSize(10);doc.setTextColor(...INK);doc.text("Authorised service provider for MACADAMS INTERNATIONAL",105,y,{align:"center"})}y+=3;
     // store, job type, order and department
     const types=listOf(c.jobType),tick=k=>types.includes(k)?"X":"";
     const dept=labelsOf(c.dept,DEPTS).join(" / ");
@@ -1225,14 +1252,17 @@ async function pdfJob(c,btn){
             [lab("Technician name"),val(techName(c.techId)),lab("Department"),val(dept,{colSpan:3})]]});
     y=doc.lastAutoTable.finalY+4;
     // equipment
-    const eqRows=[[c.equipment||"",c.model||"",c.serial||""]];while(eqRows.length<3)eqRows.push(["","",""]);
-    doc.autoTable({...grid,startY:y,head:[["EQUIPMENT","MODEL","SERIAL NO."]],body:eqRows,bodyStyles:{minCellHeight:7},columnStyles:{0:{cellWidth:64},1:{cellWidth:64}}});
-    y=doc.lastAutoTable.finalY+4;
+    const mach=usesMachines()||!!(c.equipment||c.model||c.serial);
+    if(mach){const eqRows=[[c.equipment||"",c.model||"",c.serial||""]];while(eqRows.length<3)eqRows.push(["","",""]);
+      doc.autoTable({...grid,startY:y,head:[["EQUIPMENT","MODEL","SERIAL NO."]],body:eqRows,bodyStyles:{minCellHeight:7},columnStyles:{0:{cellWidth:64},1:{cellWidth:64}}});
+      y=doc.lastAutoTable.finalY+4}
     // work done
     const desc=[c.fault&&("Fault: "+c.fault),c.work&&("Work done: "+c.work),c.notes&&("Notes: "+c.notes)].filter(Boolean).join("\n");
     const done=c.status==="done"?"Yes":(STATUSES[c.status]||STATUSES.open).label;
-    const wRows=[[c.equipment||"",desc,done]];while(wRows.length<4)wRows.push(["","",""]);
-    doc.autoTable({...grid,startY:y,head:[["EQUIPMENT","DESCRIPTION OF WORK DONE","WORK COMPLETE"]],body:wRows,bodyStyles:{minCellHeight:7},columnStyles:{0:{cellWidth:40},2:{cellWidth:32,halign:"center",fontStyle:"bold"}}});
+    if(mach){const wRows=[[c.equipment||"",desc,done]];while(wRows.length<4)wRows.push(["","",""]);
+      doc.autoTable({...grid,startY:y,head:[["EQUIPMENT","DESCRIPTION OF WORK DONE","WORK COMPLETE"]],body:wRows,bodyStyles:{minCellHeight:7},columnStyles:{0:{cellWidth:40},2:{cellWidth:32,halign:"center",fontStyle:"bold"}}})}
+    else{const wRows=[[desc,done]];while(wRows.length<5)wRows.push(["",""]);
+      doc.autoTable({...grid,startY:y,head:[["DESCRIPTION OF WORK DONE","WORK COMPLETE"]],body:wRows,bodyStyles:{minCellHeight:7},columnStyles:{1:{cellWidth:32,halign:"center",fontStyle:"bold"}}})}
     y=doc.lastAutoTable.finalY+4;
     // parts used (two columns) and parts needed
     const used=[...(c.partsUsed||[]).map(u=>[String(u.qty),[u.partNo,u.desc].filter(Boolean).join("  ")]),
@@ -1280,9 +1310,9 @@ async function pdfSummary(btn){
     stats.forEach(([n,l],i)=>{const x=14+i*36.4;doc.setFillColor(...TINT);doc.rect(x,y,34.4,15,"F");doc.setFont("helvetica","bold");doc.setFontSize(14);doc.setTextColor(...NAVY);doc.text(String(n),x+3,y+7);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(...GREY);doc.text(l,x+3,y+12)});
     if(r.tech!=="all"){doc.setFontSize(9);doc.setTextColor(...INK);doc.text("Technician: "+techName(r.tech),14,y+21)}
     doc.autoTable({startY:y+(r.tech!=="all"?25:20),headStyles:{fillColor:NAVY,textColor:255,fontSize:8},styles:{fontSize:8,cellPadding:1.9,textColor:INK,lineColor:RULE,lineWidth:0.1},alternateRowStyles:{fillColor:[246,248,251]},
-      head:[["Date","Job no.","Customer / site","Machine","Work done","Tech","Status","Hrs"]],
-      body:rows.map(c=>[fmtDate(c.date),c.jobNo,[c.customer,c.site].filter(Boolean).join(", "),[c.equipment,c.serial?`S/N ${c.serial}`:""].filter(Boolean).join("\n"),(c.work||c.fault||"").slice(0,160),techName(c.techId),(STATUSES[c.status]||STATUSES.open).label,hours(c.timeIn,c.timeOut)??"–"]),
-      columnStyles:{0:{cellWidth:18},1:{cellWidth:27},2:{cellWidth:31},3:{cellWidth:25},5:{cellWidth:20},6:{cellWidth:19},7:{cellWidth:9,halign:"right"}},margin:{left:14,right:14,bottom:18}});
+      head:[usesMachines()?["Date","Job no.","Customer / site","Machine","Work done","Tech","Status","Hrs"]:["Date","Job no.","Customer / site","Work done","Tech","Status","Hrs"]],
+      body:rows.map(c=>{const r=[fmtDate(c.date),c.jobNo,[c.customer,c.site].filter(Boolean).join(", "),[c.equipment,c.serial?`S/N ${c.serial}`:""].filter(Boolean).join("\n"),(c.work||c.fault||"").slice(0,160),techName(c.techId),(STATUSES[c.status]||STATUSES.open).label,hours(c.timeIn,c.timeOut)??"–"];if(!usesMachines())r.splice(3,1);return r}),
+      columnStyles:usesMachines()?{0:{cellWidth:18},1:{cellWidth:27},2:{cellWidth:31},3:{cellWidth:25},5:{cellWidth:20},6:{cellWidth:19},7:{cellWidth:9,halign:"right"}}:{0:{cellWidth:18},1:{cellWidth:27},2:{cellWidth:38},4:{cellWidth:22},5:{cellWidth:20},6:{cellWidth:9,halign:"right"}},margin:{left:14,right:14,bottom:18}});
     pdfFooter(doc,await brandData(),"Job summary "+range);
     await saveFile(`Job-summary-${(r.from||"start")}-to-${(r.to||today())}.pdf`,doc.output("blob"),btn);
   }catch(err){console.error(err);toast("Couldn't build the PDF. Try again")}
@@ -1647,7 +1677,7 @@ function loginView(){
     <button class="btn primary" type="submit" id="setupBtn">Create admin account</button>
     <button class="btn" type="button" id="cancelSetup">Back to sign in</button></form>`;
   return `<form id="loginForm" class="stack" novalidate>
-    <div class="welcome"><h2>Macadams job cards</h2><p>Sign in with the username and password your admin gave you.</p></div>
+    <div class="welcome"><h2>Job cards</h2><p>Sign in with the username and password your admin gave you.</p></div>
     <div class="section"><fieldset><legend>Sign in</legend>
       ${srv}
       <label>Username<input id="l_user" autocapitalize="none" autocomplete="username" spellcheck="false" value="${esc(S.loginDraft?.user||"")}"></label>
@@ -1787,7 +1817,7 @@ function startData(){
     softRender();
   }));
   unsubs.push(db.collection("customers").onSnapshot(snap=>{S.customers=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.name).sort((a,b)=>(a.name+a.site).localeCompare(b.name+b.site));softRender()}));
-  unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,showMac:d.showMac!==false,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
+  unsubs.push(db.doc("settings/company").onSnapshot(s=>{const d=s.exists?s.data():{};S.company={name:d.name||MACADAMS.name,footer:d.footer||MACADAMS.footer,showMac:d.showMac!==false,depts:Array.isArray(d.depts)?d.depts:null,machines:d.machines!==false,logoId:d.logoId||"",logoUrl:"",brandLogos:Array.isArray(d.brandLogos)?d.brandLogos:[]};
     $("#coName").textContent=coTitle();setLogo();softRender()}));
 }
 /* ---------- app updates (see vendor.js) ---------- */
