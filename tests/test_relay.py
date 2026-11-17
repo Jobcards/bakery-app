@@ -190,6 +190,16 @@ async def main():
     await login(old,"admin","brand-new-dev-pass"); await old.wait_for_selector(".member:has-text('Old Test Co')",timeout=40000); ok("after signing in again (even on a wiped phone) the carried-over company is still there",True)
     # the admin signs in on a second phone and gets everything
     a2ctx,admin2=await page(b); await login(admin2,"zspadmin","zsp-9999"); await cards(admin2,3); ok("admin signing in on another phone gets all the job cards",True)
+    # black box: the developer sees who did what in a company
+    await admin2.click("#settingsBtn"); await admin2.click("#signOut"); await admin2.wait_for_selector("#l_user",timeout=30000)
+    await dev.click(".member:has-text('Zululand') [data-bbco]"); await dev.wait_for_selector(".bblist",timeout=30000)
+    txt=await dev.inner_text(".bblist")
+    for what in ["Signed in","Created job card","Failed sign-in","Added a login","Changed a password","Switched a login off","Signed out"]:
+        ok(f"black box shows: {what}",what in txt)
+    ok("black box says who and on which phone",("Sipho" in txt) and ("phone " in txt))
+    ok("company phones never download the black box",await admin.evaluate("[...db.entries()].every(([p])=>!p.startsWith('log'))"))
+    await dev.select_option("#bbKind","logins"); n1=await dev.locator(".bbrow").count(); ok("filter: logins only",n1>0 and "Created job card" not in await dev.inner_text(".bblist"))
+    if SHOTS: await shot(dev,"blackbox.png")
     await b.close()
 relay=subprocess.Popen(["node",os.path.join(HERE,"relay.js"),"7447"],stdout=subprocess.DEVNULL)
 web=subprocess.Popen([sys.executable,"-m","http.server","8793","-d",os.path.join(ROOT,"www")],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1.2)

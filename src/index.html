@@ -36,6 +36,12 @@ header.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;backgro
 #coLogo,#coLogo2{height:40px;width:auto;max-width:80px;object-fit:contain}
 .logos{display:flex;gap:6px;flex:none}
 .hint.warn{color:var(--danger)}
+.bblist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+select.bbsel{padding:10px 12px;border:1.5px solid #CBD3E3;border-radius:12px;background:#fff;font:inherit;color:var(--navy);flex:1 1 140px}
+.bbday{font-weight:700;color:var(--navy);margin:12px 0 4px;font-size:.9rem}
+.bbrow{display:flex;gap:12px;background:#fff;border-radius:10px;padding:10px 12px;align-items:flex-start}
+.bbrow.bad{border-left:4px solid var(--danger)}
+.bbt{font-variant-numeric:tabular-nums;color:#555;min-width:42px;padding-top:1px}
 .badge.app{padding:0;background:none;overflow:hidden}
 .badge.app img{width:100%;height:100%;object-fit:cover}
 .badge.co{max-width:84px}
@@ -508,6 +514,9 @@ document.addEventListener("click",e=>{
   if(t.id==="invDelYes"){db.doc("invoices/"+S.invId).delete().then(()=>{S.confirmDel=false;S.view="inv";toast("Invoice deleted");render()});return}
   if(t.dataset.shareco){const c=(S.companies||[]).find(x=>x.id===t.dataset.shareco);if(c)copyText(appLinkText(c));return}
   if(t.id==="shareApp"){copyText(appLinkText(S.company));return}
+  if(t.dataset.bbco){S.bb={co:t.dataset.bbco,list:[],who:"all",kind:"all",days:30};loadBB();return}
+  if(t.id==="bbBack"){S.bb=null;render();return}
+  if(t.id==="bbLoad"){loadBB();return}
   if(t.id==="addCo"){S.coForm={mode:"add",depts:[]};render();return}
   if(t.dataset.codept){const l=t.dataset.codept,d=S.coForm.depts||(S.coForm.depts=[]),i=d.indexOf(l);if(i>-1)d.splice(i,1);else d.push(l);t.setAttribute("aria-pressed",i<0);return}
   if(t.id==="c_deptAdd"){const el=$("#c_deptNew"),l=el.value.replace(/,/g," ").trim();if(!l)return;keepCoInputs();const d=S.coForm.depts||(S.coForm.depts=[]);if(!d.includes(l))d.push(l);S.coForm.co={...(S.coForm.co||{}),depts:[...new Set([...(S.coForm.co?.depts||[]),l])]};render();return}
@@ -562,8 +571,8 @@ document.addEventListener("click",e=>{
   else if(t.id==="delYes")deleteCard();
   else if(t.id==="cancelForm"){S.view=S.form?.id?"detail":"list";S.form=null;render()}
   else if(t.dataset.rm!=null){S.form.photos.splice(+t.dataset.rm,1);renderPhotos()}
-  else if(t.id==="pdfOne")pdfJob(S.cards.find(c=>c.id===S.detailId),t);
-  else if(t.id==="copyOne")copyText(jobText(S.cards.find(c=>c.id===S.detailId)));
+  else if(t.id==="pdfOne"){const c=S.cards.find(c=>c.id===S.detailId);bb("pdf",[c?.jobNo,c?.customer].filter(Boolean).join(" · "),c?.jobNo||"");pdfJob(c,t)}
+  else if(t.id==="copyOne"){const c=S.cards.find(c=>c.id===S.detailId);bb("share",[c?.jobNo,c?.customer].filter(Boolean).join(" · "),c?.jobNo||"");copyText(jobText(c))}
   else if(t.id==="pdfSum")pdfSummary(t);
   else if(t.id==="copySum")copyText(summaryText());
 });
@@ -576,6 +585,7 @@ document.addEventListener("input",e=>{
   else if(e.target.dataset.cap!=null){S.form.photos[+e.target.dataset.cap].caption=e.target.value}
 });
 document.addEventListener("change",e=>{
+  if(S.bb&&["bbWho","bbKind","bbDays"].includes(e.target.id)){const v=e.target.value;if(e.target.id==="bbWho")S.bb.who=v;else if(e.target.id==="bbKind")S.bb.kind=v;else{S.bb.days=+v;loadBB();return}render();return}
   const id=e.target.id;
   if(id==="c_logo"&&e.target.files[0]){pickCoLogo(e.target.files[0]);e.target.value="";return}
   if(id==="f_customer"||id==="f_site"){custAssist(true);return}
@@ -587,6 +597,7 @@ document.addEventListener("change",e=>{
 document.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="partForm")savePart();else if(e.target.id==="jobForm")saveCard();else if(e.target.id==="setForm")saveSettings();else if(e.target.id==="loginForm")doLogin();else if(e.target.id==="setupForm")doSetup();else if(e.target.id==="teamForm")saveTeam();else if(e.target.id==="invForm")saveInvoice();else if(e.target.id==="coForm")saveCompany()});
 
 /* ---------- form ---------- */
+const FIELD_NAMES={jobType:"job type",dept:"department",partsNeeded:"parts needed",km:"km",signName:"signed by",serviceCo:"service company",jobNo:"job number",date:"date",timeIn:"time in",timeOut:"time out",customer:"customer",site:"site",contact:"contact",custRef:"order no.",equipment:"equipment",model:"model",serial:"serial",fault:"fault",work:"work done",parts:"parts",notes:"notes"};
 const FIELDS=["jobType","dept","partsNeeded","km","signName","serviceCo","jobNo","date","timeIn","timeOut","status","customer","site","contact","custRef","equipment","model","serial","fault","work","parts","notes"];
 function startForm(c,pre){
   S.form=c?{...c,photos:(c.photos||[]).map(p=>({...p})),partsUsed:(c.partsUsed||[]).map(u=>({...u})),_orig:(c.partsUsed||[]).map(u=>({...u}))}:{partsUsed:[],_orig:[],jobNo:newJobNo(),date:today(),timeIn:"",timeOut:"",status:"done",serviceCo:LS("serviceCo")||"",customer:"",site:"",contact:"",custRef:"",equipment:"",model:"",serial:"",fault:"",work:"",parts:"",notes:"",signName:"",jobType:"",dept:"",partsNeeded:"",photos:[],...(pre||{})};
@@ -631,8 +642,14 @@ async function saveCard(){
   data.signId=sign.id;data.signedAt=sign.at;
   for(const b of ["#saveTop","#saveBottom"])$(b).disabled=true;
   try{
+    const before=f.id?S.cards.find(x=>x.id===f.id):null,who=[data.jobNo,data.customer].filter(Boolean).join(" · ");
     if(f.id){data.techId=f.techId||meId||"";data.techName=f.techName||techName(data.techId);data.createdAt=f.createdAt||Date.now();await db.collection("jobcards").doc(f.id).set(data);S.detailId=f.id}
     else{data.techId=meId||"";data.techName=S.myName||"";data.createdAt=Date.now();const ref=await db.collection("jobcards").add(data);S.detailId=ref.id}
+    if(!before)bb("new",who,data.jobNo);
+    else{const ch=FIELDS.filter(k=>k!=="status"&&String(before[k]||"")!==String(data[k]||""));
+      if((before.status||"open")!==(data.status||"open"))bb("status",`${who}: ${(STATUSES[before.status]||STATUSES.open).label} → ${(STATUSES[data.status]||STATUSES.open).label}`,data.jobNo);
+      if(ch.length||JSON.stringify(before.partsUsed||[])!==JSON.stringify(data.partsUsed)||(before.photos||[]).length!==data.photos.length||(before.signId||"")!==data.signId)
+        bb("edit",`${who}${ch.length?" · "+ch.map(k=>FIELD_NAMES[k]||k).join(", "):""}`,data.jobNo)}
     const stockErr=await applyStock(data.techId,f._orig||[],data.partsUsed);
     rememberCustomer(data).catch(err=>console.warn(err));
     S.form=null;S.view="detail";S.confirmDel=false;toast(stockErr?"Job card saved, but van stock didn't update. Check Van stock":"Job card saved");render();
@@ -640,7 +657,7 @@ async function saveCard(){
 }
 async function deleteCard(){
   const c=S.cards.find(x=>x.id===S.detailId);
-  try{await db.collection("jobcards").doc(S.detailId).delete();if(c?.partsUsed?.length)await applyStock(c.techId,c.partsUsed,[]);S.view="list";toast("Job card deleted");render()}
+  try{await db.collection("jobcards").doc(S.detailId).delete();bb("del",[c?.jobNo,c?.customer].filter(Boolean).join(" · "),c?.jobNo||"");if(c?.partsUsed?.length)await applyStock(c.techId,c.partsUsed,[]);S.view="list";toast("Job card deleted");render()}
   catch(_){toast("Couldn't delete. Try again")}
 }
 async function saveSettings(){
@@ -969,7 +986,35 @@ function readInvSettings(){const g=id=>$("#"+id);if(!g("v_enabled"))return null;
    The developer's list of companies lives in the developer's own space and is never sent to the companies. */
 let isDev=false;
 const clubOf=sk=>({sk,pk:NT.getPublicKey(NT.hexToBytes(sk))});
+function bbView(){
+  const b=S.bb,co=(S.companies||[]).find(x=>x.id===b.co)||{};
+  const people=[...new Map(b.list.map(e=>[e.who||e.ref,e.name||e.ref||"?"])).entries()].sort((x,y)=>String(x[1]).localeCompare(y[1]));
+  const rows=b.list.filter(e=>(b.who==="all"||(e.who||e.ref)===b.who)&&(b.kind==="all"||BB_GROUP(e.a)===b.kind));
+  let day="";const out=[];
+  for(const e of rows){const d=fmtDate(new Date(e.at).toISOString().slice(0,10));if(d!==day){day=d;out.push(`<li class="bbday">${esc(d)}</li>`)}
+    out.push(`<li class="bbrow${e.a==="fail"||e.a==="del"?" bad":""}"><span class="bbt">${new Date(e.at).toTimeString().slice(0,5)}</span><div><b>${esc(BB_LABEL[e.a]||e.a)}</b>${e.detail?` <span>${esc(e.detail)}</span>`:""}
+      <div class="hint">${e.a==="fail"?"On this phone: ":`${esc(e.name||"Unknown")}${e.role?` · ${e.role==="admin"?"admin":"tech"}`:""} · `}${esc(e.model||"")} ${e.phone?`(phone ${esc(e.phone)})`:""} · app ${esc(e.app||"")}${e.flavor?` ${e.flavor==="general"?"Job Cards":"Macadams"}`:""}</div></div></li>`)}
+  return `<div class="stack">
+    <div class="formbar"><button class="btn icon-btn" id="bbBack" type="button">${ic("back")}Companies</button><b>${esc(co.name||"")}</b><button class="btn icon-btn" id="bbLoad" type="button">Refresh</button></div>
+    <div class="row wrap">
+      <select class="bbsel" id="bbWho" aria-label="Person"><option value="all">Everyone</option>${people.map(([id,n])=>`<option value="${esc(id)}" ${b.who===id?"selected":""}>${esc(n)}</option>`).join("")}</select>
+      <select class="bbsel" id="bbKind" aria-label="What"><option value="all">Everything</option><option value="cards" ${b.kind==="cards"?"selected":""}>Job cards</option><option value="logins" ${b.kind==="logins"?"selected":""}>Logins & users</option></select>
+      <select class="bbsel" id="bbDays" aria-label="How far back">${[7,30,90,365].map(n=>`<option value="${n}" ${b.days===n?"selected":""}>Last ${n} days</option>`).join("")}</select>
+    </div>
+    ${b.loading?`<div class="empty"><p>Reading the black box…</p></div>`:b.err?`<div class="empty"><p>${esc(b.err)}</p></div>`:rows.length?`<ul class="bblist">${out.join("")}</ul><p class="hint">${rows.length} entr${rows.length===1?"y":"ies"}. Only you see this. Entries from a phone arrive when it's online.</p>`:`<div class="empty"><p>Nothing recorded${b.who!=="all"||b.kind!=="all"?" for this filter":""} in the last ${b.days} days.</p></div>`}
+  </div>`}
+async function loadBB(){
+  const b=S.bb,co=(S.companies||[]).find(x=>x.id===b.co);if(!co?.sk)return;
+  b.loading=true;b.err="";render();
+  try{const club=clubOf(co.sk),since=Math.floor(Date.now()/1000)-b.days*86400;
+    const evs=await rpool().querySync(RELAYS,{kinds:[REC_KIND],authors:[club.pk],"#t":[LOG_T],since,limit:3000},{maxWait:10000});
+    const seen=new Set(),list=[];
+    for(const e of evs){try{const o=dec(e.content,club);if(!o||!o.id||seen.has(o.id))continue;seen.add(o.id);list.push(o)}catch(_){}}
+    list.sort((x,y)=>y.at-x.at);if(S.bb===b)b.list=list}
+  catch(_){b.err="Couldn't reach the internet. Try Refresh"}
+  b.loading=false;if(S.bb===b&&S.view==="dev")render()}
 function devView(){
+  if(S.bb)return bbView();
   const f=S.coForm;
   if(f){const add=f.mode==="add",c=f.co||{};return `<form id="coForm" class="stack" novalidate>
     <div class="formbar"><button class="btn icon-btn" id="cancelCo" type="button">Cancel</button><b>${add?"Add company":"Edit company"}</b><button class="btn primary icon-btn" type="submit" id="coSave">Save</button></div>
@@ -1002,7 +1047,7 @@ function devView(){
   const list=[...S.companies].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${list.length} compan${list.length===1?"y":"ies"}</span><button class="btn primary" id="addCo" type="button">${ic("plus")}Add company</button></div>
     ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who">${c.logoThumb?`<img class="cothumb" src="${esc(c.logoThumb)}" alt="">`:""}<b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.currency||"ZAR"}, ${[c.quotes&&"quotes",c.invoicing&&"invoices"].filter(Boolean).join(" and ")||"no quotes or invoices"}</span></div>
-      ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button><button class="btn icon-btn" type="button" data-shareco="${esc(c.id)}">${ic("share")}App link</button>${S.coOff===c.id?`<span class="hint" style="align-self:center">Switch ${esc(c.name)} off?</span><button class="btn icon-btn danger" type="button" data-cooffyes="${esc(c.id)}">Switch off</button><button class="btn icon-btn" type="button" data-cooffno="1">Keep on</button>`:c.active===false?`<button class="btn icon-btn" type="button" data-coon="${esc(c.id)}">Switch on</button>`:`<button class="btn icon-btn danger" type="button" data-cooff="${esc(c.id)}">Switch off</button>`}</div></div>`).join("")
+      ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button><button class="btn icon-btn" type="button" data-shareco="${esc(c.id)}">${ic("share")}App link</button><button class="btn icon-btn" type="button" data-bbco="${esc(c.id)}">Black box</button>${S.coOff===c.id?`<span class="hint" style="align-self:center">Switch ${esc(c.name)} off?</span><button class="btn icon-btn danger" type="button" data-cooffyes="${esc(c.id)}">Switch off</button><button class="btn icon-btn" type="button" data-cooffno="1">Keep on</button>`:c.active===false?`<button class="btn icon-btn" type="button" data-coon="${esc(c.id)}">Switch on</button>`:`<button class="btn icon-btn danger" type="button" data-cooff="${esc(c.id)}">Switch off</button>`}</div></div>`).join("")
     :`<div class="empty"><h2>No companies yet</h2><p>Add each company with its details and an admin login. Each company only ever sees its own job cards.</p></div>`}</div>`;
 }
 async function readDocC(club,path){
@@ -1455,7 +1500,7 @@ window.onBack=()=>{
   if(S.view==="form"){S.view=S.form?.id?"detail":"list";S.form=null;render();return true}
   if(S.view==="invform"){S.view=S.invForm?.id?(S.invKind==="quo"?"quoview":"invview"):"inv";S.invForm=null;S.fromQuote=null;render();return true}
   if(S.view==="invview"||S.view==="quoview"){S.view="inv";render();return true}
-  if(S.view==="dev"){if(S.coForm){S.coForm=null;render();return true}return false}
+  if(S.view==="dev"){if(S.bb){S.bb=null;render();return true}if(S.coForm){S.coForm=null;render();return true}return false}
   if(S.view==="van"&&S.partForm){S.partForm=null;render();return true}
   if(S.view==="customer"){S.view="cust";render();return true}
   if(S.view==="team"&&S.teamForm){S.teamForm=null;render();return true}
@@ -1519,6 +1564,32 @@ function rpool(){return RL.pool||(RL.pool=new NT.SimplePool({enableReconnect:tru
 async function publish(ev){let last;for(let a=0;a<3;a++){try{return await Promise.any(rpool().publish(RELAYS,ev))}catch(e){last=e;await new Promise(r=>setTimeout(r,800*(a+1)))}}throw last}
 const sendTime=path=>Math.max(Math.floor(Date.now()/1000),((RM[path]||[])[1]||0)+1);
 /* send one record; big ones (photos) are split into parts */
+/* ---------- black box: who did what, for the developer only ----------
+   Each entry goes into the company's own space under a separate tag, so the company's phones never download them.
+   Entries wait on the phone and go up when it's online. */
+const LOG_T="mjc-log",BB_LABEL={new:"Created job card",edit:"Edited job card",status:"Changed status",del:"Deleted job card",pdf:"Exported job card PDF",share:"Shared job card text",
+  in:"Signed in",out:"Signed out",fail:"Failed sign-in",setup:"Set up the company",adduser:"Added a login",pw:"Changed a password",off:"Switched a login off",on:"Switched a login on"};
+const BB_GROUP=a=>["new","edit","status","del","pdf","share"].includes(a)?"cards":"logins";
+const phoneModel=()=>{const ua=navigator.userAgent||"",m=ua.match(/Android [\d.]+; (?:[a-z]{2}[-_][a-z]{2}; )?([^;)]+)/i);return m?m[1].replace(/ Build\/.*/,"").trim():/iPhone|iPad/.test(ua)?"iPhone":"Browser"};
+const phoneId=()=>{let id=LS("phoneId");if(!id){id=newId().slice(-6).toUpperCase();LS("phoneId",id)}return id};
+function bb(a,detail,ref,at){try{if(!relayMode()||!CLUB||isDev||!hasNT())return;
+  const q=JSON.parse(LS("bb.q")||"[]");
+  q.push({id:newId(),co:CLUB.pk,at:at||Date.now(),who:meId||"",name:S.myName||"",role:isAdmin?"admin":"tech",a,detail:detail||"",ref:ref||"",
+    phone:phoneId(),model:phoneModel(),app:"1.0."+(window.Updater?.build?.()||window.APP_BUILD||"?"),flavor:window.APP_FLAVOR||""});
+  LS("bb.q",JSON.stringify(q.slice(-1000)));flushBB()}catch(_){}}
+async function flushBB(){
+  if(RL.bbBusy||!CLUB||!hasNT()||navigator.onLine===false)return;RL.bbBusy=true;
+  try{for(;;){const q=JSON.parse(LS("bb.q")||"[]"),e=q.find(x=>x.co===CLUB.pk);if(!e)break;
+    const {co,...body}=e;
+    await publish(NT.finalizeEvent({kind:REC_KIND,created_at:Math.floor(e.at/1000),tags:[["d",dTag("l|"+e.id)],["t",LOG_T]],content:enc(body)},skB()));
+    LS("bb.q",JSON.stringify(JSON.parse(LS("bb.q")||"[]").filter(x=>x.id!==e.id)))}}
+  catch(_){}finally{RL.bbBusy=false}}
+/* failed sign-ins can't be written straight away (no company key without the right password), so the phone keeps them
+   and sends them in with the next good sign-in to a company that has that username */
+function noteFailedLogin(u){try{const l=JSON.parse(LS("bb.fail")||"[]");l.push({u,at:Date.now(),model:phoneModel()});LS("bb.fail",JSON.stringify(l.slice(-50)))}catch(_){}}
+function sendFailedLogins(users){try{const l=JSON.parse(LS("bb.fail")||"[]"),names=new Set((users||[]).map(x=>x.username)),keep=[],old=Date.now()-30*864e5;
+  for(const f of l){if(f.at<old)continue;if(names.has(f.u))bb("fail",`Wrong password typed for "${f.u}"`,f.u,f.at);else keep.push(f)}
+  LS("bb.fail",JSON.stringify(keep))}catch(_){}}
 async function sendDoc(path,data,ts,club){ // club: another company's space (developer only); otherwise this phone's company
   const json=JSON.stringify({p:path,d:data===undefined?null:data,ts}),d=dTag("r|"+path,club);let content,t=club?Math.floor(Date.now()/1000):sendTime(path);
   if(club){ // writing into a company's space: go after whatever its phones last wrote there, so the relays keep this version
@@ -1571,6 +1642,7 @@ async function relaySyncNow(){
   SY.busy=true;showSync();
   try{
     if(navigator.onLine===false)throw {offline:true};
+    flushBB();
     if(!RL.sub)connectRelay();
     await waitEose();await RL.q;await flushBuf();
     const paths=Object.keys(dirty).sort((a,b)=>b.startsWith("blobs/")-a.startsWith("blobs/"));
@@ -1621,7 +1693,7 @@ async function relayApi(path,body){
     setClub(NT.bytesToHex(NT.generateSecretKey()));
     const u={id:"u"+newId(),name:body.name,username:body.username,role:"admin",active:true,pv:1,blk:0};
     await publishTicket(u.username,body.password);
-    RL.afterEnter=()=>setUsers([u]);return {token:"relay",user:u}});
+    RL.afterEnter=()=>{setUsers([u]);bb("setup",body.name||"")};return {token:"relay",user:u}});
   if(path==="/api/login")return net(async()=>{
     if(body.username===BASE.username){ // the developer: adds companies, sees none of their job cards
       if(String(body.password||"").length<DEV_MIN)throw {msg:`The developer password must be ${DEV_MIN} or more characters`};
@@ -1639,6 +1711,7 @@ async function relayApi(path,body){
     if(!u&&base){const {password,...a}=BASE;u=a;RL.afterEnter=()=>{const cur=getUsers();if(!cur.some(x=>x.id===a.id))setUsers([a,...cur])}} // first sign-in anywhere: the admin starts the list
     if(!u)throw {msg:"This login isn't ready yet. Open the admin's phone so it can sync, then try again"};
     if(u.active===false)throw {msg:"This login is switched off. Speak to the admin"};
+    RL.loginUsers=list||[];
     const acc=await readDocC(CLUB,"settings/account");
     if(acc&&acc.active===false)throw {msg:"This company's access is switched off. Speak to Macadams"};
     await db.applyRemote([{path:"settings/account",data:acc||{active:true}}],true); // drop an old "switched off" note kept on this phone
@@ -1646,12 +1719,15 @@ async function relayApi(path,body){
   if(path==="/api/users")return net(async()=>{
     const list=getUsers();if(list.some(x=>x.username===body.username))throw {msg:"That username is taken. Choose another"};
     const u={id:"u"+newId(),name:body.name,username:body.username,role:"tech",active:true,pv:1,blk:Math.max(list.length,...list.map(x=>(+x.blk||0)+1))};
-    await publishTicket(u.username,body.password);await setUsers([...list,u]);return {user:u}});
+    await publishTicket(u.username,body.password);await setUsers([...list,u]);bb("adduser",`${u.name} (${u.username})`,u.username);return {user:u}});
   if(path.startsWith("/api/users/"))return net(async()=>{
     const list=getUsers(),u=list.find(x=>x.id===decodeURIComponent(path.slice(11)));if(!u)throw {msg:"No such login"};
     if(typeof body.password==="string"){await publishTicket(u.username,body.password);u.pv=(u.pv||1)+1}
-    if(typeof body.active==="boolean"&&u.role!=="admin")u.active=body.active;
-    await setUsers(list);return {user:u}});
+    const was=u.active!==false;if(typeof body.active==="boolean"&&u.role!=="admin")u.active=body.active;
+    await setUsers(list);
+    if(typeof body.password==="string")bb("pw",`${u.name} (${u.username})`,u.username);
+    if(typeof body.active==="boolean"&&u.role!=="admin"&&was!==body.active)bb(body.active?"on":"off",`${u.name} (${u.username})`,u.username);
+    return {user:u}});
   throw {status:404,msg:"Not found"};
 }
 /* keeps this phone's login in step with the admin's list: switched off or new password means sign in again */
@@ -1710,7 +1786,8 @@ async function doLogin(){
   S.loginDraft={user:un,server:SY.url};
   const b=$("#loginBtn");b.disabled=true;b.textContent="Signing in…";
   try{const res=await api("/api/login",{username:un,password:pw});await enter(res.token,res.user)}
-  catch(err){if(relayMode()&&(CLUB?.sk||null)!==prevClub)setClub(prevClub);if(!profile)SY.url=SY.sameOrigin?SY.url:(S.useServer?SY.url:prevUrl);toast(errMsg(err,"Wrong username or password"));const x=$("#loginBtn");if(x){x.disabled=false;x.textContent="Sign in"}}
+  catch(err){if(relayMode()&&err&&err.msg==="Wrong username or password"&&un!==BASE.username)noteFailedLogin(un);
+    if(relayMode()&&(CLUB?.sk||null)!==prevClub)setClub(prevClub);if(!profile)SY.url=SY.sameOrigin?SY.url:(S.useServer?SY.url:prevUrl);toast(errMsg(err,"Wrong username or password"));const x=$("#loginBtn");if(x){x.disabled=false;x.textContent="Sign in"}}
 }
 async function doSetup(){
   const name=$("#a_name").value.trim(),un=normUser($("#a_user").value),pw=$("#a_pass").value;
@@ -1744,6 +1821,7 @@ async function enter(token,user){
   }
   SY.token=token;LS("token",token);LS("profile",JSON.stringify(user));LS("lastUser",user.id);LS("lastName",user.name||"");LS("server",SY.url);
   openApp(user);
+  if(!isDev){bb("in","",user.username);if(RL.loginUsers){sendFailedLogins(RL.loginUsers);RL.loginUsers=null}}
 }
 function openApp(user){
   stopData();
@@ -1753,6 +1831,7 @@ function openApp(user){
 }
 async function trySignOut(){
   if(pendingCount()){await syncNow();if(pendingCount()){toast("Job cards on this phone haven't synced yet. Get online and let it sync before signing out");return}}
+  if(!isDev){bb("out","",profile?.username||"");await Promise.race([flushBB(),new Promise(r=>setTimeout(r,4000))])}
   api("/api/logout",{}).catch(()=>{});forceSignOut();
 }
 
