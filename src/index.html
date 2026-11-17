@@ -1,5 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Job Cards</title>
+<link rel="icon" href="app-icon.png">
 <meta name="theme-color" content="#16254E">
 <link rel="stylesheet" href="fonts.css">
 <script src="lib/jspdf.umd.min.js"></script>
@@ -34,8 +35,9 @@ header.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;backgro
 .badge{flex:none;height:54px;min-width:54px;max-width:96px;padding:5px 8px;border-radius:12px;background:#fff;display:grid;place-items:center;border-bottom:4px solid var(--yellow)}
 #coLogo,#coLogo2{height:40px;width:auto;max-width:80px;object-fit:contain}
 .logos{display:flex;gap:6px;flex:none}
-.badge.app{color:var(--navy)}
-.badge.app svg{width:34px;height:34px}
+.hint.warn{color:var(--danger)}
+.badge.app{padding:0;background:none;overflow:hidden}
+.badge.app img{width:100%;height:100%;object-fit:cover}
 .badge.co{max-width:84px}
 @media (max-width:380px){.badge{max-width:70px}#coLogo,#coLogo2{max-width:56px}}
 .titles{min-width:0;flex:1;display:flex;flex-direction:column}
@@ -252,7 +254,7 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 
 <header class="appbar">
   <div class="wrap bar">
-    <span class="logos"><span class="badge app" id="appBadge" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6v3H9z"/><path d="M9 5H6v16h12V5h-3"/><path d="M9 12h6M9 16h4"/></svg></span><span class="badge" id="macBadge"><img id="coLogo" src="macadams-logo.png" alt="Macadams"></span><span class="badge co" id="coBadge" hidden><img id="coLogo2" alt=""></span></span>
+    <span class="logos"><span class="badge app" id="appBadge" hidden><img src="app-icon.png" alt="Job Cards"></span><span class="badge" id="macBadge"><img id="coLogo" src="macadams-logo.png" alt="Macadams"></span><span class="badge co" id="coBadge" hidden><img id="coLogo2" alt=""></span></span>
     <div class="titles"><span id="coName">Macadams International</span><h1 id="viewTitle">Job cards</h1><span id="syncState" class="sync"></span></div>
     <button class="iconbtn" id="settingsBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.5"/><circle cx="9" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/></svg></button>
   </div>
@@ -274,7 +276,11 @@ th{color:var(--muted);font-weight:600;font-size:.84rem;background:#F7F9FC}
 <script>
 const MACADAMS={name:"",footer:""}; // each company's own name and details are set when the developer adds it
 const signedOut=()=>["login","wait"].includes(S.view);
-const coTitle=()=>signedOut()?"Job Cards":isDev?"Developer":(S.company.name||"Job cards");
+/* Two versions of the app: Macadams (Macadams icon) and Job Cards (for other companies). The Macadams add-on tick on a company decides which one its people install. */
+const APK_LINK={macadams:"https://github.com/freddieschallies/bakery-app/releases/latest/download/BakeryJobCards.apk",general:"https://github.com/freddieschallies/bakery-app/releases/latest/download/JobCards.apk"};
+const flavorFor=co=>co&&co.showMac===false?"general":"macadams";
+const appLinkText=co=>`Install the ${flavorFor(co)==="general"?"Job Cards":"Macadams Job Cards"} app for ${co.name||"your company"}:\n${APK_LINK[flavorFor(co)]}\n\nOpen the link on the phone, install, then sign in with the username and password your admin gives you.`;
+const coTitle=()=>signedOut()?(window.APP_FLAVOR==="macadams"?"Macadams International":"Job Cards"):isDev?"Developer":(S.company.name||"Job cards");
 const STATUSES={open:{label:"Open",cls:"s-open"},done:{label:"Completed",cls:"s-done"},follow:{label:"Follow-up needed",cls:"s-follow"},parts:{label:"Awaiting parts",cls:"s-parts"}};
 const EQUIP=["Rack oven","Deck oven","Convection oven","Combi oven (iCombi)","Pizza oven","Prover","Dough mixer","Confectionery mixer","Kneader","Moulder","Divider / rounder","Bread slicer","Cake slicer","Pastry sheeter","Doughnut fryer","Fryer","Biscuit machine","Water meter / chiller","Chicken griller","Griddle","Fridge","Freezer","Blast chiller","Counter / merchandiser","Slicer","Food waste disposer","Ice machine","Dishwasher"];
 const S={view:"list",invoices:[],quotes:[],invKind:"inv",billTab:"quo",invCfg:null,companies:[],customers:[],custQ:"",custId:null,cards:[],loaded:false,error:null,filter:"all",q:"",detailId:null,form:null,confirmDel:false,company:{name:MACADAMS.name,footer:MACADAMS.footer,logoId:"",logoUrl:"",brandLogos:[]},logoDraft:null,brandDraft:null,vans:{},vanTech:null,vanQ:"",partForm:null,techs:[],names:{},
@@ -500,6 +506,8 @@ document.addEventListener("click",e=>{
   if(t.id==="invDelAsk"){S.confirmDel=true;render();return}
   if(t.id==="invDelNo"){S.confirmDel=false;render();return}
   if(t.id==="invDelYes"){db.doc("invoices/"+S.invId).delete().then(()=>{S.confirmDel=false;S.view="inv";toast("Invoice deleted");render()});return}
+  if(t.dataset.shareco){const c=(S.companies||[]).find(x=>x.id===t.dataset.shareco);if(c)copyText(appLinkText(c));return}
+  if(t.id==="shareApp"){copyText(appLinkText(S.company));return}
   if(t.id==="addCo"){S.coForm={mode:"add",depts:[]};render();return}
   if(t.dataset.codept){const l=t.dataset.codept,d=S.coForm.depts||(S.coForm.depts=[]),i=d.indexOf(l);if(i>-1)d.splice(i,1);else d.push(l);t.setAttribute("aria-pressed",i<0);return}
   if(t.id==="c_deptAdd"){const el=$("#c_deptNew"),l=el.value.replace(/,/g," ").trim();if(!l)return;keepCoInputs();const d=S.coForm.depts||(S.coForm.depts=[]);if(!d.includes(l))d.push(l);S.coForm.co={...(S.coForm.co||{}),depts:[...new Set([...(S.coForm.co?.depts||[]),l])]};render();return}
@@ -646,7 +654,7 @@ async function saveSettings(){
 function logoDraftId(){return S.logoDraft?S.logoDraft.id:S.company.logoId}
 const DEFAULT_LOGO="macadams-logo.png";
 function setLogo(){const im=$("#coLogo2"),b=$("#coBadge");if(!im)return;const id=S.company.logoId;
-  $("#appBadge").hidden=!signedOut();$("#macBadge").hidden=signedOut()||(!isDev&&S.company.showMac===false); // Macadams is an add-on per company
+  const mac=window.APP_FLAVOR==="macadams";$("#appBadge").hidden=!signedOut()||mac;$("#macBadge").hidden=signedOut()?!mac:(!isDev&&S.company.showMac===false); // Macadams is an add-on per company
   if(!id||isDev||signedOut()){b.hidden=true;return}
   const u=blobSrc(id);if(u){if(im.getAttribute("src")!==u)im.src=u;b.hidden=false}
   else{b.hidden=true;blobUrl(id).then(x=>{if(x&&S.company.logoId===id)setLogo()}).catch(()=>{})}}
@@ -994,7 +1002,7 @@ function devView(){
   const list=[...S.companies].sort((a,b)=>(a.name||"").localeCompare(b.name||""));
   return `<div class="stack"><div class="row" style="justify-content:space-between;align-items:center"><span class="hint">${list.length} compan${list.length===1?"y":"ies"}</span><button class="btn primary" id="addCo" type="button">${ic("plus")}Add company</button></div>
     ${list.length?list.map(c=>`<div class="member${c.active===false?" off":""}"><div class="who">${c.logoThumb?`<img class="cothumb" src="${esc(c.logoThumb)}" alt="">`:""}<b>${esc(c.name)}</b><span>Admin: ${esc(c.adminName)} (${esc(c.adminUser)})</span><span>${c.showMac===false?"Own logo only":"With the Macadams logo"}, ${c.currency||"ZAR"}, ${[c.quotes&&"quotes",c.invoicing&&"invoices"].filter(Boolean).join(" and ")||"no quotes or invoices"}</span></div>
-      ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button>${S.coOff===c.id?`<span class="hint" style="align-self:center">Switch ${esc(c.name)} off?</span><button class="btn icon-btn danger" type="button" data-cooffyes="${esc(c.id)}">Switch off</button><button class="btn icon-btn" type="button" data-cooffno="1">Keep on</button>`:c.active===false?`<button class="btn icon-btn" type="button" data-coon="${esc(c.id)}">Switch on</button>`:`<button class="btn icon-btn danger" type="button" data-cooff="${esc(c.id)}">Switch off</button>`}</div></div>`).join("")
+      ${c.active===false?`<span class="pill s-open">Switched off</span>`:`<span class="pill s-done">Active</span>`}<div class="row"><button class="btn icon-btn" type="button" data-editco="${esc(c.id)}">${ic("edit")}Edit</button><button class="btn icon-btn" type="button" data-shareco="${esc(c.id)}">${ic("share")}App link</button>${S.coOff===c.id?`<span class="hint" style="align-self:center">Switch ${esc(c.name)} off?</span><button class="btn icon-btn danger" type="button" data-cooffyes="${esc(c.id)}">Switch off</button><button class="btn icon-btn" type="button" data-cooffno="1">Keep on</button>`:c.active===false?`<button class="btn icon-btn" type="button" data-coon="${esc(c.id)}">Switch on</button>`:`<button class="btn icon-btn danger" type="button" data-cooff="${esc(c.id)}">Switch off</button>`}</div></div>`).join("")
     :`<div class="empty"><h2>No companies yet</h2><p>Add each company with its details and an admin login. Each company only ever sees its own job cards.</p></div>`}</div>`;
 }
 async function readDocC(club,path){
@@ -1792,6 +1800,8 @@ function accountSection(){
   return `<div class="section"><fieldset><legend>Signed in</legend>
       <dl class="kv"><dt>Name</dt><dd>${esc(S.myName)}</dd><dt>Username</dt><dd>${esc(profile?.username||"")}</dd><dt>Role</dt><dd>${isDev?"Developer":isAdmin?"Company admin":"Technician"}</dd><dt>Syncs</dt><dd>${relayMode()?"Phone to phone, no server":"To "+esc(SY.url.replace(/^https?:\/\//,""))}</dd><dt>App version</dt><dd id="appVer">1.0.${esc(String(window.APP_BUILD||0))}</dd><dt>Waiting to sync</dt><dd>${n?n+" change"+(n===1?"":"s"):"Nothing"}</dd></dl>
       <p class="hint">${isDev?"You add companies and their admin logins. Each company only sees its own job cards.":isAdmin?"You see every technician's job cards in your company.":"Your job cards are saved on this phone and go to the admin when the phone is online."}</p>
+      ${!isDev&&window.Native?.isNative()&&flavorFor(S.company)!==window.APP_FLAVOR?`<p class="hint warn">${esc(S.company.name||"Your company")} uses the ${flavorFor(S.company)==="general"?"Job Cards":"Macadams Job Cards"} app. Make sure everything has synced, install it from <a href="${APK_LINK[flavorFor(S.company)]}">this link</a>, sign in there, then remove this one.</p>`:""}
+      ${isAdmin&&!isDev?`<div class="row"><button class="btn icon-btn" id="shareApp" type="button">${ic("share")}Share the app link with a tech</button></div>`:""}
       <div class="row"><button class="btn" id="updCheck" type="button">Check for updates</button><button class="btn" id="syncBtn" type="button">Sync now</button><button class="btn" id="signOut" type="button">Sign out</button></div>
     </fieldset></div>`;
 }
@@ -1824,6 +1834,7 @@ function startData(){
 const U=()=>window.Native?.isNative()&&window.Updater;
 const isIdle=()=>["list","login","wait","dev","cust","reports","inv","van"].includes(S.view)&&!S.pick&&!S.partForm&&!S.teamForm&&!S.coForm&&!S.invForm&&!S.form;
 function updBar(html){const b=$("#updBar");if(!b)return;b.innerHTML=html||"";b.hidden=!html}
+window.onFlavor=()=>{try{setLogo();render()}catch(_){}};
 window.onUpdate=info=>{
   if(info.type==="apk"){S.apkUrl=info.url;updBar(`<div class="updbar"><span>A new version of the app (${esc(info.version||"")}) is ready to install.</span><button class="btn icon-btn" id="updApk" type="button">Download</button></div>`);return}
   if(isIdle()){toast("Updating the app…");setTimeout(()=>U()&&Updater.apply(),900)}

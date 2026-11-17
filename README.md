@@ -67,3 +67,17 @@ Settings shows the app version and has **Check for updates**.
 - `scripts/publish-update.mjs` - puts each build on the public `updates` branch, where phones check for updates
 
 To try it in a browser: `npm install && npm run build`, then serve the `www` folder.
+
+## Two versions of the app
+
+The same code builds two APKs:
+
+- **Macadams Job Cards** (`BakeryJobCards.apk`, app id `com.bakerytech.jobcards`): Macadams icon, for companies with the Macadams add-on ticked.
+- **Job Cards** (`JobCards.apk`, app id `com.bakerytech.jobcards.general`): clipboard icon, for every other company.
+
+Download links that always give the newest build:
+
+- https://github.com/freddieschallies/bakery-app/releases/latest/download/BakeryJobCards.apk
+- https://github.com/freddieschallies/bakery-app/releases/latest/download/JobCards.apk
+
+The developer's company list and the company admin's settings both have a button that shares the right link. Web updates reach both versions; when a new APK is needed each phone is sent its own version.

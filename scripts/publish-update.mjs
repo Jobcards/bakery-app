@@ -33,7 +33,8 @@ cpSync("www", join(out, "web"), { recursive: true });
 const files = walk(join(out, "web")).map((f) => relative(join(out, "web"), f).split("\\").join("/")).sort();
 writeFileSync(join(out, "update.json"), JSON.stringify({
   web: BUILD, version: `1.0.${BUILD}`, minNative, nativeHash,
-  apk: `https://github.com/${REPO}/releases/download/build-${BUILD}/BakeryJobCards.apk`,
+  apk: `https://github.com/${REPO}/releases/download/build-${BUILD}/BakeryJobCards.apk`, // Macadams version (name kept so older phones still find it)
+  apkGeneral: `https://github.com/${REPO}/releases/download/build-${BUILD}/JobCards.apk`, // general Job Cards version
   files, published: new Date().toISOString(),
 }, null, 2));
 writeFileSync(join(out, "README.md"), "Update channel for the Bakery Job Cards app. Written by the Build APK workflow; don't edit by hand.\n");

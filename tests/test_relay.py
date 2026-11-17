@@ -123,6 +123,8 @@ async def main():
     ok("company with quotes only gets a Quotes tab",await cbs.inner_text("#tabInvLbl")=="Quotes" and not await cbs.eval_on_selector("#tabInv","e=>e.hidden"))
     m=await cbs.evaluate("money(1234.5)"); ok("its amounts are in meticais",m=="1.234,50 MT",m)
     await cbs.click("#tabList"); await cbs.click("#fab"); await cbs.wait_for_selector("#f_customer")
+    lk=await cbs.evaluate("appLinkText(S.company)"); ok("its app link is the Job Cards version",lk.endswith("") and "JobCards.apk" in lk and "BakeryJobCards" not in lk,lk[:80])
+    ok("company admin can share the app link",await cbs.evaluate("accountSection().includes('shareApp')"))
     ok("company without machines: no machine, model or serial on its job card",await cbs.eval_on_selector("#f_equipment","e=>e.closest('.section').hidden"))
     chips=await cbs.eval_on_selector_all("[data-tog^='dept:']","e=>e.map(x=>x.textContent)"); ok("its own departments, including one it added (Solar)",chips==["Plumbing","Solar"],str(chips))
     await cbs.click("[data-tog='dept:Solar']"); await cbs.fill("#f_customer","Harbour Flats"); await cbs.fill("#f_work","Replaced geyser valve"); await cbs.click("#saveBottom"); await cbs.wait_for_selector("#pdfOne")

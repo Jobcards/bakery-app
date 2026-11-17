@@ -55,6 +55,14 @@ async function fetchWithTimeout(url, ms) {
   try { return await fetch(url, { cache: "no-store", signal: c.signal }); } finally { clearTimeout(t); }
 }
 
+// Which version of the app this is: the Macadams one (com.bakerytech.jobcards) or the general Job Cards one (…general).
+// The web files are the same for both; only the installed APK differs. In a browser it counts as the general one.
+window.APP_FLAVOR = "general";
+if (Capacitor.isNativePlatform()) App.getInfo().then((i) => {
+  window.APP_FLAVOR = /\.general$/.test(i.id) ? "general" : "macadams";
+  window.onFlavor && window.onFlavor(window.APP_FLAVOR);
+}).catch(() => {});
+
 window.Updater = {
   build: () => +thisBuild(),
   async nativeBuild() { try { return +(await App.getInfo()).build || 0; } catch (_) { return 0; } },
@@ -71,7 +79,7 @@ window.Updater = {
       try { const r = await fetchWithTimeout(UPDATE_URL + "update.json?t=" + Date.now(), 15000); if (!r.ok) return "offline"; u = await r.json(); }
       catch (_) { return "offline"; }
       const native = await this.nativeBuild(), web = +u.web || 0;
-      if (native && native < (+u.minNative || 0)) { window.onUpdate && window.onUpdate({ type: "apk", version: u.version, url: u.apk }); return "apk"; }
+      if (native && native < (+u.minNative || 0)) { window.onUpdate && window.onUpdate({ type: "apk", version: u.version, url: window.APP_FLAVOR === "general" ? (u.apkGeneral || u.apk) : u.apk }); return "apk"; }
       if (web <= +thisBuild() || String(web) === lsGet("upd.bad")) return "current";
       const pending = JSON.parse(lsGet("upd.pending") || "null");
       if (pending && pending.build === web) { window.onUpdate && window.onUpdate({ type: "web", build: web }); return "web"; }

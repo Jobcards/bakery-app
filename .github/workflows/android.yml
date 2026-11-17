@@ -31,14 +31,6 @@ jobs:
           npm ci
           npm run build
 
-      - name: Create Android project
-        env:
-          BUILD_NUMBER: ${{ github.run_number }}
-        run: |
-          npx cap add android
-          node scripts/patch-android.mjs
-          npx cap sync android
-
       - name: Unlock the signing key (so updates install over the old app)
         env:
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
@@ -46,27 +38,42 @@ jobs:
           if [ -z "$KEYSTORE_PASS" ]; then echo "::error::Add the KEYSTORE_PASS secret (Settings > Secrets and variables > Actions)"; exit 1; fi
           mkdir -p ~/.android
           openssl enc -d -aes-256-cbc -pbkdf2 -iter 300000 -in ci/signing.keystore.enc -out ~/.android/debug.keystore -pass env:KEYSTORE_PASS
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Build APK
+      # Two versions from the same code: Macadams (Macadams icon and name) and Job Cards (clipboard icon) for other companies
+      - name: Build both APKs
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk ../BakeryJobCards.apk
+          build() {
+            rm -rf android
+            node -e 'const f="capacitor.config.json",c=JSON.parse(require("fs").readFileSync(f));c.appId=process.argv[1];c.appName=process.argv[2];require("fs").writeFileSync(f,JSON.stringify(c,null,2))' "$2" "$3"
+            npx cap add android
+            FLAVOR=$1 node scripts/patch-android.mjs
+            npx cap sync android
+            echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+            (cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon)
+            cp android/app/build/outputs/apk/debug/app-debug.apk "$4"
+          }
+          build macadams com.bakerytech.jobcards "Macadams Job Cards" BakeryJobCards.apk
+          build general com.bakerytech.jobcards.general "Job Cards" JobCards.apk
+          git checkout -- capacitor.config.json
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BakeryJobCards-apk
-          path: BakeryJobCards.apk
+          name: apks
+          path: |
+            BakeryJobCards.apk
+            JobCards.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Bakery Job Cards 1.0.${{ github.run_number }}
-          body: "Download BakeryJobCards.apk below and open it on the phone to install or update."
-          files: BakeryJobCards.apk
+          name: Job Cards 1.0.${{ github.run_number }}
+          body: "BakeryJobCards.apk is the Macadams version, JobCards.apk is the general Job Cards version. Open it on the phone to install or update."
+          files: |
+            BakeryJobCards.apk
+            JobCards.apk
           make_latest: true
 
       - name: Publish the update for phones
