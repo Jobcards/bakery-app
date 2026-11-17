@@ -18,21 +18,24 @@ const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 const caps = Object.entries({ ...pkg.dependencies, ...pkg.devDependencies }).filter(([k]) => k.startsWith("@capacitor/")).sort();
 const h = createHash("sha256");
 h.update(JSON.stringify(caps));
-for (const f of ["capacitor.config.json", "scripts/patch-android.mjs", ".github/workflows/android.yml", ...walk("resources").sort()])
+// only what the web app relies on inside the APK: the Capacitor plugins and app settings.
+// Icons, signing and build steps don't change what the app can run, so they never force an APK on the phones.
+for (const f of ["capacitor.config.json"])
   if (existsSync(f)) { h.update(f); h.update(readFileSync(f)); }
 const nativeHash = h.digest("hex").slice(0, 16);
 
 const remote = process.env.UPDATE_REMOTE || `https://x-access-token:${TOKEN}@github.com/${REPO}.git`; // UPDATE_REMOTE: for testing
 let prev = null;
 try { prev = JSON.parse(execSync(`git fetch -q --depth 1 ${remote} updates && git show FETCH_HEAD:update.json`, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })); } catch (_) {}
-const minNative = prev && prev.nativeHash === nativeHash ? prev.minNative : BUILD;
+const HASH_V = 2; // how nativeHash is worked out; a change in the formula alone doesn't force an APK
+const minNative = prev && (prev.nativeHash === nativeHash || (prev.hashV || 1) !== HASH_V) ? prev.minNative : BUILD;
 
 const out = "/tmp/update-channel";
 rmSync(out, { recursive: true, force: true }); mkdirSync(out);
 cpSync("www", join(out, "web"), { recursive: true });
 const files = walk(join(out, "web")).map((f) => relative(join(out, "web"), f).split("\\").join("/")).sort();
 writeFileSync(join(out, "update.json"), JSON.stringify({
-  web: BUILD, version: `1.0.${BUILD}`, minNative, nativeHash,
+  web: BUILD, version: `1.0.${BUILD}`, minNative, nativeHash, hashV: HASH_V,
   apk: `https://github.com/${REPO}/releases/download/build-${BUILD}/BakeryJobCards.apk`, // Macadams version (name kept so older phones still find it)
   apkGeneral: `https://github.com/${REPO}/releases/download/build-${BUILD}/JobCards.apk`, // general Job Cards version
   files, published: new Date().toISOString(),

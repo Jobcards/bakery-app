@@ -14,5 +14,18 @@ const gradle = "android/app/build.gradle";
 let g = readFileSync(gradle, "utf8");
 const code = parseInt(process.env.BUILD_NUMBER || "1", 10);
 g = g.replace(/versionCode \d+/, `versionCode ${code}`).replace(/versionName "[^"]*"/, `versionName "1.0.${code}"`);
+// Always sign with our own key (ci/signing.keystore.enc), never a throwaway one, so a new APK installs over the old app
+const ks = process.env.SIGNING_KEYSTORE;
+if (ks && !g.includes("SIGNING_KEYSTORE")) {
+  g = g.replace(/android\s*\{/, `android {
+    signingConfigs {
+        debug {
+            storeFile file(System.getenv("SIGNING_KEYSTORE"))
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }`);
+}
 writeFileSync(gradle, g);
 console.log(`Android patched (${FLAVOR}): versionCode ${code}`);
